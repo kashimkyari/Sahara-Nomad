@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, SafeAreaView, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Input } from '../../components/ui/Input';
 import { useTheme } from '../../constants/theme';
 
@@ -8,7 +9,7 @@ export default function SearchScreen() {
   const styles = getStyles(colors, typography, spacing, radius);
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
       <View style={styles.container}>
         <Text style={styles.title}>Find a Runner</Text>
         <Input 

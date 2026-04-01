@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, SafeAreaView, FlatList, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../constants/theme';
 
 export default function MessagesScreen() {
@@ -12,7 +13,7 @@ export default function MessagesScreen() {
   ];
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
       <View style={styles.container}>
         <Text style={styles.title}>Messages</Text>
         {messages.map((msg) => (
