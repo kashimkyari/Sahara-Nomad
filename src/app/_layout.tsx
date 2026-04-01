@@ -38,6 +38,8 @@ export default function RootLayout() {
       <Stack.Screen name="auth" />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="new-errand" />
+      <Stack.Screen name="waka/[id]" />
+      <Stack.Screen name="runner/[id]" />
     </Stack>
   );
 }

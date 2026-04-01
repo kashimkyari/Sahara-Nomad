@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useRef } from 'react';
 import {
   View,
   Text,
@@ -7,12 +7,9 @@ import {
   Image,
   StyleSheet,
   Animated,
-  Dimensions,
-  PanResponder,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Card } from '../../components/ui/Card';
 import {
   Bell,
   Plus,
@@ -58,11 +55,11 @@ export default function HomeScreen() {
             <Text style={styles.username}>Chidi 👋</Text>
           </View>
           <View style={styles.headerRight}>
-            <TouchableOpacity style={styles.bellWrapper}>
+            <TouchableOpacity style={styles.bellWrapper} onPress={() => router.push('/(tabs)/profile')}>
               <Bell size={22} color={DT.colors.text} strokeWidth={2.5} />
               <View style={styles.bellDot} />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.avatarBox}>
+            <TouchableOpacity style={styles.avatarBox} onPress={() => router.push('/(tabs)/profile')}>
               <Image
                 source={{ uri: 'https://i.pravatar.cc/150?u=chidi' }}
                 style={styles.avatar}
@@ -81,7 +78,11 @@ export default function HomeScreen() {
               contentContainerStyle={styles.horizontalList}
             >
               {activeWakas.map((waka) => (
-                <TouchableOpacity key={waka.id} style={styles.wakaCardWrapper}>
+                <TouchableOpacity
+                  key={waka.id}
+                  style={styles.wakaCardWrapper}
+                  onPress={() => router.push(`/waka/${waka.id}`)}
+                >
                   <View style={styles.wakaCard}>
                     <View style={styles.wakaLive}>
                       <Text style={styles.wakaLiveText}>LIVE</Text>
@@ -116,7 +117,7 @@ export default function HomeScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionLabel}>RUNNERS NEARBY</Text>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={() => router.push('/(tabs)/search')}>
               <Text style={styles.seeAll}>See all</Text>
             </TouchableOpacity>
           </View>

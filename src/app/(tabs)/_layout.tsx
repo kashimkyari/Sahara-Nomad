@@ -40,7 +40,7 @@ export default function TabLayout() {
       <NativeTabs.Trigger name="search" role="search" {...triggerOptions}>
         <NativeTabs.Trigger.Label>Runners</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
-          src={<NativeTabs.Trigger.VectorIcon family={Ionicons} name="search-sharp" />}
+          src={<NativeTabs.Trigger.VectorIcon family={Ionicons} name="search" />}
         />
       </NativeTabs.Trigger>
 
