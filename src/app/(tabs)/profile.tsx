@@ -1,7 +1,7 @@
+import { CreditCard, HelpCircle, LogOut, Settings, Shield } from 'lucide-react-native';
 import React from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Settings, Shield, CreditCard, HelpCircle, LogOut } from 'lucide-react-native';
 import { useTheme } from '../../constants/theme';
 
 export default function ProfileScreen() {
@@ -19,7 +19,7 @@ export default function ProfileScreen() {
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <View style={styles.container}>
         <Text style={styles.title}>Profile</Text>
-        
+
         <View style={styles.profileHeader}>
           <View style={styles.avatarContainer}>
             <Image source={{ uri: 'https://i.pravatar.cc/150?u=tobi' }} style={styles.avatar} />
@@ -50,6 +50,7 @@ const getStyles = (colors: any, typography: any, spacing: any, radius: any) => S
   safeArea: {
     flex: 1,
     backgroundColor: colors.background,
+    paddingBottom: 100
   },
   container: {
     flex: 1,
