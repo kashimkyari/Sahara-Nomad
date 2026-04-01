@@ -9,7 +9,7 @@ const menuItems = [
   { icon: CreditCard, label: 'Payment Methods', route: '/settings/payment' },
   { icon: Shield, label: 'Trust & Safety', route: '/settings/safety' },
   { icon: HelpCircle, label: 'Support', route: '/settings/support' },
-  { icon: Settings, label: 'Settings', route: '/settings' },
+  { icon: Settings, label: 'Settings', route: '/settings/index' },
 ];
 
 export default function ProfileScreen() {

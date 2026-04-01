@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, ChevronRight, CreditCard, Plus, Trash2 } from 'lucide-react-native';
@@ -10,8 +10,25 @@ const cards = [
   { id: '2', label: 'GTBank Mastercard', number: '•••• •••• •••• 9873', type: 'Card', active: false },
 ];
 
+const transactions = [
+  { id: '0', label: 'Waka — Mile 12 Run', amount: '-₦2,500', date: 'Today, 12:45', positive: false },
+  { id: '1', label: 'Wallet Top-up', amount: '+₦10,000', date: 'Yesterday', positive: true },
+  { id: '2', label: 'Waka — Shoprite Lekki', amount: '-₦3,000', date: 'Mon, Apr 31', positive: false },
+];
+
 export default function PaymentScreen() {
   const router = useRouter();
+
+  const handleDelete = (card: typeof cards[number]) => {
+    Alert.alert(
+      'Remove Payment Method',
+      `Remove ${card.label} from your account?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Remove', style: 'destructive', onPress: () => {} },
+      ]
+    );
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -29,7 +46,7 @@ export default function PaymentScreen() {
           <Text style={styles.walletLabel}>SENDAM WALLET</Text>
           <Text style={styles.walletBalance}>₦ 12,400.00</Text>
           <Text style={styles.walletSub}>Available balance</Text>
-          <TouchableOpacity style={styles.fundBtn}>
+          <TouchableOpacity style={styles.fundBtn} onPress={() => router.push('/payment/fund-wallet' as any)}>
             <Text style={styles.fundBtnText}>Fund Wallet</Text>
           </TouchableOpacity>
         </View>
@@ -37,7 +54,7 @@ export default function PaymentScreen() {
         {/* Cards */}
         <Text style={styles.sectionLabel}>SAVED CARDS & ACCOUNTS</Text>
         {cards.map((card) => (
-          <View key={card.id} style={styles.cardRow}>
+          <TouchableOpacity key={card.id} style={styles.cardRow} onPress={() => router.push(`/payment/card/${card.id}` as any)}>
             <View style={[styles.cardIcon, card.active && styles.cardIconActive]}>
               <CreditCard size={20} color={card.active ? DT.colors.surface : DT.colors.text} strokeWidth={2} />
             </View>
@@ -48,26 +65,22 @@ export default function PaymentScreen() {
                 <View style={styles.activePill}><Text style={styles.activePillText}>DEFAULT</Text></View>
               )}
             </View>
-            <TouchableOpacity style={styles.deleteBtn}>
+            <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDelete(card)}>
               <Trash2 size={16} color={DT.colors.error} strokeWidth={2} />
             </TouchableOpacity>
-          </View>
+          </TouchableOpacity>
         ))}
 
         {/* Add new */}
-        <TouchableOpacity style={styles.addBtn}>
+        <TouchableOpacity style={styles.addBtn} onPress={() => router.push('/payment/add-method' as any)}>
           <Plus size={20} color={DT.colors.text} strokeWidth={2.5} />
           <Text style={styles.addBtnText}>Add Card or Account</Text>
         </TouchableOpacity>
 
         {/* Transactions */}
         <Text style={styles.sectionLabel}>RECENT TRANSACTIONS</Text>
-        {[
-          { label: 'Waka — Mile 12 Run', amount: '-₦2,500', date: 'Today, 12:45', positive: false },
-          { label: 'Wallet Top-up', amount: '+₦10,000', date: 'Yesterday', positive: true },
-          { label: 'Waka — Shoprite Lekki', amount: '-₦3,000', date: 'Mon, Apr 31', positive: false },
-        ].map((tx, i) => (
-          <View key={i} style={styles.txRow}>
+        {transactions.map((tx) => (
+          <TouchableOpacity key={tx.id} style={styles.txRow} onPress={() => router.push(`/payment/transaction/${tx.id}` as any)}>
             <View style={[styles.txDot, { backgroundColor: tx.positive ? DT.colors.secondary : DT.colors.primary }]} />
             <View style={styles.txInfo}>
               <Text style={styles.txLabel}>{tx.label}</Text>
@@ -76,7 +89,8 @@ export default function PaymentScreen() {
             <Text style={[styles.txAmount, { color: tx.positive ? DT.colors.secondary : DT.colors.text }]}>
               {tx.amount}
             </Text>
-          </View>
+            <ChevronRight size={14} color={DT.colors.muted} />
+          </TouchableOpacity>
         ))}
       </ScrollView>
     </SafeAreaView>

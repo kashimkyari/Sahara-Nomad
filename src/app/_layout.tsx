@@ -50,6 +50,10 @@ export default function RootLayout() {
       <Stack.Screen name="settings/change-password" />
       <Stack.Screen name="settings/become-runner" />
       <Stack.Screen name="settings/language" />
+      <Stack.Screen name="payment/fund-wallet" />
+      <Stack.Screen name="payment/add-method" />
+      <Stack.Screen name="payment/card/[id]" />
+      <Stack.Screen name="payment/transaction/[id]" />
     </Stack>
   );
 }
