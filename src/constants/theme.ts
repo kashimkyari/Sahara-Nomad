@@ -4,36 +4,63 @@
  */
 
 
-import { Platform } from 'react-native';
+import { useColorScheme, Platform } from 'react-native';
 
 export const Colors = {
   light: {
-    text: '#000000',
-    background: '#ffffff',
-    backgroundElement: '#F0F0F3',
-    backgroundSelected: '#E0E1E6',
-    textSecondary: '#60646C',
+    text: '#1A1F36',
+    background: '#FFFFFF',
+    tint: '#0A2540',
+    icon: '#8792A2',
+    tabIconDefault: '#8792A2',
+    tabIconSelected: '#0A2540',
   },
   dark: {
-    text: '#ffffff',
-    background: '#000000',
-    backgroundElement: '#212225',
-    backgroundSelected: '#2E3135',
-    textSecondary: '#B0B4BA',
+    text: '#FFFFFF',
+    background: '#1A1F36',
+    tint: '#0A2540',
+    icon: '#8792A2',
+    tabIconDefault: '#8792A2',
+    tabIconSelected: '#FFFFFF',
   },
 } as const;
 
-export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
+export function useThemeColor(
+  props: { light?: string; dark?: string },
+  colorName: keyof typeof Colors.light & keyof typeof Colors.dark
+) {
+  const scheme = useColorScheme();
+  const theme = scheme === 'dark' ? 'dark' : 'light';
+  const colorFromProps = props[theme];
+
+  if (colorFromProps) {
+    return colorFromProps;
+  } else {
+    return Colors[theme][colorName];
+  }
+}
+
+import { DesignTokens } from './design';
+
+export function useTheme() {
+  const scheme = useColorScheme();
+  const theme = scheme === 'dark' ? 'dark' : 'light';
+  
+  return {
+    theme,
+    isDark: theme === 'dark',
+    colors: DesignTokens.colors[theme],
+    typography: DesignTokens.typography,
+    radius: DesignTokens.radius,
+    spacing: DesignTokens.spacing,
+  };
+}
 
 export const Fonts = Platform.select({
   ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
     sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
     serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
     rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
     mono: 'ui-monospace',
   },
   default: {
@@ -41,12 +68,6 @@ export const Fonts = Platform.select({
     serif: 'serif',
     rounded: 'normal',
     mono: 'monospace',
-  },
-  web: {
-    sans: 'var(--font-display)',
-    serif: 'var(--font-serif)',
-    rounded: 'var(--font-rounded)',
-    mono: 'var(--font-mono)',
   },
 });
 
@@ -62,3 +83,4 @@ export const Spacing = {
 
 export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
 export const MaxContentWidth = 800;
+

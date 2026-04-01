@@ -4,16 +4,19 @@ import { useRouter } from 'expo-router';
 import { Card } from '../../components/ui/Card';
 import { VerifiedBadge } from '../../components/ui/VerifiedBadge';
 import { Search, Package, ShoppingBag, Utensils, Plus, ArrowRight } from 'lucide-react-native';
-import { DesignTokens as theme } from '../../constants/design';
+import { useTheme } from '../../constants/theme';
 
 export default function DashboardScreen() {
   const router = useRouter();
+  const { colors, typography, spacing, radius } = useTheme();
+
+  const styles = getStyles(colors, typography, spacing, radius);
 
   const quickActions = [
-    { id: 'source', label: 'Source Item', icon: ShoppingBag, color: theme.colors.primary },
-    { id: 'deliver', label: 'Deliver Package', icon: Package, color: theme.colors.primary },
-    { id: 'food', label: 'Food Run', icon: Utensils, color: theme.colors.primary },
-    { id: 'custom', label: 'Custom Errand', icon: Plus, color: theme.colors.primary },
+    { id: 'source', label: 'Source Item', icon: ShoppingBag, color: colors.primary },
+    { id: 'deliver', label: 'Deliver Package', icon: Package, color: colors.primary },
+    { id: 'food', label: 'Food Run', icon: Utensils, color: colors.primary },
+    { id: 'custom', label: 'Custom Errand', icon: Plus, color: colors.primary },
   ];
 
   const recentRunners = [
@@ -103,42 +106,42 @@ export default function DashboardScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, typography: any, spacing: any, radius: any) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: colors.background,
   },
   flex1: {
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: theme.spacing.md,
-    paddingBottom: theme.spacing.xl,
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.xl,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: theme.spacing.md,
+    paddingVertical: spacing.md,
   },
   greetingText: {
-    fontFamily: theme.typography.body,
+    fontFamily: typography.body,
     fontSize: 14,
-    color: theme.colors.muted,
+    color: colors.muted,
   },
   nameText: {
-    fontFamily: theme.typography.heading,
+    fontFamily: typography.heading,
     fontSize: 24,
     fontWeight: 'bold',
-    color: theme.colors.text,
+    color: colors.text,
   },
   avatarContainer: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: colors.border,
     overflow: 'hidden',
   },
   avatar: {
@@ -146,10 +149,10 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   sectionMargin: {
-    marginBottom: theme.spacing.lg,
+    marginBottom: spacing.lg,
   },
   activeErrandCard: {
-    padding: theme.spacing.lg,
+    padding: spacing.lg,
   },
   activeErrandHeader: {
     flexDirection: 'row',
@@ -157,26 +160,26 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   activeErrandLabel: {
-    fontFamily: theme.typography.bodyMedium,
-    color: theme.colors.background,
+    fontFamily: typography.bodyMedium,
+    color: 'white', // Primary card background is dark, so text should be white
     fontSize: 13,
     opacity: 0.8,
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
   activeErrandTitle: {
-    fontFamily: theme.typography.heading,
-    color: theme.colors.background,
+    fontFamily: typography.heading,
+    color: 'white',
     fontSize: 18,
     fontWeight: 'bold',
     marginTop: 4,
   },
   sectionTitle: {
-    fontFamily: theme.typography.heading,
+    fontFamily: typography.heading,
     fontSize: 18,
     fontWeight: 'bold',
-    color: theme.colors.text,
-    marginBottom: theme.spacing.md,
+    color: colors.text,
+    marginBottom: spacing.md,
   },
   gridContainer: {
     flexDirection: 'row',
@@ -185,59 +188,60 @@ const styles = StyleSheet.create({
   },
   gridItemContainer: {
     width: '48%',
-    marginBottom: theme.spacing.md,
+    marginBottom: spacing.md,
   },
   gridItemCard: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: theme.spacing.lg,
+    paddingVertical: spacing.lg,
   },
   gridItemLabel: {
-    fontFamily: theme.typography.bodyMedium,
+    fontFamily: typography.bodyMedium,
     fontSize: 13,
-    color: theme.colors.text,
-    marginTop: theme.spacing.md,
+    color: colors.text,
+    marginTop: spacing.md,
     textAlign: 'center',
   },
   horizontalScroll: {
-    marginHorizontal: -theme.spacing.md,
+    marginHorizontal: -spacing.md,
   },
   horizontalScrollContent: {
-    paddingHorizontal: theme.spacing.md,
+    paddingHorizontal: spacing.md,
   },
   runnerCardWrapper: {
-    marginRight: theme.spacing.md,
-    marginBottom: theme.spacing.md,
+    marginRight: spacing.md,
+    marginBottom: spacing.md,
   },
   runnerCard: {
     width: 160,
     alignItems: 'center',
-    paddingVertical: theme.spacing.md,
+    paddingVertical: spacing.md,
   },
   runnerAvatarContainer: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    marginBottom: theme.spacing.md,
+    borderColor: colors.border,
+    marginBottom: spacing.md,
     overflow: 'hidden',
   },
   runnerName: {
-    fontFamily: theme.typography.heading,
+    fontFamily: typography.heading,
     fontSize: 15,
     fontWeight: 'bold',
-    color: theme.colors.text,
+    color: colors.text,
   },
   runnerBadge: {
     marginTop: 4,
   },
   runnerRating: {
-    fontFamily: theme.typography.body,
+    fontFamily: typography.body,
     fontSize: 13,
-    color: theme.colors.muted,
+    color: colors.muted,
     marginTop: 4,
   },
 });
+
 

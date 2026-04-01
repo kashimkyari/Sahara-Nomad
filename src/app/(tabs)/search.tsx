@@ -1,9 +1,12 @@
 import React from 'react';
 import { View, Text, SafeAreaView, StyleSheet } from 'react-native';
 import { Input } from '../../components/ui/Input';
-import { DesignTokens as theme } from '../../constants/design';
+import { useTheme } from '../../constants/theme';
 
 export default function SearchScreen() {
+  const { colors, typography, spacing, radius } = useTheme();
+  const styles = getStyles(colors, typography, spacing, radius);
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
@@ -26,51 +29,52 @@ export default function SearchScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, typography: any, spacing: any, radius: any) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: colors.background,
   },
   container: {
     flex: 1,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
   },
   title: {
-    fontFamily: theme.typography.heading,
+    fontFamily: typography.heading,
     fontSize: 24,
     fontWeight: 'bold',
-    color: theme.colors.text,
-    marginBottom: theme.spacing.md,
+    color: colors.text,
+    marginBottom: spacing.md,
   },
   inputContainer: {
-    marginBottom: theme.spacing.lg,
+    marginBottom: spacing.lg,
   },
   sectionTitle: {
-    fontFamily: theme.typography.heading,
+    fontFamily: typography.heading,
     fontSize: 18,
     fontWeight: 'bold',
-    color: theme.colors.text,
-    marginBottom: theme.spacing.md,
+    color: colors.text,
+    marginBottom: spacing.md,
   },
   tagsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
   },
   tag: {
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-    backgroundColor: theme.colors.surface,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.radius.sm,
-    marginRight: theme.spacing.sm,
-    marginBottom: theme.spacing.sm,
+    borderColor: colors.border,
+    borderRadius: radius.sm,
+    marginRight: spacing.sm,
+    marginBottom: spacing.sm,
   },
   tagText: {
-    fontFamily: theme.typography.bodyMedium,
-    color: theme.colors.text,
+    fontFamily: typography.bodyMedium,
+    color: colors.text,
     fontSize: 13,
   },
 });
+
 

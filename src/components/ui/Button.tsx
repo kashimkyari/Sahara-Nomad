@@ -6,7 +6,7 @@ import {
   TouchableOpacityProps,
   StyleSheet
 } from 'react-native';
-import { DesignTokens as theme } from '../../constants/design';
+import { useTheme } from '../../constants/theme';
 
 interface ButtonProps extends TouchableOpacityProps {
   title: string;
@@ -21,22 +21,37 @@ export const Button = ({
   style, 
   ...props 
 }: ButtonProps) => {
+  const { colors, spacing, radius, typography } = useTheme();
 
   const getVariantStyle = () => {
     switch (variant) {
-      case 'primary': return styles.primary;
-      case 'secondary': return styles.secondary;
-      case 'outline': return styles.outline;
-      case 'ghost': return styles.ghost;
+      case 'primary': return {
+        backgroundColor: colors.primary,
+        borderColor: colors.primary,
+        borderWidth: 1,
+      };
+      case 'secondary': return {
+        backgroundColor: colors.surface,
+        borderColor: colors.border,
+        borderWidth: 1,
+      };
+      case 'outline': return {
+        backgroundColor: 'transparent',
+        borderColor: colors.primary,
+        borderWidth: 1,
+      };
+      case 'ghost': return {
+        backgroundColor: 'transparent',
+      };
     }
   };
 
   const getTextVariantStyle = () => {
     switch (variant) {
-      case 'primary': return styles.textPrimary;
-      case 'secondary': return styles.textSecondary;
-      case 'outline': return styles.textOutline;
-      case 'ghost': return styles.textGhost;
+      case 'primary': return { color: colors.background };
+      case 'secondary': return { color: colors.text };
+      case 'outline': return { color: colors.primary };
+      case 'ghost': return { color: colors.primary };
     }
   };
 
@@ -44,13 +59,22 @@ export const Button = ({
     <TouchableOpacity 
       activeOpacity={0.8}
       disabled={loading || props.disabled}
-      style={[styles.base, getVariantStyle(), style]}
+      style={[
+        styles.base, 
+        { borderRadius: radius.sm, paddingHorizontal: spacing.md },
+        getVariantStyle(), 
+        style
+      ]}
       {...props}
     >
       {loading ? (
-        <ActivityIndicator color={variant === 'primary' ? 'white' : theme.colors.primary} />
+        <ActivityIndicator color={variant === 'primary' ? 'white' : colors.primary} />
       ) : (
-        <Text style={[styles.textBase, getTextVariantStyle()]}>
+        <Text style={[
+          styles.textBase, 
+          { fontFamily: typography.heading },
+          getTextVariantStyle()
+        ]}>
           {title}
         </Text>
       )}
@@ -64,35 +88,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: theme.radius.sm,
-    paddingHorizontal: theme.spacing.md,
-  },
-  primary: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
-    borderWidth: 1,
-  },
-  secondary: {
-    backgroundColor: theme.colors.surface,
-    borderColor: theme.colors.border,
-    borderWidth: 1,
-  },
-  outline: {
-    backgroundColor: 'transparent',
-    borderColor: theme.colors.primary,
-    borderWidth: 1,
-  },
-  ghost: {
-    backgroundColor: 'transparent',
   },
   textBase: {
-    fontFamily: theme.typography.heading,
     fontSize: 15,
     fontWeight: '600',
   },
-  textPrimary: { color: theme.colors.background },
-  textSecondary: { color: theme.colors.text },
-  textOutline: { color: theme.colors.primary },
-  textGhost: { color: theme.colors.primary },
 });
+
 

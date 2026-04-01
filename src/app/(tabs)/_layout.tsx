@@ -1,50 +1,55 @@
+import { Ionicons } from '@expo/vector-icons';
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
-import { Home, MessageSquare, Search, User } from 'lucide-react-native';
 import React from 'react';
-import { DesignTokens as theme } from '../../constants/design';
+import { useTheme } from '../../constants/theme';
 
 export default function TabLayout() {
+  const { colors, isDark } = useTheme();
+
+  const activeColor = isDark ? '#ffffff' : colors.primary;
+  const inactiveColor = colors.muted;
+
   return (
     <NativeTabs
-      tintColor={theme.colors.primary}
+      tintColor={activeColor}
       labelStyle={{
         default: {
           fontFamily: 'WorkSans_500Medium',
           fontSize: 12,
-          color: '#8792A2',
+          color: inactiveColor,
         },
         selected: {
           fontFamily: 'WorkSans_500Medium',
           fontSize: 12,
-          color: theme.colors.primary,
+          color: activeColor,
         },
       }}
     >
       <NativeTabs.Trigger name="index">
         <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
-          src={<Home size={24} color={theme.colors.primary} />}
+          src={<NativeTabs.Trigger.VectorIcon family={Ionicons} name="home" />}
         />
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="search" role='search'>
         <NativeTabs.Trigger.Label>Search</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
-          src={<Search size={24} color={theme.colors.primary} />}
+          src={<NativeTabs.Trigger.VectorIcon family={Ionicons} name="search" />}
         />
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="messages">
         <NativeTabs.Trigger.Label>Messages</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
-          src={<MessageSquare size={24} color={theme.colors.primary} />}
+          src={<NativeTabs.Trigger.VectorIcon family={Ionicons} name="chatbubble" />}
         />
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="profile">
         <NativeTabs.Trigger.Label>Profile</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
-          src={<User size={24} color={theme.colors.primary} />}
+          src={<NativeTabs.Trigger.VectorIcon family={Ionicons} name="person" />}
         />
       </NativeTabs.Trigger>
     </NativeTabs>

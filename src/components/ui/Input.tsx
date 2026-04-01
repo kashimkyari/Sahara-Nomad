@@ -3,12 +3,12 @@ import {
   View, 
   Text, 
   TextInput, 
-  TextInputProps,
-  Platform,
+  TextInputProps, 
   StyleSheet,
-  ViewStyle
+  ViewStyle,
+  Platform
 } from 'react-native';
-import { DesignTokens as theme } from '../../constants/design';
+import { useTheme } from '../../constants/theme';
 
 interface InputProps extends TextInputProps {
   label?: string;
@@ -23,17 +23,30 @@ export const Input = ({
   style,
   ...props 
 }: InputProps) => {
+  const { colors, typography, spacing, radius } = useTheme();
+
   return (
-    <View style={[styles.container, containerStyle]}>
+    <View style={[styles.container, { marginBottom: spacing.md }, containerStyle]}>
       {label && (
-        <Text style={styles.label}>
+        <Text style={[
+          styles.label, 
+          { fontFamily: typography.bodyMedium, color: colors.text }
+        ]}>
           {label}
         </Text>
       )}
       <TextInput
-        placeholderTextColor={theme.colors.muted}
+        placeholderTextColor={colors.muted}
         style={[
           styles.input,
+          {
+            backgroundColor: colors.surface,
+            borderColor: colors.border,
+            borderRadius: radius.sm,
+            fontFamily: typography.body,
+            color: colors.text,
+            paddingHorizontal: spacing.md,
+          },
           error ? styles.inputError : null,
           Platform.OS === 'web' ? { outlineStyle: 'none' } as any : null,
           style
@@ -41,7 +54,10 @@ export const Input = ({
         {...props}
       />
       {error && (
-        <Text style={styles.errorText}>
+        <Text style={[
+          styles.errorText, 
+          { fontFamily: typography.body }
+        ]}>
           {error}
         </Text>
       )}
@@ -51,24 +67,15 @@ export const Input = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: theme.spacing.md,
   },
   label: {
-    fontFamily: theme.typography.bodyMedium,
-    color: theme.colors.text,
     fontSize: 13,
     marginBottom: 6,
   },
   input: {
     height: 56,
-    paddingHorizontal: theme.spacing.md,
-    backgroundColor: theme.colors.surface,
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.radius.sm,
-    fontFamily: theme.typography.body,
     fontSize: 16,
-    color: theme.colors.text,
   },
   inputError: {
     borderColor: '#D92D20',
@@ -77,7 +84,7 @@ const styles = StyleSheet.create({
     color: '#D92D20',
     fontSize: 12,
     marginTop: 4,
-    fontFamily: theme.typography.body,
   },
 });
+
 

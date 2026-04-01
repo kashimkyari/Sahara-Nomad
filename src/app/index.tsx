@@ -2,11 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, Animated, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { DesignTokens as theme } from '../constants/design';
+import { useTheme } from '../constants/theme';
 
 export default function SplashScreen() {
   const router = useRouter();
+  const { colors, typography, spacing, isDark } = useTheme();
   const [progress] = useState(new Animated.Value(0));
+
+  const styles = getStyles(colors, typography, spacing);
 
   useEffect(() => {
     Animated.timing(progress, {
@@ -25,7 +28,7 @@ export default function SplashScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar style="dark" />
+      <StatusBar style="auto" />
       
       <View style={styles.content}>
         <Text style={styles.title}>
@@ -39,33 +42,34 @@ export default function SplashScreen() {
       <View style={styles.progressContainer}>
         <Animated.View 
           style={[styles.progressBar, { width }]} 
+          key={isDark ? 'dark' : 'light'} // Force re-render on theme change for progress bar if animation is still running
         />
       </View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, typography: any, spacing: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: colors.background,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: theme.spacing.md,
+    paddingHorizontal: spacing.md,
   },
   content: {
     alignItems: 'center',
   },
   title: {
-    fontFamily: theme.typography.heading,
+    fontFamily: typography.heading,
     fontSize: 32,
     fontWeight: 'bold',
-    color: theme.colors.primary,
+    color: colors.primary,
   },
   subtitle: {
-    fontFamily: theme.typography.bodyMedium,
+    fontFamily: typography.bodyMedium,
     fontSize: 14,
-    color: theme.colors.muted,
+    color: colors.muted,
     marginTop: 8,
   },
   progressContainer: {
@@ -74,12 +78,13 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 2,
-    backgroundColor: theme.colors.border,
+    backgroundColor: colors.border,
   },
   progressBar: {
     height: '100%',
-    backgroundColor: theme.colors.accent,
+    backgroundColor: colors.accent,
   },
 });
+
 
 

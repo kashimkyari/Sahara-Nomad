@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { ShieldCheck } from 'lucide-react-native';
-import { DesignTokens as theme } from '../../constants/design';
+import { useTheme } from '../../constants/theme';
 
 interface VerifiedBadgeProps {
   showLabel?: boolean;
@@ -12,11 +12,21 @@ export const VerifiedBadge = ({
   showLabel = true, 
   size = 14 
 }: VerifiedBadgeProps) => {
+  const { colors, typography } = useTheme();
+
   return (
     <View style={styles.container}>
-      <ShieldCheck size={size} color={theme.colors.accent} fill={theme.colors.accent} fillOpacity={0.1} />
+      <ShieldCheck 
+        size={size} 
+        color={colors.accent} 
+        fill={colors.accent} 
+        fillOpacity={0.1} 
+      />
       {showLabel && (
-        <Text style={styles.label}>
+        <Text style={[
+          styles.label, 
+          { color: colors.accent, fontFamily: typography.bodyMedium }
+        ]}>
           Verified
         </Text>
       )}
@@ -30,10 +40,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   label: {
-    color: theme.colors.accent,
-    fontFamily: theme.typography.bodyMedium,
     fontSize: 13,
     marginLeft: 4,
   },
 });
+
 

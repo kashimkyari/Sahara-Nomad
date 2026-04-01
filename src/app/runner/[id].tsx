@@ -5,11 +5,14 @@ import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { VerifiedBadge } from '../../components/ui/VerifiedBadge';
 import { ChevronLeft, ShieldCheck } from 'lucide-react-native';
-import { DesignTokens as theme } from '../../constants/design';
+import { useTheme } from '../../constants/theme';
 
 export default function RunnerProfileScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
+  const { colors, typography, spacing, radius } = useTheme();
+
+  const styles = getStyles(colors, typography, spacing, radius);
 
   // Mock data for the runner
   const runner = {
@@ -27,7 +30,7 @@ export default function RunnerProfileScreen() {
       {/* Custom Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <ChevronLeft size={24} color={theme.colors.primary} />
+          <ChevronLeft size={24} color={colors.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Runner Profile</Text>
         <View style={{ width: 24 }} />
@@ -48,15 +51,15 @@ export default function RunnerProfileScreen() {
         {/* Stats Grid */}
         <View style={styles.statsGrid}>
           <View style={styles.statsRow}>
-            <Card style={[styles.statCard, { marginRight: theme.spacing.sm }]}>
+            <Card style={[styles.statCard, { marginRight: spacing.sm }]}>
               <Text style={styles.statValue}>{runner.trips}</Text>
               <Text style={styles.statLabel}>Trips</Text>
             </Card>
-            <Card style={[styles.statCard, { marginHorizontal: theme.spacing.sm }]}>
+            <Card style={[styles.statCard, { marginHorizontal: spacing.sm }]}>
               <Text style={styles.statValue}>{runner.rating}</Text>
               <Text style={styles.statLabel}>Rating</Text>
             </Card>
-            <Card style={[styles.statCard, { marginLeft: theme.spacing.sm }]}>
+            <Card style={[styles.statCard, { marginLeft: spacing.sm }]}>
               <Text style={styles.statValue}>{runner.joined}</Text>
               <Text style={styles.statLabel}>Joined</Text>
             </Card>
@@ -66,7 +69,7 @@ export default function RunnerProfileScreen() {
         {/* Verification Banner */}
         <View style={styles.verificationBanner}>
           <Card variant="surface" style={styles.verificationCard}>
-            <ShieldCheck size={20} color={theme.colors.accent} />
+            <ShieldCheck size={20} color={colors.accent} />
             <Text style={styles.verificationText}>
                Government ID Verified (NIN)
             </Text>
@@ -104,43 +107,43 @@ export default function RunnerProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, typography: any, spacing: any, radius: any) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: colors.border,
   },
   headerTitle: {
-    fontFamily: theme.typography.heading,
+    fontFamily: typography.heading,
     fontSize: 18,
     fontWeight: 'bold',
-    color: theme.colors.text,
+    color: colors.text,
   },
   flex1: {
     flex: 1,
   },
   profileBlock: {
     alignItems: 'center',
-    paddingVertical: theme.spacing.lg,
-    paddingHorizontal: theme.spacing.md,
-    backgroundColor: theme.colors.surface,
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.md,
+    backgroundColor: colors.surface,
   },
   avatarContainer: {
     width: 96,
     height: 96,
     borderRadius: 48,
-    backgroundColor: theme.colors.background,
+    backgroundColor: colors.background,
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    marginBottom: theme.spacing.md,
+    borderColor: colors.border,
+    marginBottom: spacing.md,
     overflow: 'hidden',
   },
   avatar: {
@@ -148,17 +151,17 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   runnerName: {
-    fontFamily: theme.typography.heading,
+    fontFamily: typography.heading,
     fontSize: 24,
     fontWeight: 'bold',
-    color: theme.colors.text,
+    color: colors.text,
   },
   badgeContainer: {
-    marginTop: theme.spacing.sm,
+    marginTop: spacing.sm,
   },
   statsGrid: {
-    paddingHorizontal: theme.spacing.md,
-    marginTop: theme.spacing.lg,
+    paddingHorizontal: spacing.md,
+    marginTop: spacing.lg,
   },
   statsRow: {
     flexDirection: 'row',
@@ -168,89 +171,90 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: theme.spacing.md,
+    paddingVertical: spacing.md,
   },
   statValue: {
-    fontFamily: theme.typography.heading,
+    fontFamily: typography.heading,
     fontSize: 18,
     fontWeight: 'bold',
-    color: theme.colors.text,
+    color: colors.text,
   },
   statLabel: {
-    fontFamily: theme.typography.body,
+    fontFamily: typography.body,
     fontSize: 12,
-    color: theme.colors.muted,
+    color: colors.muted,
   },
   verificationBanner: {
-    paddingHorizontal: theme.spacing.md,
-    marginTop: theme.spacing.lg,
+    paddingHorizontal: spacing.md,
+    marginTop: spacing.lg,
   },
   verificationCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderColor: theme.colors.accent,
-    backgroundColor: '#F0FFF4',
+    borderColor: colors.accent,
+    backgroundColor: colors.surface,
   },
   verificationText: {
-    fontFamily: theme.typography.bodyMedium,
-    color: theme.colors.text,
+    fontFamily: typography.bodyMedium,
+    color: colors.text,
     fontSize: 14,
-    marginLeft: theme.spacing.md,
+    marginLeft: spacing.md,
   },
   aboutSection: {
-    paddingHorizontal: theme.spacing.md,
-    marginTop: theme.spacing.lg,
-    marginBottom: theme.spacing.lg,
+    paddingHorizontal: spacing.md,
+    marginTop: spacing.lg,
+    marginBottom: spacing.lg,
   },
   sectionTitle: {
-    fontFamily: theme.typography.heading,
+    fontFamily: typography.heading,
     fontSize: 18,
     fontWeight: 'bold',
-    color: theme.colors.text,
-    marginBottom: theme.spacing.md,
+    color: colors.text,
+    marginBottom: spacing.md,
   },
   aboutText: {
-    fontFamily: theme.typography.body,
+    fontFamily: typography.body,
     fontSize: 15,
-    color: theme.colors.text,
+    color: colors.text,
     lineHeight: 24,
   },
   reviewsSection: {
-    paddingHorizontal: theme.spacing.md,
+    paddingHorizontal: spacing.md,
     marginBottom: 128,
   },
   reviewCard: {
-    marginBottom: theme.spacing.md,
+    marginBottom: spacing.md,
   },
   reviewHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: theme.spacing.sm,
+    marginBottom: spacing.sm,
   },
   reviewerName: {
-    fontFamily: theme.typography.heading,
+    fontFamily: typography.heading,
     fontSize: 15,
     fontWeight: 'bold',
-    color: theme.colors.text,
+    color: colors.text,
   },
   reviewTime: {
-    fontFamily: theme.typography.body,
+    fontFamily: typography.body,
     fontSize: 13,
-    color: theme.colors.muted,
+    color: colors.muted,
   },
   reviewText: {
-    fontFamily: theme.typography.body,
+    fontFamily: typography.body,
     fontSize: 14,
-    color: theme.colors.text,
+    color: colors.text,
   },
   hireButtonContainer: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    padding: theme.spacing.md,
-    backgroundColor: theme.colors.background,
+    padding: spacing.md,
+    backgroundColor: colors.background,
     borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
+    borderTopColor: colors.border,
   },
 });
+

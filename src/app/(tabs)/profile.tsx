@@ -1,9 +1,12 @@
 import React from 'react';
 import { View, Text, SafeAreaView, TouchableOpacity, Image, StyleSheet } from 'react-native';
 import { Settings, Shield, CreditCard, HelpCircle, LogOut } from 'lucide-react-native';
-import { DesignTokens as theme } from '../../constants/design';
+import { useTheme } from '../../constants/theme';
 
 export default function ProfileScreen() {
+  const { colors, typography, spacing, radius } = useTheme();
+  const styles = getStyles(colors, typography, spacing, radius);
+
   const menuItems = [
     { icon: CreditCard, label: 'Payment Methods' },
     { icon: Shield, label: 'Trust & Safety' },
@@ -28,7 +31,7 @@ export default function ProfileScreen() {
 
         {menuItems.map((item, index) => (
           <TouchableOpacity key={index} style={styles.menuItem}>
-            <item.icon size={20} color={theme.colors.primary} />
+            <item.icon size={20} color={colors.primary} />
             <Text style={styles.menuItemText}>{item.label}</Text>
           </TouchableOpacity>
         ))}
@@ -42,36 +45,36 @@ export default function ProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, typography: any, spacing: any, radius: any) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: colors.background,
   },
   container: {
     flex: 1,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
   },
   title: {
-    fontFamily: theme.typography.heading,
+    fontFamily: typography.heading,
     fontSize: 24,
     fontWeight: 'bold',
-    color: theme.colors.text,
-    marginBottom: theme.spacing.lg,
+    color: colors.text,
+    marginBottom: spacing.lg,
   },
   profileHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: theme.spacing.xl,
+    marginBottom: spacing.xl,
   },
   avatarContainer: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    marginRight: theme.spacing.lg,
+    borderColor: colors.border,
+    marginRight: spacing.lg,
     overflow: 'hidden',
   },
   avatar: {
@@ -79,40 +82,41 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   name: {
-    fontFamily: theme.typography.heading,
+    fontFamily: typography.heading,
     fontSize: 20,
     fontWeight: 'bold',
-    color: theme.colors.text,
+    color: colors.text,
   },
   email: {
-    fontFamily: theme.typography.body,
+    fontFamily: typography.body,
     fontSize: 14,
-    color: theme.colors.muted,
+    color: colors.muted,
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: theme.spacing.lg,
+    paddingVertical: spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: colors.border,
   },
   menuItemText: {
-    fontFamily: theme.typography.bodyMedium,
+    fontFamily: typography.bodyMedium,
     fontSize: 16,
-    color: theme.colors.text,
-    marginLeft: theme.spacing.lg,
+    color: colors.text,
+    marginLeft: spacing.lg,
   },
   logoutButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: theme.spacing.lg,
+    paddingVertical: spacing.lg,
     marginTop: 'auto',
   },
   logoutText: {
-    fontFamily: theme.typography.bodyMedium,
+    fontFamily: typography.bodyMedium,
     fontSize: 16,
     color: '#D92D20',
-    marginLeft: theme.spacing.lg,
+    marginLeft: spacing.lg,
   },
 });
+
 

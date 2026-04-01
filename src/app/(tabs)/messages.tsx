@@ -1,8 +1,11 @@
 import React from 'react';
 import { View, Text, SafeAreaView, FlatList, Image, TouchableOpacity, StyleSheet } from 'react-native';
-import { DesignTokens as theme } from '../../constants/design';
+import { useTheme } from '../../constants/theme';
 
 export default function MessagesScreen() {
+  const { colors, typography, spacing, radius } = useTheme();
+  const styles = getStyles(colors, typography, spacing, radius);
+
   const messages = [
     { id: '1', name: 'Chinedu O.', lastMsg: 'I am at the market now, I found the...', time: '12:45' },
     { id: '2', name: 'Amina B.', lastMsg: 'Your package has been delivered.', time: 'Yesterday' },
@@ -31,38 +34,38 @@ export default function MessagesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, typography: any, spacing: any, radius: any) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: colors.background,
   },
   container: {
     flex: 1,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
   },
   title: {
-    fontFamily: theme.typography.heading,
+    fontFamily: typography.heading,
     fontSize: 24,
     fontWeight: 'bold',
-    color: theme.colors.text,
-    marginBottom: theme.spacing.md,
+    color: colors.text,
+    marginBottom: spacing.md,
   },
   messageRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: theme.spacing.md,
+    paddingVertical: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: colors.border,
   },
   avatarContainer: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    marginRight: theme.spacing.md,
+    borderColor: colors.border,
+    marginRight: spacing.md,
     overflow: 'hidden',
   },
   avatar: {
@@ -78,20 +81,21 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   name: {
-    fontFamily: theme.typography.heading,
+    fontFamily: typography.heading,
     fontSize: 16,
     fontWeight: 'bold',
-    color: theme.colors.text,
+    color: colors.text,
   },
   time: {
-    fontFamily: theme.typography.body,
+    fontFamily: typography.body,
     fontSize: 12,
-    color: theme.colors.muted,
+    color: colors.muted,
   },
   lastMsg: {
-    fontFamily: theme.typography.body,
+    fontFamily: typography.body,
     fontSize: 14,
-    color: theme.colors.muted,
+    color: colors.muted,
   },
 });
+
 

@@ -3,13 +3,16 @@ import { View, Text, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView, S
 import { useRouter } from 'expo-router';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
-import { DesignTokens as theme } from '../constants/design';
+import { useTheme } from '../constants/theme';
 
 export default function AuthScreen() {
   const router = useRouter();
+  const { colors, typography, spacing, radius } = useTheme();
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const styles = getStyles(colors, typography, spacing, radius);
 
   const handleContinue = () => {
     if (phone.length < 10) {
@@ -80,35 +83,35 @@ export default function AuthScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, typography: any, spacing: any, radius: any) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: colors.background,
   },
   flex1: {
     flex: 1,
   },
   scrollContainer: {
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.lg,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.lg,
   },
   scrollContent: {
     flexGrow: 1,
   },
   header: {
-    marginBottom: theme.spacing.lg,
-    marginTop: theme.spacing.md,
+    marginBottom: spacing.lg,
+    marginTop: spacing.md,
   },
   title: {
-    fontFamily: theme.typography.heading,
+    fontFamily: typography.heading,
     fontSize: 28,
     fontWeight: 'bold',
-    color: theme.colors.text,
+    color: colors.text,
   },
   subtitle: {
-    fontFamily: theme.typography.body,
+    fontFamily: typography.body,
     fontSize: 16,
-    color: theme.colors.muted,
+    color: colors.muted,
     marginTop: 8,
   },
   inputRow: {
@@ -117,19 +120,19 @@ const styles = StyleSheet.create({
   },
   prefixContainer: {
     height: 56,
-    paddingHorizontal: theme.spacing.md,
-    backgroundColor: theme.colors.surface,
+    paddingHorizontal: spacing.md,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: colors.border,
     borderRightWidth: 0,
-    borderTopLeftRadius: theme.radius.sm,
-    borderBottomLeftRadius: theme.radius.sm,
+    borderTopLeftRadius: radius.sm,
+    borderBottomLeftRadius: radius.sm,
     justifyContent: 'center',
   },
   prefixText: {
-    fontFamily: theme.typography.body,
+    fontFamily: typography.body,
     fontSize: 16,
-    color: theme.colors.text,
+    color: colors.text,
   },
   inputContainer: {
     marginBottom: 0,
@@ -140,15 +143,16 @@ const styles = StyleSheet.create({
   },
   footer: {
     marginTop: 'auto',
-    paddingTop: theme.spacing.lg,
+    paddingTop: spacing.lg,
   },
   disclaimer: {
-    fontFamily: theme.typography.body,
+    fontFamily: typography.body,
     fontSize: 12,
-    color: theme.colors.muted,
+    color: colors.muted,
     textAlign: 'center',
-    marginBottom: theme.spacing.md,
-    paddingHorizontal: theme.spacing.md,
+    marginBottom: spacing.md,
+    paddingHorizontal: spacing.md,
   },
 });
+
 
