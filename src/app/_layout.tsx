@@ -42,21 +42,17 @@ export default function RootLayout() {
     return null;
   }
 
-  // Build a custom theme that overlays our design tokens onto React Navigation's
-  // base theme. This ensures the native iOS tab bar picks up the correct:
-  //   - `colors.primary`  → active icon tint
-  //   - `colors.text`     → inactive icon tint  
-  //   - `colors.card`     → tab bar background (overrides the default which would be opaque white/black)
+  // Build a custom theme so React Navigation passes our design tokens to the
+  // native layer (primary/text tints). Card is NOT overridden so the native
+  // tab bar background is fully transparent (handled by NativeTabs blurEffect).
   const baseTheme = isDark ? DarkTheme : DefaultTheme;
   const customTheme = {
     ...baseTheme,
     colors: {
       ...baseTheme.colors,
       primary: palette.primary,       // active tab icon tint
-      text: palette.text,              // inactive tab icon tint (used by native tab bar)
-      card: palette.background,        // tab bar background
-      border: palette.border,          // tab bar top border
-      background: palette.background,
+      text: palette.text,             // inactive tab icon tint
+      background: palette.background, // page background
       notification: palette.accent,
     },
   };

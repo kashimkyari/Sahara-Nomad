@@ -6,17 +6,24 @@ import { useTheme } from '../../constants/theme';
 export default function TabLayout() {
   const { colors } = useTheme();
 
+  // Shared per-tab options to kill the bottom inset that creates a solid footer bg
+  const triggerOptions = {
+    disableAutomaticContentInsets: true,
+    contentStyle: { paddingBottom: 0 },
+  };
+
   return (
     <NativeTabs
-      backgroundColor={colors.background}
+      backgroundColor="transparent"
+      blurEffect="systemMaterial"
       iconColor={{
-        default: colors.muted,    // inactive icon tint
-        selected: colors.primary, // active icon tint
+        default: colors.muted,
+        selected: colors.primary,
       }}
       labelStyle={{
         default: {
           fontFamily: 'WorkSans_500Medium',
-          fontSize: 12,
+          fontSize: 10,
           color: colors.muted,
         },
         selected: {
@@ -26,28 +33,28 @@ export default function TabLayout() {
         },
       }}
     >
-      <NativeTabs.Trigger name="index">
+      <NativeTabs.Trigger name="index" {...triggerOptions}>
         <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
           src={<NativeTabs.Trigger.VectorIcon family={Ionicons} name="home" />}
         />
       </NativeTabs.Trigger>
 
-      <NativeTabs.Trigger name="search" role='search'>
+      <NativeTabs.Trigger name="search" role="search" {...triggerOptions}>
         <NativeTabs.Trigger.Label>Search</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
           src={<NativeTabs.Trigger.VectorIcon family={Ionicons} name="search" />}
         />
       </NativeTabs.Trigger>
 
-      <NativeTabs.Trigger name="messages">
+      <NativeTabs.Trigger name="messages" {...triggerOptions}>
         <NativeTabs.Trigger.Label>Messages</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
           src={<NativeTabs.Trigger.VectorIcon family={Ionicons} name="chatbubble" />}
         />
       </NativeTabs.Trigger>
 
-      <NativeTabs.Trigger name="profile">
+      <NativeTabs.Trigger name="profile" {...triggerOptions}>
         <NativeTabs.Trigger.Label>Profile</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
           src={<NativeTabs.Trigger.VectorIcon family={Ionicons} name="person" />}
@@ -56,3 +63,4 @@ export default function TabLayout() {
     </NativeTabs>
   );
 }
+
