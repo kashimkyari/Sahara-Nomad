@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { DesignTokens as DT } from '../../constants/design';
 
 const messages = [
@@ -10,6 +11,8 @@ const messages = [
 ];
 
 export default function MessagesScreen() {
+  const router = useRouter();
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <View style={styles.header}>
@@ -19,7 +22,11 @@ export default function MessagesScreen() {
         </View>
       </View>
       {messages.map((msg) => (
-        <TouchableOpacity key={msg.id} style={styles.messageRow}>
+        <TouchableOpacity
+          key={msg.id}
+          style={styles.messageRow}
+          onPress={() => router.push(`/conversation/${msg.id}`)}
+        >
           <View style={styles.avatarWrap}>
             <Image
               source={{ uri: `https://i.pravatar.cc/150?u=${msg.name}` }}

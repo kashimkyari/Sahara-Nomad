@@ -2,16 +2,19 @@ import { CreditCard, HelpCircle, LogOut, Settings, Shield, ChevronRight } from '
 import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { DesignTokens as DT } from '../../constants/design';
 
 const menuItems = [
-  { icon: CreditCard, label: 'Payment Methods' },
-  { icon: Shield, label: 'Trust & Safety' },
-  { icon: HelpCircle, label: 'Support' },
-  { icon: Settings, label: 'Settings' },
+  { icon: CreditCard, label: 'Payment Methods', route: '/settings/payment' },
+  { icon: Shield, label: 'Trust & Safety', route: '/settings/safety' },
+  { icon: HelpCircle, label: 'Support', route: '/settings/support' },
+  { icon: Settings, label: 'Settings', route: '/settings' },
 ];
 
 export default function ProfileScreen() {
+  const router = useRouter();
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -42,8 +45,8 @@ export default function ProfileScreen() {
             { label: 'Errands', value: '24' },
             { label: 'Spent', value: '₦182k' },
             { label: 'Runners', value: '8' },
-          ].map((stat) => (
-            <View key={stat.label} style={styles.statBox}>
+          ].map((stat, i, arr) => (
+            <View key={stat.label} style={[styles.statBox, i < arr.length - 1 && styles.statBoxBorder]}>
               <Text style={styles.statValue}>{stat.value}</Text>
               <Text style={styles.statLabel}>{stat.label}</Text>
             </View>
@@ -52,12 +55,18 @@ export default function ProfileScreen() {
 
         {/* Menu */}
         <View style={styles.menu}>
-          {menuItems.map((item) => (
-            <TouchableOpacity key={item.label} style={styles.menuItem}>
-              <item.icon size={20} color={DT.colors.text} strokeWidth={2} />
-              <Text style={styles.menuItemText}>{item.label}</Text>
-              <ChevronRight size={16} color={DT.colors.muted} />
-            </TouchableOpacity>
+          {menuItems.map((item, i, arr) => (
+            <View key={item.label}>
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => router.push(item.route as any)}
+              >
+                <item.icon size={20} color={DT.colors.text} strokeWidth={2} />
+                <Text style={styles.menuItemText}>{item.label}</Text>
+                <ChevronRight size={16} color={DT.colors.muted} />
+              </TouchableOpacity>
+              {i < arr.length - 1 && <View style={styles.menuDivider} />}
+            </View>
           ))}
         </View>
 
@@ -109,24 +118,10 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginRight: DT.spacing.md,
   },
-  avatar: {
-    width: '100%',
-    height: '100%',
-  },
-  profileInfo: {
-    flex: 1,
-  },
-  name: {
-    fontFamily: DT.typography.heading,
-    fontSize: 18,
-    color: DT.colors.text,
-  },
-  email: {
-    fontFamily: DT.typography.body,
-    fontSize: 13,
-    color: DT.colors.muted,
-    marginTop: 2,
-  },
+  avatar: { width: '100%', height: '100%' },
+  profileInfo: { flex: 1 },
+  name: { fontFamily: DT.typography.heading, fontSize: 18, color: DT.colors.text },
+  email: { fontFamily: DT.typography.body, fontSize: 13, color: DT.colors.muted, marginTop: 2 },
   ratingBadge: {
     backgroundColor: DT.colors.accent,
     borderWidth: 2,
@@ -134,11 +129,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
   },
-  ratingText: {
-    fontFamily: DT.typography.heading,
-    fontSize: 13,
-    color: DT.colors.text,
-  },
+  ratingText: { fontFamily: DT.typography.heading, fontSize: 13, color: DT.colors.text },
   statsRow: {
     flexDirection: 'row',
     marginHorizontal: DT.spacing.lg,
@@ -151,36 +142,33 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     paddingVertical: DT.spacing.md,
+  },
+  statBoxBorder: {
     borderRightWidth: 2,
     borderRightColor: DT.colors.text,
   },
-  statValue: {
-    fontFamily: DT.typography.heading,
-    fontSize: 20,
-    color: DT.colors.text,
-  },
-  statLabel: {
-    fontFamily: DT.typography.body,
-    fontSize: 12,
-    color: DT.colors.muted,
-    marginTop: 2,
-  },
+  statValue: { fontFamily: DT.typography.heading, fontSize: 20, color: DT.colors.text },
+  statLabel: { fontFamily: DT.typography.body, fontSize: 12, color: DT.colors.muted, marginTop: 2 },
   menu: {
     marginHorizontal: DT.spacing.lg,
     borderWidth: 2,
     borderColor: DT.colors.text,
     backgroundColor: DT.colors.surface,
     marginBottom: DT.spacing.lg,
+    shadowColor: DT.colors.text,
+    shadowOffset: { width: 3, height: 3 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: DT.spacing.md,
     paddingHorizontal: DT.spacing.md,
-    borderBottomWidth: 2,
-    borderBottomColor: DT.colors.text,
     gap: DT.spacing.md,
   },
+  menuDivider: { height: 2, backgroundColor: DT.colors.text },
   menuItemText: {
     fontFamily: DT.typography.body,
     fontSize: 15,

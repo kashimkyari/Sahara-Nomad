@@ -40,6 +40,11 @@ export default function RootLayout() {
       <Stack.Screen name="new-errand" />
       <Stack.Screen name="waka/[id]" />
       <Stack.Screen name="runner/[id]" />
+      <Stack.Screen name="conversation/[id]" />
+      <Stack.Screen name="settings/index" />
+      <Stack.Screen name="settings/payment" />
+      <Stack.Screen name="settings/safety" />
+      <Stack.Screen name="settings/support" />
     </Stack>
   );
 }
