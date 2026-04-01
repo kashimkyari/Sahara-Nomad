@@ -1,90 +1,88 @@
-import React from 'react';
-import { 
-  View, 
-  Text, 
-  TextInput, 
-  TextInputProps, 
+import React, { useState } from 'react';
+import {
+  View,
+  TextInput,
+  Text,
+  TouchableOpacity,
   StyleSheet,
-  ViewStyle,
-  Platform
+  TextInputProps,
 } from 'react-native';
-import { useTheme } from '../../constants/theme';
+import { DesignTokens as DT } from '../../constants/design';
 
 interface InputProps extends TextInputProps {
   label?: string;
   error?: string;
-  containerStyle?: ViewStyle;
+  rightElement?: React.ReactNode;
+  containerStyle?: object;
+  style?: object;
 }
 
-export const Input = ({ 
-  label, 
-  error, 
-  containerStyle, 
+export function Input({
+  label,
+  error,
+  rightElement,
+  containerStyle,
   style,
-  ...props 
-}: InputProps) => {
-  const { colors, typography, spacing, radius } = useTheme();
+  ...props
+}: InputProps) {
+  const hasError = !!error;
 
   return (
-    <View style={[styles.container, { marginBottom: spacing.md }, containerStyle]}>
-      {label && (
-        <Text style={[
-          styles.label, 
-          { fontFamily: typography.bodyMedium, color: colors.text }
-        ]}>
-          {label}
-        </Text>
-      )}
-      <TextInput
-        placeholderTextColor={colors.muted}
-        style={[
-          styles.input,
-          {
-            backgroundColor: colors.surface,
-            borderColor: colors.border,
-            borderRadius: radius.sm,
-            fontFamily: typography.body,
-            color: colors.text,
-            paddingHorizontal: spacing.md,
-          },
-          error ? styles.inputError : null,
-          Platform.OS === 'web' ? { outlineStyle: 'none' } as any : null,
-          style
-        ]}
-        {...props}
-      />
-      {error && (
-        <Text style={[
-          styles.errorText, 
-          { fontFamily: typography.body }
-        ]}>
-          {error}
-        </Text>
-      )}
+    <View style={[styles.container, containerStyle]}>
+      {label ? <Text style={styles.label}>{label}</Text> : null}
+      <View style={[styles.inputWrapper, hasError && styles.inputError]}>
+        <TextInput
+          style={[styles.input, style]}
+          placeholderTextColor={DT.colors.muted}
+          {...props}
+        />
+        {rightElement ? <View style={styles.right}>{rightElement}</View> : null}
+      </View>
+      {hasError ? (
+        <Text style={styles.errorText}>{error}</Text>
+      ) : null}
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
+    marginBottom: DT.spacing.md,
   },
   label: {
+    fontFamily: DT.typography.body,
     fontSize: 13,
+    color: DT.colors.text,
     marginBottom: 6,
+    fontWeight: '600',
   },
-  input: {
-    height: 56,
-    borderWidth: 1,
-    fontSize: 16,
+  inputWrapper: {
+    height: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: DT.colors.text,
+    borderRadius: 0,
+    backgroundColor: DT.colors.surface,
   },
   inputError: {
-    borderColor: '#D92D20',
+    borderColor: DT.colors.error,
+  },
+  input: {
+    flex: 1,
+    height: '100%',
+    paddingHorizontal: DT.spacing.md,
+    fontFamily: DT.typography.body,
+    fontSize: 16,
+    color: DT.colors.text,
+  },
+  right: {
+    paddingRight: DT.spacing.md,
   },
   errorText: {
-    color: '#D92D20',
+    fontFamily: DT.typography.body,
     fontSize: 12,
+    color: DT.colors.error,
     marginTop: 4,
   },
 });
-
-

@@ -1,90 +1,105 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, Animated, StyleSheet } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, Animated, StyleSheet, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import { useTheme } from '../constants/theme';
+import { DesignTokens as DT } from '../constants/design';
+
+const { width } = Dimensions.get('window');
 
 export default function SplashScreen() {
   const router = useRouter();
-  const { colors, typography, spacing, isDark } = useTheme();
-  const [progress] = useState(new Animated.Value(0));
-
-  const styles = getStyles(colors, typography, spacing);
+  const progress = useRef(new Animated.Value(0)).current;
+  const logoScale = useRef(new Animated.Value(0.8)).current;
+  const logoOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    // Logo entrance
+    Animated.parallel([
+      Animated.spring(logoScale, {
+        toValue: 1,
+        useNativeDriver: true,
+        tension: 80,
+        friction: 8,
+      }),
+      Animated.timing(logoOpacity, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // Progress bar
     Animated.timing(progress, {
       toValue: 1,
-      duration: 1200,
+      duration: 2200,
       useNativeDriver: false,
-    }).start(() => {
-      router.push('/onboarding');
+    }).start(({ finished }) => {
+      if (finished) {
+        router.replace('/onboarding');
+      }
     });
-  }, [progress, router]);
+  }, []);
 
-  const width = progress.interpolate({
+  const barWidth = progress.interpolate({
     inputRange: [0, 1],
-    outputRange: ['0%', '100%'],
+    outputRange: [0, 200],
   });
 
   return (
     <View style={styles.container}>
-      <StatusBar style="auto" />
-      
-      <View style={styles.content}>
-        <Text style={styles.title}>
-          Sahara Nomad
-        </Text>
-        <Text style={styles.subtitle}>
-          Verified Local Deliveries
-        </Text>
-      </View>
+      <Animated.View
+        style={[
+          styles.logoContainer,
+          { opacity: logoOpacity, transform: [{ scale: logoScale }] },
+        ]}
+      >
+        <Text style={styles.logo}>SENDAM</Text>
+        <Text style={styles.tagline}>Anywhere, anyhow, we move.</Text>
+      </Animated.View>
 
-      <View style={styles.progressContainer}>
-        <Animated.View 
-          style={[styles.progressBar, { width }]} 
-          key={isDark ? 'dark' : 'light'} // Force re-render on theme change for progress bar if animation is still running
-        />
+      <View style={styles.barTrack}>
+        <Animated.View style={[styles.barFill, { width: barWidth }]} />
       </View>
     </View>
   );
 }
 
-const getStyles = (colors: any, typography: any, spacing: any) => StyleSheet.create({
+const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: DT.colors.background,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: spacing.md,
   },
-  content: {
+  logoContainer: {
     alignItems: 'center',
+    marginBottom: 64,
   },
-  title: {
-    fontFamily: typography.heading,
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: colors.primary,
+  logo: {
+    fontFamily: DT.typography.heading,
+    fontSize: 56,
+    color: DT.colors.primary,
+    letterSpacing: -1,
+    textShadowColor: DT.colors.text,
+    textShadowOffset: { width: 3, height: 3 },
+    textShadowRadius: 0,
   },
-  subtitle: {
-    fontFamily: typography.bodyMedium,
-    fontSize: 14,
-    color: colors.muted,
-    marginTop: 8,
+  tagline: {
+    fontFamily: DT.typography.body,
+    fontSize: 16,
+    color: DT.colors.text,
+    marginTop: 10,
+    letterSpacing: 0.3,
   },
-  progressContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 2,
-    backgroundColor: colors.border,
+  barTrack: {
+    width: 200,
+    height: 8,
+    backgroundColor: DT.colors.text,
+    borderRadius: 0,
+    overflow: 'hidden',
   },
-  progressBar: {
+  barFill: {
     height: '100%',
-    backgroundColor: colors.accent,
+    backgroundColor: DT.colors.secondary,
+    borderRadius: 0,
   },
 });
-
-
-

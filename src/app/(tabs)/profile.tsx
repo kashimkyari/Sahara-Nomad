@@ -1,124 +1,206 @@
-import { CreditCard, HelpCircle, LogOut, Settings, Shield } from 'lucide-react-native';
+import { CreditCard, HelpCircle, LogOut, Settings, Shield, ChevronRight } from 'lucide-react-native';
 import React from 'react';
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, StyleSheet, Text, TouchableOpacity, View, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useTheme } from '../../constants/theme';
+import { DesignTokens as DT } from '../../constants/design';
+
+const menuItems = [
+  { icon: CreditCard, label: 'Payment Methods' },
+  { icon: Shield, label: 'Trust & Safety' },
+  { icon: HelpCircle, label: 'Support' },
+  { icon: Settings, label: 'Settings' },
+];
 
 export default function ProfileScreen() {
-  const { colors, typography, spacing, radius } = useTheme();
-  const styles = getStyles(colors, typography, spacing, radius);
-
-  const menuItems = [
-    { icon: CreditCard, label: 'Payment Methods' },
-    { icon: Shield, label: 'Trust & Safety' },
-    { icon: HelpCircle, label: 'Support' },
-    { icon: Settings, label: 'Settings' },
-  ];
-
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <View style={styles.container}>
-        <Text style={styles.title}>Profile</Text>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Profile</Text>
+        </View>
 
-        <View style={styles.profileHeader}>
-          <View style={styles.avatarContainer}>
-            <Image source={{ uri: 'https://i.pravatar.cc/150?u=tobi' }} style={styles.avatar} />
+        {/* Profile Card */}
+        <View style={styles.profileCard}>
+          <View style={styles.avatarBox}>
+            <Image
+              source={{ uri: 'https://i.pravatar.cc/150?u=chidi' }}
+              style={styles.avatar}
+            />
           </View>
-          <View>
-            <Text style={styles.name}>Tobi Adeola</Text>
-            <Text style={styles.email}>tobi@example.com</Text>
+          <View style={styles.profileInfo}>
+            <Text style={styles.name}>Chidi Amaechi</Text>
+            <Text style={styles.email}>chidi@example.com</Text>
+          </View>
+          <View style={styles.ratingBadge}>
+            <Text style={styles.ratingText}>★ 4.9</Text>
           </View>
         </View>
 
-        {menuItems.map((item, index) => (
-          <TouchableOpacity key={index} style={styles.menuItem}>
-            <item.icon size={20} color={colors.primary} />
-            <Text style={styles.menuItemText}>{item.label}</Text>
-          </TouchableOpacity>
-        ))}
+        {/* Stats Row */}
+        <View style={styles.statsRow}>
+          {[
+            { label: 'Errands', value: '24' },
+            { label: 'Spent', value: '₦182k' },
+            { label: 'Runners', value: '8' },
+          ].map((stat) => (
+            <View key={stat.label} style={styles.statBox}>
+              <Text style={styles.statValue}>{stat.value}</Text>
+              <Text style={styles.statLabel}>{stat.label}</Text>
+            </View>
+          ))}
+        </View>
 
+        {/* Menu */}
+        <View style={styles.menu}>
+          {menuItems.map((item) => (
+            <TouchableOpacity key={item.label} style={styles.menuItem}>
+              <item.icon size={20} color={DT.colors.text} strokeWidth={2} />
+              <Text style={styles.menuItemText}>{item.label}</Text>
+              <ChevronRight size={16} color={DT.colors.muted} />
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Logout */}
         <TouchableOpacity style={styles.logoutButton}>
-          <LogOut size={20} color="#D92D20" />
+          <LogOut size={20} color={DT.colors.error} strokeWidth={2} />
           <Text style={styles.logoutText}>Sign Out</Text>
         </TouchableOpacity>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
-const getStyles = (colors: any, typography: any, spacing: any, radius: any) => StyleSheet.create({
+const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.background,
-    paddingBottom: 100
+    backgroundColor: DT.colors.background,
   },
-  container: {
-    flex: 1,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
+  header: {
+    paddingHorizontal: DT.spacing.lg,
+    paddingVertical: DT.spacing.md,
+    borderBottomWidth: 2,
+    borderBottomColor: DT.colors.text,
   },
   title: {
-    fontFamily: typography.heading,
+    fontFamily: DT.typography.heading,
     fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: spacing.lg,
+    color: DT.colors.text,
   },
-  profileHeader: {
+  profileCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.xl,
+    margin: DT.spacing.lg,
+    padding: DT.spacing.md,
+    backgroundColor: DT.colors.surface,
+    borderWidth: 2,
+    borderColor: DT.colors.text,
+    shadowColor: DT.colors.text,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 5,
   },
-  avatarContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    marginRight: spacing.lg,
+  avatarBox: {
+    width: 64,
+    height: 64,
+    borderWidth: 2,
+    borderColor: DT.colors.text,
     overflow: 'hidden',
+    marginRight: DT.spacing.md,
   },
   avatar: {
     width: '100%',
     height: '100%',
   },
+  profileInfo: {
+    flex: 1,
+  },
   name: {
-    fontFamily: typography.heading,
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.text,
+    fontFamily: DT.typography.heading,
+    fontSize: 18,
+    color: DT.colors.text,
   },
   email: {
-    fontFamily: typography.body,
-    fontSize: 14,
-    color: colors.muted,
+    fontFamily: DT.typography.body,
+    fontSize: 13,
+    color: DT.colors.muted,
+    marginTop: 2,
+  },
+  ratingBadge: {
+    backgroundColor: DT.colors.accent,
+    borderWidth: 2,
+    borderColor: DT.colors.text,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  ratingText: {
+    fontFamily: DT.typography.heading,
+    fontSize: 13,
+    color: DT.colors.text,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    marginHorizontal: DT.spacing.lg,
+    marginBottom: DT.spacing.lg,
+    borderWidth: 2,
+    borderColor: DT.colors.text,
+    backgroundColor: DT.colors.surface,
+  },
+  statBox: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: DT.spacing.md,
+    borderRightWidth: 2,
+    borderRightColor: DT.colors.text,
+  },
+  statValue: {
+    fontFamily: DT.typography.heading,
+    fontSize: 20,
+    color: DT.colors.text,
+  },
+  statLabel: {
+    fontFamily: DT.typography.body,
+    fontSize: 12,
+    color: DT.colors.muted,
+    marginTop: 2,
+  },
+  menu: {
+    marginHorizontal: DT.spacing.lg,
+    borderWidth: 2,
+    borderColor: DT.colors.text,
+    backgroundColor: DT.colors.surface,
+    marginBottom: DT.spacing.lg,
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    paddingVertical: DT.spacing.md,
+    paddingHorizontal: DT.spacing.md,
+    borderBottomWidth: 2,
+    borderBottomColor: DT.colors.text,
+    gap: DT.spacing.md,
   },
   menuItemText: {
-    fontFamily: typography.bodyMedium,
-    fontSize: 16,
-    color: colors.text,
-    marginLeft: spacing.lg,
+    fontFamily: DT.typography.body,
+    fontSize: 15,
+    color: DT.colors.text,
+    flex: 1,
   },
   logoutButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing.lg,
-    marginTop: 'auto',
+    marginHorizontal: DT.spacing.lg,
+    padding: DT.spacing.md,
+    gap: DT.spacing.md,
+    borderWidth: 2,
+    borderColor: DT.colors.error,
+    backgroundColor: DT.colors.surface,
+    marginBottom: DT.spacing.xl,
   },
   logoutText: {
-    fontFamily: typography.bodyMedium,
-    fontSize: 16,
-    color: '#D92D20',
-    marginLeft: spacing.lg,
+    fontFamily: DT.typography.bodySemiBold,
+    fontSize: 15,
+    color: DT.colors.error,
   },
 });
-
-

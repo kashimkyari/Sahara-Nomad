@@ -1,77 +1,110 @@
 import React from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useTheme } from '../../constants/theme';
+import { DesignTokens as DT } from '../../constants/design';
+
+const messages = [
+  { id: '1', name: 'Chinedu O.', lastMsg: 'I am at the market now, I found the...', time: '12:45', unread: true },
+  { id: '2', name: 'Amina B.', lastMsg: 'Your package has been delivered.', time: 'Yesterday', unread: false },
+  { id: '3', name: 'Tunde S.', lastMsg: 'On my way! ETA 15 mins.', time: 'Mon', unread: false },
+];
 
 export default function MessagesScreen() {
-  const { colors, typography, spacing, radius } = useTheme();
-  const styles = getStyles(colors, typography, spacing, radius);
-
-  const messages = [
-    { id: '1', name: 'Chinedu O.', lastMsg: 'I am at the market now, I found the...', time: '12:45' },
-    { id: '2', name: 'Amina B.', lastMsg: 'Your package has been delivered.', time: 'Yesterday' },
-  ];
-
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <View style={styles.container}>
+      <View style={styles.header}>
         <Text style={styles.title}>Messages</Text>
-        {messages.map((msg) => (
-          <TouchableOpacity key={msg.id} style={styles.messageRow}>
-            <View style={styles.avatarContainer}>
-               <Image source={{ uri: `https://i.pravatar.cc/150?u=${msg.id}` }} style={styles.avatar} />
-            </View>
-            <View style={styles.messageContent}>
-              <View style={styles.messageHeader}>
-                <Text style={styles.name}>{msg.name}</Text>
-                <Text style={styles.time}>{msg.time}</Text>
-              </View>
-              <Text style={styles.lastMsg} numberOfLines={1}>{msg.lastMsg}</Text>
-            </View>
-          </TouchableOpacity>
-        ))}
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>1</Text>
+        </View>
       </View>
+      {messages.map((msg) => (
+        <TouchableOpacity key={msg.id} style={styles.messageRow}>
+          <View style={styles.avatarWrap}>
+            <Image
+              source={{ uri: `https://i.pravatar.cc/150?u=${msg.name}` }}
+              style={styles.avatar}
+            />
+            {msg.unread && <View style={styles.unreadDot} />}
+          </View>
+          <View style={styles.messageContent}>
+            <View style={styles.messageHeader}>
+              <Text style={[styles.name, msg.unread && styles.nameBold]}>
+                {msg.name}
+              </Text>
+              <Text style={styles.time}>{msg.time}</Text>
+            </View>
+            <Text style={styles.lastMsg} numberOfLines={1}>
+              {msg.lastMsg}
+            </Text>
+          </View>
+        </TouchableOpacity>
+      ))}
     </SafeAreaView>
   );
 }
 
-const getStyles = (colors: any, typography: any, spacing: any, radius: any) => StyleSheet.create({
+const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: DT.colors.background,
   },
-  container: {
-    flex: 1,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: DT.spacing.lg,
+    paddingVertical: DT.spacing.md,
+    borderBottomWidth: 2,
+    borderBottomColor: DT.colors.text,
+    gap: 10,
   },
   title: {
-    fontFamily: typography.heading,
+    fontFamily: DT.typography.heading,
     fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: spacing.md,
+    color: DT.colors.text,
+  },
+  badge: {
+    width: 22,
+    height: 22,
+    backgroundColor: DT.colors.primary,
+    borderWidth: 2,
+    borderColor: DT.colors.text,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeText: {
+    fontFamily: DT.typography.heading,
+    fontSize: 11,
+    color: DT.colors.surface,
   },
   messageRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    paddingVertical: DT.spacing.md,
+    paddingHorizontal: DT.spacing.lg,
+    borderBottomWidth: 2,
+    borderBottomColor: DT.colors.text,
+    backgroundColor: DT.colors.background,
   },
-  avatarContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    marginRight: spacing.md,
-    overflow: 'hidden',
+  avatarWrap: {
+    position: 'relative',
+    marginRight: DT.spacing.md,
   },
   avatar: {
-    width: '100%',
-    height: '100%',
+    width: 48,
+    height: 48,
+    borderWidth: 2,
+    borderColor: DT.colors.text,
+  },
+  unreadDot: {
+    position: 'absolute',
+    top: -3,
+    right: -3,
+    width: 12,
+    height: 12,
+    backgroundColor: DT.colors.primary,
+    borderWidth: 2,
+    borderColor: DT.colors.background,
   },
   messageContent: {
     flex: 1,
@@ -82,21 +115,21 @@ const getStyles = (colors: any, typography: any, spacing: any, radius: any) => S
     marginBottom: 2,
   },
   name: {
-    fontFamily: typography.heading,
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.text,
+    fontFamily: DT.typography.body,
+    fontSize: 15,
+    color: DT.colors.text,
+  },
+  nameBold: {
+    fontFamily: DT.typography.bodySemiBold,
   },
   time: {
-    fontFamily: typography.body,
+    fontFamily: DT.typography.body,
     fontSize: 12,
-    color: colors.muted,
+    color: DT.colors.muted,
   },
   lastMsg: {
-    fontFamily: typography.body,
-    fontSize: 14,
-    color: colors.muted,
+    fontFamily: DT.typography.body,
+    fontSize: 13,
+    color: DT.colors.muted,
   },
 });
-
-

@@ -1,12 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
 import React from 'react';
-import { useTheme } from '../../constants/theme';
+import { DesignTokens as DT } from '../../constants/design';
 
 export default function TabLayout() {
-  const { colors } = useTheme();
-
-  // Shared per-tab options to kill the bottom inset that creates a solid footer bg
   const triggerOptions = {
     disableAutomaticContentInsets: true,
     contentStyle: { paddingBottom: 0 },
@@ -14,22 +11,22 @@ export default function TabLayout() {
 
   return (
     <NativeTabs
-      backgroundColor="transparent"
+      backgroundColor={DT.colors.surface}
       blurEffect="systemMaterial"
       iconColor={{
-        default: colors.muted,
-        selected: colors.primary,
+        default: DT.colors.muted,
+        selected: DT.colors.primary,
       }}
       labelStyle={{
         default: {
-          fontFamily: 'WorkSans_500Medium',
+          fontFamily: 'PlusJakartaSans_500Medium',
           fontSize: 10,
-          color: colors.muted,
+          color: DT.colors.muted,
         },
         selected: {
-          fontFamily: 'WorkSans_500Medium',
-          fontSize: 12,
-          color: colors.primary,
+          fontFamily: 'PlusJakartaSans_600SemiBold',
+          fontSize: 10,
+          color: DT.colors.primary,
         },
       }}
     >
@@ -41,9 +38,9 @@ export default function TabLayout() {
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="search" role="search" {...triggerOptions}>
-        <NativeTabs.Trigger.Label>Search</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Label>Runners</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
-          src={<NativeTabs.Trigger.VectorIcon family={Ionicons} name="search" />}
+          src={<NativeTabs.Trigger.VectorIcon family={Ionicons} name="people" />}
         />
       </NativeTabs.Trigger>
 
@@ -63,4 +60,3 @@ export default function TabLayout() {
     </NativeTabs>
   );
 }
-

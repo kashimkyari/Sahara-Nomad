@@ -1,298 +1,482 @@
-import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  ScrollView, 
-  TouchableOpacity, 
+import React, { useState, useRef, useCallback } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
   TextInput,
-  StyleSheet
+  StyleSheet,
+  PanResponder,
+  Dimensions,
+  Animated,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui/Input';
-import { ChevronLeft, ChevronDown, MapPin, Package, CreditCard } from 'lucide-react-native';
-import { useTheme } from '../constants/theme';
+import { ChevronLeft, MapPin, CheckCircle } from 'lucide-react-native';
+import { DesignTokens as DT } from '../constants/design';
+
+const { width } = Dimensions.get('window');
+const SLIDER_WIDTH = width - DT.spacing.lg * 2 - 4; // subtract padding
+const MIN_PRICE = 1000;
+const MAX_PRICE = 10000;
 
 export default function NewErrandScreen() {
   const router = useRouter();
-  const { colors, typography, spacing, radius } = useTheme();
-  const [step, setStep] = useState(1);
   const [items, setItems] = useState('');
-  const [pickup, setPickup] = useState('');
-  const [delivery, setDelivery] = useState('');
+  const [location, setLocation] = useState('');
+  const [price, setPrice] = useState(2500);
+  const [showSuccess, setShowSuccess] = useState(false);
 
-  const styles = getStyles(colors, typography, spacing, radius);
+  const sliderX = useRef(
+    new Animated.Value(((price - MIN_PRICE) / (MAX_PRICE - MIN_PRICE)) * SLIDER_WIDTH)
+  ).current;
+  const currentX = useRef(((price - MIN_PRICE) / (MAX_PRICE - MIN_PRICE)) * SLIDER_WIDTH);
 
-  const ProgressHeader = () => (
-    <View style={styles.progressContainer}>
-      <View style={[styles.progressSegment, step >= 1 && styles.progressActive]} />
-      <View style={[styles.progressSegment, styles.progressMiddle, step >= 2 && styles.progressActive]} />
-      <View style={[styles.progressSegment, step >= 3 && styles.progressActive]} />
-    </View>
-  );
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => {
+        sliderX.extractOffset();
+      },
+      onPanResponderMove: (_, gestureState) => {
+        let newX = currentX.current + gestureState.dx;
+        newX = Math.max(0, Math.min(SLIDER_WIDTH, newX));
+        sliderX.setValue(newX - currentX.current);
+        const newPrice = Math.round(
+          MIN_PRICE + ((newX) / SLIDER_WIDTH) * (MAX_PRICE - MIN_PRICE)
+        );
+        setPrice(Math.max(MIN_PRICE, Math.min(MAX_PRICE, newPrice)));
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        sliderX.flattenOffset();
+        let newX = currentX.current + gestureState.dx;
+        newX = Math.max(0, Math.min(SLIDER_WIDTH, newX));
+        currentX.current = newX;
+        sliderX.setValue(newX);
+      },
+    })
+  ).current;
+
+  const handleBroadcast = () => {
+    if (!items || !location) return;
+    setShowSuccess(true);
+    setTimeout(() => {
+      setShowSuccess(false);
+      router.replace('/(tabs)');
+    }, 2000);
+  };
+
+  const fillWidth = sliderX.interpolate({
+    inputRange: [0, SLIDER_WIDTH],
+    outputRange: [0, SLIDER_WIDTH],
+    extrapolate: 'clamp',
+  });
+
+  const thumbLeft = sliderX.interpolate({
+    inputRange: [0, SLIDER_WIDTH],
+    outputRange: [0, SLIDER_WIDTH],
+    extrapolate: 'clamp',
+  });
 
   return (
     <SafeAreaView style={styles.safeArea}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => step > 1 ? setStep(step - 1) : router.back()}>
-          <ChevronLeft size={24} color={colors.primary} />
+        <TouchableOpacity
+          style={styles.backBtn}
+          onPress={() => router.back()}
+        >
+          <ChevronLeft size={24} color={DT.colors.text} strokeWidth={2.5} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>New Errand</Text>
-        <View style={{ width: 24 }} />
+        <Text style={styles.headerTitle}>Send Someone</Text>
+        <View style={{ width: 40 }} />
       </View>
 
-      <ProgressHeader />
+      <ScrollView
+        style={styles.flex1}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* Item Description */}
+        <View style={styles.field}>
+          <Text style={styles.fieldLabel}>What should they get?</Text>
+          <Text style={styles.fieldHint}>
+            Be specific — mention market stall, colour, size, price limit.
+          </Text>
+          <TextInput
+            style={styles.textArea}
+            multiline
+            numberOfLines={5}
+            placeholder="E.g. 2 baskets of fresh pepper from Mama Ngozi's stall, Middle row at Mile 12..."
+            placeholderTextColor={DT.colors.muted}
+            value={items}
+            onChangeText={setItems}
+            textAlignVertical="top"
+          />
+        </View>
 
-      <ScrollView style={styles.flex1} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {step === 1 && (
-          <View style={styles.flex1}>
-            <Text style={styles.stepTitle}>What do you need sourced?</Text>
-            
-            <Text style={styles.inputLabel}>Where are we buying from?</Text>
-            <TouchableOpacity style={styles.dropdownPicker}>
-              <Text style={styles.inputText}>{pickup || 'Select a market'}</Text>
-              <ChevronDown size={20} color={colors.muted} />
-            </TouchableOpacity>
-
-            <View style={styles.marginBottomLg}>
-               <Text style={styles.inputLabel}>Item Details</Text>
-               <TextInput
-                 multiline
-                 numberOfLines={4}
-                 placeholder="List items and maximum prices..."
-                 placeholderTextColor={colors.muted}
-                 style={styles.textArea}
-                 value={items}
-                 onChangeText={setItems}
-               />
-            </View>
-          </View>
-        )}
-
-        {step === 2 && (
-          <View style={styles.flex1}>
-            <Text style={styles.stepTitle}>Where is it going?</Text>
-            <Input 
-              label="Delivery Address" 
-              placeholder="e.g. 10 Ajose Adeogun St, Victoria Island"
-              value={delivery}
-              onChangeText={setDelivery}
+        {/* Location */}
+        <View style={styles.field}>
+          <Text style={styles.fieldLabel}>Market / Pickup Location</Text>
+          <View style={styles.locationInput}>
+            <TextInput
+              style={styles.locationTextInput}
+              placeholder="e.g. Mile 12 Market, Lagos"
+              placeholderTextColor={DT.colors.muted}
+              value={location}
+              onChangeText={setLocation}
             />
-            
-            <View style={styles.locationPreview}>
-              <MapPin size={24} color={colors.primary} />
-              <View style={styles.locationPreviewTextContainer}>
-                 <Text style={styles.locationPreviewTitle}>Victoria Island, Lagos</Text>
-                 <Text style={styles.locationPreviewSubtitle}>Estimated delivery: 2-3 hours</Text>
-              </View>
+            <View style={styles.locationIcon}>
+              <MapPin size={20} color={DT.colors.surface} strokeWidth={2.5} />
             </View>
           </View>
-        )}
+        </View>
 
-        {step === 3 && (
-          <View style={styles.flex1}>
-            <Text style={styles.stepTitle}>Confirm & Pay Escrow</Text>
-            
-            <View style={styles.receiptContainer}>
-                <View style={styles.receiptRow}>
-                  <Text style={styles.receiptLineItem}>Errand Fee</Text>
-                  <Text style={styles.receiptLineItemBold}>₦3,500</Text>
-                </View>
-                <View style={styles.receiptRow}>
-                  <Text style={styles.receiptLineItem}>Market Cost (Est.)</Text>
-                  <Text style={styles.receiptLineItemBold}>₦15,000</Text>
-                </View>
-                <View style={styles.receiptDivider} />
-                <View style={[styles.receiptRow, { marginBottom: 0 }]}>
-                  <Text style={styles.receiptTotal}>Total Deposit</Text>
-                  <Text style={styles.receiptTotal}>₦18,500</Text>
-                </View>
-            </View>
-
-            <View style={styles.escrowNotice}>
-               <CreditCard size={20} color={colors.accent} />
-               <Text style={styles.escrowNoticeText}>
-                 Your deposit is held in escrow and only released when you confirm delivery.
-               </Text>
+        {/* Delivery Location */}
+        <View style={styles.field}>
+          <Text style={styles.fieldLabel}>Your Delivery Address</Text>
+          <View style={styles.locationInput}>
+            <TextInput
+              style={styles.locationTextInput}
+              placeholder="e.g. 15 Ajose Adeogun St, VI"
+              placeholderTextColor={DT.colors.muted}
+            />
+            <View style={[styles.locationIcon, { backgroundColor: DT.colors.secondary }]}>
+              <MapPin size={20} color={DT.colors.surface} strokeWidth={2.5} />
             </View>
           </View>
-        )}
+        </View>
+
+        {/* Price Slider */}
+        <View style={styles.field}>
+          <View style={styles.sliderHeader}>
+            <Text style={styles.fieldLabel}>Runner's Fee</Text>
+            <View style={styles.priceTag}>
+              <Text style={styles.priceTagText}>
+                ₦{price.toLocaleString()}
+              </Text>
+            </View>
+          </View>
+          <Text style={styles.fieldHint}>Drag to set how much you'll pay the runner.</Text>
+
+          {/* Custom Slider */}
+          <View style={styles.sliderContainer}>
+            {/* Track */}
+            <View style={styles.sliderTrack}>
+              {/* Fill */}
+              <Animated.View style={[styles.sliderFill, { width: fillWidth }]} />
+            </View>
+            {/* Thumb */}
+            <Animated.View
+              style={[styles.thumbWrapper, { left: thumbLeft }]}
+              {...panResponder.panHandlers}
+            >
+              <View style={styles.thumb} />
+            </Animated.View>
+          </View>
+
+          <View style={styles.sliderLabels}>
+            <Text style={styles.sliderLabelText}>₦1,000</Text>
+            <Text style={styles.sliderLabelText}>₦10,000</Text>
+          </View>
+        </View>
+
+        {/* Info Box */}
+        <View style={styles.infoBox}>
+          <Text style={styles.infoTitle}>⚡ How it works</Text>
+          <Text style={styles.infoText}>
+            1. Your waka is broadcast to nearby runners.{'\n'}
+            2. A runner accepts and heads to the market.{'\n'}
+            3. You confirm delivery to release payment.
+          </Text>
+        </View>
       </ScrollView>
 
+      {/* Sticky Footer */}
       <View style={styles.footer}>
-        <Button 
-          title={step === 3 ? "Pay & Post Errand" : "Continue"} 
-          onPress={() => step < 3 ? setStep(step + 1) : router.push('/(tabs)')}
-        />
+        <TouchableOpacity
+          style={[
+            styles.broadcastBtn,
+            (!items || !location) && styles.broadcastDisabled,
+          ]}
+          onPress={handleBroadcast}
+          disabled={!items || !location}
+        >
+          <Text style={styles.broadcastText}>
+            Broadcast Waka — ₦{price.toLocaleString()}
+          </Text>
+        </TouchableOpacity>
       </View>
+
+      {/* Success Modal */}
+      <Modal visible={showSuccess} transparent animationType="fade">
+        <View style={styles.successOverlay}>
+          <View style={styles.successCard}>
+            <Text style={styles.successEmoji}>🎉</Text>
+            <Text style={styles.successTitle}>Waka Broadcast!</Text>
+            <Text style={styles.successBody}>
+              Runners nearby are being notified. Sit tight!
+            </Text>
+            <View style={styles.successProgress} />
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
 
-const getStyles = (colors: any, typography: any, spacing: any, radius: any) => StyleSheet.create({
+const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: DT.colors.background,
   },
+  flex1: { flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
+    paddingHorizontal: DT.spacing.lg,
+    paddingVertical: DT.spacing.md,
+    borderBottomWidth: 2,
+    borderBottomColor: DT.colors.text,
+    backgroundColor: DT.colors.background,
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderWidth: 2,
+    borderColor: DT.colors.text,
+    backgroundColor: DT.colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerTitle: {
-    fontFamily: typography.heading,
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.text,
-  },
-  progressContainer: {
-    flexDirection: 'row',
-    height: 4,
-    backgroundColor: colors.border,
-    marginBottom: spacing.lg,
-  },
-  progressSegment: {
-    flex: 1,
-  },
-  progressMiddle: {
-    marginHorizontal: 2,
-  },
-  progressActive: {
-    backgroundColor: colors.accent,
-  },
-  flex1: {
-    flex: 1,
+    fontFamily: DT.typography.heading,
+    fontSize: 20,
+    color: DT.colors.text,
   },
   scrollContent: {
-    paddingHorizontal: spacing.md,
-    paddingBottom: spacing.xl,
+    paddingHorizontal: DT.spacing.lg,
+    paddingTop: DT.spacing.lg,
+    paddingBottom: 120,
   },
-  stepTitle: {
-    fontFamily: typography.heading,
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: spacing.lg,
+  field: {
+    marginBottom: DT.spacing.lg,
   },
-  inputLabel: {
-    fontFamily: typography.bodyMedium,
-    color: colors.text,
-    fontSize: 13,
-    marginBottom: 6,
+  fieldLabel: {
+    fontFamily: DT.typography.heading,
+    fontSize: 15,
+    color: DT.colors.text,
+    marginBottom: 4,
   },
-  dropdownPicker: {
-    height: 56,
-    paddingHorizontal: spacing.md,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.sm,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: spacing.lg,
-  },
-  inputText: {
-    fontFamily: typography.body,
-    fontSize: 16,
-    color: colors.text,
-  },
-  marginBottomLg: {
-    marginBottom: spacing.lg,
+  fieldHint: {
+    fontFamily: DT.typography.body,
+    fontSize: 12,
+    color: DT.colors.muted,
+    marginBottom: 8,
+    lineHeight: 18,
   },
   textArea: {
     height: 120,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.sm,
-    fontFamily: typography.body,
-    fontSize: 16,
-    color: colors.text,
+    borderWidth: 2,
+    borderColor: DT.colors.text,
+    backgroundColor: DT.colors.surface,
+    padding: DT.spacing.md,
+    fontFamily: DT.typography.body,
+    fontSize: 15,
+    color: DT.colors.text,
     textAlignVertical: 'top',
+    borderRadius: 0,
   },
-  locationPreview: {
-    marginTop: spacing.md,
-    padding: spacing.md,
-    backgroundColor: colors.surface,
-    borderRadius: radius.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
+  locationInput: {
+    height: 48,
     flexDirection: 'row',
+    borderWidth: 2,
+    borderColor: DT.colors.text,
+    backgroundColor: DT.colors.surface,
+    overflow: 'hidden',
+  },
+  locationTextInput: {
+    flex: 1,
+    paddingHorizontal: DT.spacing.md,
+    fontFamily: DT.typography.body,
+    fontSize: 15,
+    color: DT.colors.text,
+  },
+  locationIcon: {
+    width: 48,
+    backgroundColor: DT.colors.primary,
     alignItems: 'center',
+    justifyContent: 'center',
+    borderLeftWidth: 2,
+    borderLeftColor: DT.colors.text,
   },
-  locationPreviewTextContainer: {
-    marginLeft: spacing.md,
-  },
-  locationPreviewTitle: {
-    fontFamily: typography.bodyMedium,
-    color: colors.text,
-    fontSize: 14,
-  },
-  locationPreviewSubtitle: {
-    fontFamily: typography.body,
-    color: colors.muted,
-    fontSize: 12,
-  },
-  receiptContainer: {
-    backgroundColor: colors.surface,
-    padding: spacing.md,
-    borderRadius: radius.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
-    marginBottom: spacing.lg,
-  },
-  receiptRow: {
+  sliderHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: spacing.sm,
+    alignItems: 'center',
+    marginBottom: 4,
   },
-  receiptLineItem: {
-    fontFamily: typography.body,
-    color: colors.text,
+  priceTag: {
+    backgroundColor: DT.colors.accent,
+    borderWidth: 2,
+    borderColor: DT.colors.text,
+    paddingHorizontal: 10,
+    paddingVertical: 2,
+    shadowColor: DT.colors.text,
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 3,
   },
-  receiptLineItemBold: {
-    fontFamily: typography.bodyMedium,
-    color: colors.text,
-  },
-  receiptDivider: {
-    height: 1,
-    backgroundColor: colors.border,
-    marginVertical: spacing.sm,
-  },
-  receiptTotal: {
-    fontFamily: typography.heading,
+  priceTagText: {
+    fontFamily: DT.typography.heading,
     fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.text,
+    color: DT.colors.text,
   },
-  escrowNotice: {
+  sliderContainer: {
+    height: 40,
+    marginTop: DT.spacing.md,
+    justifyContent: 'center',
+  },
+  sliderTrack: {
+    height: 8,
+    backgroundColor: DT.colors.surface,
+    borderWidth: 2,
+    borderColor: DT.colors.text,
+    overflow: 'visible',
+  },
+  sliderFill: {
+    height: '100%',
+    backgroundColor: DT.colors.primary,
+  },
+  thumbWrapper: {
+    position: 'absolute',
+    top: -8,
+    marginLeft: -14,
+  },
+  thumb: {
+    width: 28,
+    height: 28,
+    backgroundColor: DT.colors.surface,
+    borderWidth: 2,
+    borderColor: DT.colors.text,
+    shadowColor: DT.colors.text,
+    shadowOffset: { width: 3, height: 3 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 5,
+  },
+  sliderLabels: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    padding: spacing.sm,
-    backgroundColor: colors.surface,
-    borderRadius: radius.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
+    justifyContent: 'space-between',
+    marginTop: DT.spacing.sm,
   },
-  escrowNoticeText: {
-    fontFamily: typography.body,
+  sliderLabelText: {
+    fontFamily: DT.typography.body,
     fontSize: 12,
-    color: colors.muted,
-    marginLeft: spacing.sm,
-    flex: 1,
+    color: DT.colors.muted,
+  },
+  infoBox: {
+    backgroundColor: DT.colors.surface,
+    borderWidth: 2,
+    borderColor: DT.colors.text,
+    padding: DT.spacing.md,
+    marginBottom: DT.spacing.lg,
+  },
+  infoTitle: {
+    fontFamily: DT.typography.heading,
+    fontSize: 15,
+    color: DT.colors.text,
+    marginBottom: 6,
+  },
+  infoText: {
+    fontFamily: DT.typography.body,
+    fontSize: 13,
+    color: DT.colors.muted,
+    lineHeight: 22,
   },
   footer: {
-    padding: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: DT.spacing.lg,
+    paddingBottom: DT.spacing.lg,
+    paddingTop: DT.spacing.md,
+    borderTopWidth: 2,
+    borderTopColor: DT.colors.text,
+    backgroundColor: DT.colors.background,
+  },
+  broadcastBtn: {
+    height: 56,
+    backgroundColor: DT.colors.primary,
+    borderWidth: 2,
+    borderColor: DT.colors.text,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: DT.colors.text,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 5,
+  },
+  broadcastDisabled: {
+    opacity: 0.4,
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  broadcastText: {
+    fontFamily: DT.typography.heading,
+    fontSize: 18,
+    color: DT.colors.surface,
+    letterSpacing: 0.3,
+  },
+  successOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15,15,15,0.75)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  successCard: {
+    width: width - 64,
+    backgroundColor: DT.colors.background,
+    borderWidth: 3,
+    borderColor: DT.colors.text,
+    padding: DT.spacing.xl,
+    alignItems: 'center',
+    shadowColor: DT.colors.text,
+    shadowOffset: { width: 8, height: 8 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 10,
+  },
+  successEmoji: {
+    fontSize: 60,
+    marginBottom: DT.spacing.md,
+  },
+  successTitle: {
+    fontFamily: DT.typography.heading,
+    fontSize: 28,
+    color: DT.colors.text,
+    marginBottom: DT.spacing.sm,
+  },
+  successBody: {
+    fontFamily: DT.typography.body,
+    fontSize: 15,
+    color: DT.colors.muted,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: DT.spacing.lg,
+  },
+  successProgress: {
+    width: '100%',
+    height: 6,
+    backgroundColor: DT.colors.secondary,
+    borderWidth: 1,
+    borderColor: DT.colors.text,
   },
 });
-
-

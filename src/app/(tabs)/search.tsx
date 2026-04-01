@@ -1,81 +1,173 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Input } from '../../components/ui/Input';
-import { useTheme } from '../../constants/theme';
+import { Search } from 'lucide-react-native';
+import { DesignTokens as DT } from '../../constants/design';
+
+const markets = ['Mile 12', 'Balogun', 'Yaba', 'Ikeja', 'Oshodi', 'Tejuosho'];
+const categories = [
+  { emoji: '🌶️', label: 'Produce' },
+  { emoji: '👗', label: 'Fashion' },
+  { emoji: '📱', label: 'Electronics' },
+  { emoji: '💊', label: 'Pharmacy' },
+  { emoji: '🍖', label: 'Meat' },
+  { emoji: '🏠', label: 'Home' },
+];
 
 export default function SearchScreen() {
-  const { colors, typography, spacing, radius } = useTheme();
-  const styles = getStyles(colors, typography, spacing, radius);
+  const [query, setQuery] = useState('');
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <View style={styles.container}>
-        <Text style={styles.title}>Find a Runner</Text>
-        <Input 
-          placeholder="Market, area, or task..." 
-          containerStyle={styles.inputContainer}
-        />
-        
-        <Text style={styles.sectionTitle}>Popular in Lagos</Text>
-        <View style={styles.tagsContainer}>
-          {['Balogun', 'Yaba', 'Island', 'Ikeja'].map((tag) => (
-            <View key={tag} style={styles.tag}>
-              <Text style={styles.tagText}>{tag}</Text>
-            </View>
-          ))}
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Find Runners</Text>
         </View>
-      </View>
+
+        {/* Search Bar */}
+        <View style={styles.searchBox}>
+          <View style={styles.searchIcon}>
+            <Search size={20} color={DT.colors.surface} strokeWidth={2.5} />
+          </View>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Market, area, or item..."
+            placeholderTextColor={DT.colors.muted}
+            value={query}
+            onChangeText={setQuery}
+          />
+        </View>
+
+        {/* Markets */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>POPULAR MARKETS</Text>
+          <View style={styles.tagsWrap}>
+            {markets.map((m) => (
+              <TouchableOpacity key={m} style={styles.marketTag}>
+                <Text style={styles.marketTagText}>{m}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Categories */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>BROWSE BY CATEGORY</Text>
+          <View style={styles.categoryGrid}>
+            {categories.map((c) => (
+              <TouchableOpacity key={c.label} style={styles.categoryCard}>
+                <Text style={styles.categoryEmoji}>{c.emoji}</Text>
+                <Text style={styles.categoryLabel}>{c.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
-const getStyles = (colors: any, typography: any, spacing: any, radius: any) => StyleSheet.create({
+const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: DT.colors.background,
   },
-  container: {
-    flex: 1,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
+  header: {
+    paddingHorizontal: DT.spacing.lg,
+    paddingVertical: DT.spacing.md,
+    borderBottomWidth: 2,
+    borderBottomColor: DT.colors.text,
   },
   title: {
-    fontFamily: typography.heading,
+    fontFamily: DT.typography.heading,
     fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: spacing.md,
+    color: DT.colors.text,
   },
-  inputContainer: {
-    marginBottom: spacing.lg,
+  searchBox: {
+    flexDirection: 'row',
+    margin: DT.spacing.lg,
+    borderWidth: 2,
+    borderColor: DT.colors.text,
+    backgroundColor: DT.colors.surface,
+    shadowColor: DT.colors.text,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
   },
-  sectionTitle: {
-    fontFamily: typography.heading,
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: spacing.md,
+  searchIcon: {
+    width: 48,
+    backgroundColor: DT.colors.text,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  tagsContainer: {
+  searchInput: {
+    flex: 1,
+    height: 48,
+    paddingHorizontal: DT.spacing.md,
+    fontFamily: DT.typography.body,
+    fontSize: 15,
+    color: DT.colors.text,
+  },
+  section: {
+    paddingHorizontal: DT.spacing.lg,
+    marginBottom: DT.spacing.lg,
+  },
+  sectionLabel: {
+    fontFamily: DT.typography.heading,
+    fontSize: 12,
+    color: DT.colors.muted,
+    letterSpacing: 1.5,
+    marginBottom: DT.spacing.md,
+  },
+  tagsWrap: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    gap: DT.spacing.sm,
   },
-  tag: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.sm,
-    marginRight: spacing.sm,
-    marginBottom: spacing.sm,
+  marketTag: {
+    paddingHorizontal: DT.spacing.md,
+    paddingVertical: DT.spacing.sm,
+    backgroundColor: DT.colors.surface,
+    borderWidth: 2,
+    borderColor: DT.colors.text,
+    shadowColor: DT.colors.text,
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 3,
   },
-  tagText: {
-    fontFamily: typography.bodyMedium,
-    color: colors.text,
+  marketTagText: {
+    fontFamily: DT.typography.bodySemiBold,
+    fontSize: 14,
+    color: DT.colors.text,
+  },
+  categoryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: DT.spacing.md,
+  },
+  categoryCard: {
+    width: '30%',
+    aspectRatio: 1,
+    backgroundColor: DT.colors.surface,
+    borderWidth: 2,
+    borderColor: DT.colors.text,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: DT.colors.text,
+    shadowOffset: { width: 3, height: 3 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
+  },
+  categoryEmoji: {
+    fontSize: 28,
+    marginBottom: 4,
+  },
+  categoryLabel: {
+    fontFamily: DT.typography.body,
     fontSize: 13,
+    color: DT.colors.text,
   },
 });
-
-

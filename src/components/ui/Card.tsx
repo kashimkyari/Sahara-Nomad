@@ -1,56 +1,48 @@
 import React from 'react';
-import { View, ViewProps, StyleSheet } from 'react-native';
-import { useTheme } from '../../constants/theme';
+import { View, StyleSheet } from 'react-native';
+import { DesignTokens as DT } from '../../constants/design';
 
-interface CardProps extends ViewProps {
+interface CardProps {
   children: React.ReactNode;
-  variant?: 'white' | 'surface' | 'primary';
+  variant?: 'surface' | 'active' | 'plain';
+  style?: object;
 }
 
-export const Card = ({ 
-  children, 
-  variant = 'white', 
-  style, 
-  ...props 
-}: CardProps) => {
-  const { colors, radius, spacing } = useTheme();
-  
-  const getVariantStyle = () => {
-    switch (variant) {
-      case 'white': return {
-        backgroundColor: colors.background,
-        borderColor: colors.border,
-      };
-      case 'surface': return {
-        backgroundColor: colors.surface,
-        borderColor: colors.border,
-      };
-      case 'primary': return {
-        backgroundColor: colors.primary,
-        borderColor: colors.primary,
-      };
-    }
-  };
-
+export function Card({ children, variant = 'surface', style }: CardProps) {
   return (
-    <View 
+    <View
       style={[
-        styles.base, 
-        { borderRadius: radius.sm, padding: spacing.md },
-        getVariantStyle(), 
-        style
+        styles.base,
+        variant === 'active' ? styles.active : variant === 'plain' ? styles.plain : styles.surface,
+        style,
       ]}
-      {...props}
     >
       {children}
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   base: {
-    borderWidth: 1,
+    borderWidth: 2,
+    borderColor: DT.colors.text,
+    borderRadius: 0,
+    padding: DT.spacing.md,
+    shadowColor: DT.colors.text,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 5,
+  },
+  surface: {
+    backgroundColor: DT.colors.surface,
+  },
+  active: {
+    backgroundColor: DT.colors.secondary,
+  },
+  plain: {
+    backgroundColor: DT.colors.background,
+    shadowOpacity: 0,
+    elevation: 0,
   },
 });
-
-

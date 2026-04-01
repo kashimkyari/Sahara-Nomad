@@ -1,159 +1,262 @@
 import React, { useState } from 'react';
-import { View, Text, KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  TouchableOpacity,
+  StyleSheet,
+  Animated,
+  useRef,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
-import { useTheme } from '../constants/theme';
+import { Eye, EyeOff } from 'lucide-react-native';
+import { DesignTokens as DT } from '../constants/design';
+
+type Tab = 'login' | 'signup';
 
 export default function AuthScreen() {
   const router = useRouter();
-  const { colors, typography, spacing, radius } = useTheme();
+  const [tab, setTab] = useState<Tab>('login');
   const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [phoneError, setPhoneError] = useState('');
 
-  const styles = getStyles(colors, typography, spacing, radius);
-
-  const handleContinue = () => {
+  const handleSubmit = () => {
     if (phone.length < 10) {
-      setError('Invalid phone number format');
+      setPhoneError('Ah ah, check that number again.');
       return;
     }
-    
+    setPhoneError('');
     setLoading(true);
-    setError('');
-    
-    // Simulate OTP send
     setTimeout(() => {
       setLoading(false);
-      router.push('/(tabs)');
+      router.replace('/(tabs)');
     }, 1500);
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.flex1}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent} style={styles.scrollContainer}>
+        <ScrollView
+          style={styles.flex1}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.title}>
-              Enter your phone number
-            </Text>
-            <Text style={styles.subtitle}>
-              We'll send a secure OTP via SMS or WhatsApp.
-            </Text>
+            <Text style={styles.appName}>SENDAM</Text>
+            <Text style={styles.subtitle}>The errand network built for naija.</Text>
           </View>
 
-          <View style={styles.inputRow}>
-            <View style={styles.prefixContainer}>
-              <Text style={styles.prefixText}>+234</Text>
-            </View>
-            <View style={styles.flex1}>
+          {/* Segmented Control */}
+          <View style={styles.tabBar}>
+            <TouchableOpacity
+              style={[styles.tab, tab === 'login' && styles.tabActive]}
+              onPress={() => setTab('login')}
+            >
+              <Text style={[styles.tabLabel, tab === 'login' && styles.tabLabelActive]}>
+                Login
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.tab, tab === 'signup' && styles.tabActive]}
+              onPress={() => setTab('signup')}
+            >
+              <Text style={[styles.tabLabel, tab === 'signup' && styles.tabLabelActive]}>
+                Sign Up
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Form */}
+          <View style={styles.form}>
+            {tab === 'signup' && (
               <Input
-                placeholder="000 000 0000"
-                keyboardType="phone-pad"
-                value={phone}
-                onChangeText={(text) => {
-                  setPhone(text);
-                  if (error) setError('');
-                }}
-                error={error}
-                containerStyle={styles.inputContainer}
-                style={styles.inputInner}
+                label="Full Name"
+                placeholder="e.g. Chidi Amaechi"
+                value={name}
+                onChangeText={setName}
+                autoCapitalize="words"
               />
-            </View>
-          </View>
+            )}
 
-          <View style={styles.footer}>
-            <Text style={styles.disclaimer}>
-              By continuing, you agree to our Terms of Service and Privacy Policy.
-            </Text>
-            <Button 
-              title="Continue" 
-              onPress={handleContinue}
-              loading={loading}
-              disabled={!phone}
+            {/* Phone Field with +234 prefix */}
+            <Text style={styles.inputLabel}>Phone Number</Text>
+            <View style={styles.phoneRow}>
+              <View style={styles.prefix}>
+                <Text style={styles.prefixText}>+234</Text>
+              </View>
+              <View style={styles.phoneInputWrapper}>
+                <Input
+                  placeholder="000 000 0000"
+                  keyboardType="phone-pad"
+                  value={phone}
+                  onChangeText={(t) => {
+                    setPhone(t);
+                    if (phoneError) setPhoneError('');
+                  }}
+                  error={phoneError}
+                  containerStyle={styles.phoneInputContainer}
+                  style={styles.phoneInput}
+                />
+              </View>
+            </View>
+
+            {/* Password */}
+            <Input
+              label="Password"
+              placeholder="••••••••"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!showPassword}
+              rightElement={
+                <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                  <Text style={styles.showToggle}>{showPassword ? 'Hide' : 'Show'}</Text>
+                </TouchableOpacity>
+              }
             />
           </View>
         </ScrollView>
+
+        {/* Sticky Submit */}
+        <View style={styles.footer}>
+          <Button
+            title="Enter Market"
+            onPress={handleSubmit}
+            loading={loading}
+            disabled={!phone}
+          />
+          <Text style={styles.disclaimer}>
+            By continuing you agree to our Terms & Privacy Policy
+          </Text>
+        </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
-const getStyles = (colors: any, typography: any, spacing: any, radius: any) => StyleSheet.create({
+const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: DT.colors.background,
   },
-  flex1: {
-    flex: 1,
-  },
-  scrollContainer: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.lg,
-  },
+  flex1: { flex: 1 },
   scrollContent: {
+    paddingHorizontal: DT.spacing.lg,
+    paddingBottom: DT.spacing.lg,
     flexGrow: 1,
   },
   header: {
-    marginBottom: spacing.lg,
-    marginTop: spacing.md,
+    paddingTop: DT.spacing.lg,
+    marginBottom: DT.spacing.lg,
   },
-  title: {
-    fontFamily: typography.heading,
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: colors.text,
+  appName: {
+    fontFamily: DT.typography.heading,
+    fontSize: 36,
+    color: DT.colors.primary,
+    letterSpacing: -1,
+    textShadowColor: DT.colors.text,
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 0,
   },
   subtitle: {
-    fontFamily: typography.body,
-    fontSize: 16,
-    color: colors.muted,
-    marginTop: 8,
+    fontFamily: DT.typography.body,
+    fontSize: 15,
+    color: DT.colors.muted,
+    marginTop: 4,
   },
-  inputRow: {
+  tabBar: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    borderWidth: 2,
+    borderColor: DT.colors.text,
+    marginBottom: DT.spacing.lg,
+    backgroundColor: DT.colors.surface,
   },
-  prefixContainer: {
-    height: 56,
-    paddingHorizontal: spacing.md,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
+  tab: {
+    flex: 1,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: DT.colors.surface,
+  },
+  tabActive: {
+    backgroundColor: DT.colors.primary,
+  },
+  tabLabel: {
+    fontFamily: DT.typography.heading,
+    fontSize: 15,
+    color: DT.colors.text,
+  },
+  tabLabelActive: {
+    color: DT.colors.surface,
+  },
+  form: {},
+  inputLabel: {
+    fontFamily: DT.typography.body,
+    fontSize: 13,
+    color: DT.colors.text,
+    fontWeight: '600',
+    marginBottom: 6,
+  },
+  phoneRow: {
+    flexDirection: 'row',
+    marginBottom: DT.spacing.md,
+  },
+  prefix: {
+    height: 48,
+    paddingHorizontal: DT.spacing.md,
+    backgroundColor: DT.colors.secondary,
+    borderWidth: 2,
+    borderColor: DT.colors.text,
     borderRightWidth: 0,
-    borderTopLeftRadius: radius.sm,
-    borderBottomLeftRadius: radius.sm,
+    alignItems: 'center',
     justifyContent: 'center',
   },
   prefixText: {
-    fontFamily: typography.body,
-    fontSize: 16,
-    color: colors.text,
+    fontFamily: DT.typography.bodySemiBold,
+    fontSize: 15,
+    color: DT.colors.surface,
   },
-  inputContainer: {
+  phoneInputWrapper: {
+    flex: 1,
+  },
+  phoneInputContainer: {
     marginBottom: 0,
   },
-  inputInner: {
-    borderTopLeftRadius: 0,
-    borderBottomLeftRadius: 0,
+  phoneInput: {
+    borderLeftWidth: 0,
+  },
+  showToggle: {
+    fontFamily: DT.typography.body,
+    fontSize: 14,
+    color: DT.colors.primary,
+    textDecorationLine: 'underline',
   },
   footer: {
-    marginTop: 'auto',
-    paddingTop: spacing.lg,
+    paddingHorizontal: DT.spacing.lg,
+    paddingBottom: DT.spacing.lg,
+    paddingTop: DT.spacing.md,
+    borderTopWidth: 2,
+    borderTopColor: DT.colors.text,
+    backgroundColor: DT.colors.background,
+    gap: 10,
   },
   disclaimer: {
-    fontFamily: typography.body,
-    fontSize: 12,
-    color: colors.muted,
+    fontFamily: DT.typography.body,
+    fontSize: 11,
+    color: DT.colors.muted,
     textAlign: 'center',
-    marginBottom: spacing.md,
-    paddingHorizontal: spacing.md,
   },
 });
-
-

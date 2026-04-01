@@ -1,39 +1,39 @@
 export const DesignTokens = {
   colors: {
-    light: {
-      primary: '#0A2540',
-      background: '#FFFFFF',
-      surface: '#F6F9FC',
-      text: '#1A1F36',
-      muted: '#8792A2',
-      accent: '#00D47E',
-      border: '#E3E8EE',
-    },
-    dark: {
-      primary: '#4E8CE4', // Lighter brand blue — visible on dark backgrounds
-      background: '#1A1F36', // Deep Navy background
-      surface: '#2E344A', // Slightly lighter navy for cards
-      text: '#FFFFFF',
-      muted: '#A8B3C2', // Higher contrast muted for dark mode readability
-      accent: '#00D47E', // Trust Green remains constant
-      border: '#3E445B',
-    },
+    primary: '#FF5722',
+    secondary: '#00A859',
+    background: '#FFF8EF',
+    surface: '#FFFFFF',
+    text: '#0F0F0F',
+    muted: '#6B6B6B',
+    accent: '#FFC107',
+    error: '#FF0000',
   },
   typography: {
-    heading: 'SpaceGrotesk_700Bold',
-    body: 'WorkSans_400Regular',
-    bodyMedium: 'WorkSans_500Medium',
-    bodySemiBold: 'WorkSans_600SemiBold',
+    heading: 'Outfit_700Bold',
+    body: 'PlusJakartaSans_500Medium',
+    bodySemiBold: 'PlusJakartaSans_600SemiBold',
   },
-  radius: {
-    sm: 4,
-    md: 8,
+  radius: 0,
+  border: {
+    width: 2,
+    color: '#0F0F0F',
+    style: '2px solid #0F0F0F',
+  },
+  shadow: {
+    hard: {
+      shadowColor: '#0F0F0F',
+      shadowOffset: { width: 4, height: 4 },
+      shadowOpacity: 1,
+      shadowRadius: 0,
+      elevation: 4,
+    },
   },
   spacing: {
-    sm: 12,
-    md: 24,
-    lg: 32,
+    xs: 4,
+    sm: 8,
+    md: 16,
+    lg: 24,
     xl: 40,
   },
 } as const;
-
