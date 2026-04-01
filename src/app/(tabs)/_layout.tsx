@@ -6,25 +6,23 @@ import { useTheme } from '../../constants/theme';
 export default function TabLayout() {
   const { colors } = useTheme();
 
-  // `colors.primary` is already theme-resolved:
-  //   light → #0A2540 (deep navy, visible on white bar)
-  //   dark  → #4E8CE4 (bright blue, visible on dark bar)
-  const activeColor = colors.primary;
-  const inactiveColor = colors.muted;
-
   return (
     <NativeTabs
-      tintColor={activeColor}
+      backgroundColor={colors.background}
+      iconColor={{
+        default: colors.muted,    // inactive icon tint
+        selected: colors.primary, // active icon tint
+      }}
       labelStyle={{
         default: {
           fontFamily: 'WorkSans_500Medium',
           fontSize: 12,
-          color: inactiveColor,
+          color: colors.muted,
         },
         selected: {
           fontFamily: 'WorkSans_500Medium',
           fontSize: 12,
-          color: activeColor,
+          color: colors.primary,
         },
       }}
     >
@@ -58,4 +56,3 @@ export default function TabLayout() {
     </NativeTabs>
   );
 }
-
