@@ -25,7 +25,7 @@ export const VerifiedBadge = ({
       {showLabel && (
         <Text style={[
           styles.label, 
-          { color: colors.accent, fontFamily: typography.bodyMedium }
+          { color: colors.accent, fontFamily: typography.bodySemiBold }
         ]}>
           Verified
         </Text>

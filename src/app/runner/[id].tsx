@@ -4,89 +4,79 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
-import { VerifiedBadge } from '../../components/ui/VerifiedBadge';
-import { ChevronLeft, ShieldCheck } from 'lucide-react-native';
-import { useTheme } from '../../constants/theme';
+import { ChevronLeft, ShieldCheck, Star } from 'lucide-react-native';
+import { DesignTokens as DT } from '../../constants/design';
 
 export default function RunnerProfileScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
-  const { colors, typography, spacing, radius } = useTheme();
 
-  const styles = getStyles(colors, typography, spacing, radius);
-
-  // Mock data for the runner
   const runner = {
-    name: "Chinedu O.",
-    rating: "4.9",
-    trips: "142",
-    joined: "2022",
+    name: 'Chinedu O.',
+    rating: '4.9',
+    trips: '142',
+    joined: '2022',
     image: `https://i.pravatar.cc/150?u=${id}`,
-    rate: "₦2,500/hr",
+    rate: '₦2,500/hr',
     bio: "I've been sourcing items at Balogun and Yaba markets for 5+ years. Fast, reliable, and I know where to get the best prices.",
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* Custom Header */}
+      {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <ChevronLeft size={24} color={colors.primary} />
+        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+          <ChevronLeft size={24} color={DT.colors.text} strokeWidth={2.5} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Runner Profile</Text>
-        <View style={{ width: 24 }} />
+        <View style={{ width: 40 }} />
       </View>
 
       <ScrollView style={styles.flex1} showsVerticalScrollIndicator={false}>
-        {/* Profile Block */}
+        {/* Hero profile block */}
         <View style={styles.profileBlock}>
-          <View style={styles.avatarContainer}>
+          <View style={styles.avatarBox}>
             <Image source={{ uri: runner.image }} style={styles.avatar} />
           </View>
           <Text style={styles.runnerName}>{runner.name}</Text>
-          <View style={styles.badgeContainer}>
-            <VerifiedBadge />
+          <View style={styles.ratingRow}>
+            {[1, 2, 3, 4, 5].map((i) => (
+              <Star key={i} size={16} color={DT.colors.accent} fill={DT.colors.accent} />
+            ))}
+            <Text style={styles.ratingText}>{runner.rating}</Text>
           </View>
         </View>
 
-        {/* Stats Grid */}
-        <View style={styles.statsGrid}>
-          <View style={styles.statsRow}>
-            <Card style={[styles.statCard, { marginRight: spacing.sm }]}>
-              <Text style={styles.statValue}>{runner.trips}</Text>
-              <Text style={styles.statLabel}>Trips</Text>
-            </Card>
-            <Card style={[styles.statCard, { marginHorizontal: spacing.sm }]}>
-              <Text style={styles.statValue}>{runner.rating}</Text>
-              <Text style={styles.statLabel}>Rating</Text>
-            </Card>
-            <Card style={[styles.statCard, { marginLeft: spacing.sm }]}>
-              <Text style={styles.statValue}>{runner.joined}</Text>
-              <Text style={styles.statLabel}>Joined</Text>
-            </Card>
-          </View>
+        {/* Stats Row */}
+        <View style={styles.statsContainer}>
+          {[
+            { value: runner.trips, label: 'Trips' },
+            { value: runner.rating, label: 'Rating' },
+            { value: runner.joined, label: 'Since' },
+          ].map((s) => (
+            <View key={s.label} style={styles.statItem}>
+              <Text style={styles.statValue}>{s.value}</Text>
+              <Text style={styles.statLabel}>{s.label}</Text>
+            </View>
+          ))}
         </View>
 
-        {/* Verification Banner */}
-        <View style={styles.verificationBanner}>
-          <Card variant="surface" style={styles.verificationCard}>
-            <ShieldCheck size={20} color={colors.accent} />
-            <Text style={styles.verificationText}>
-               Government ID Verified (NIN)
-            </Text>
-          </Card>
+        {/* Verified badge */}
+        <View style={styles.section}>
+          <View style={styles.verifiedBadge}>
+            <ShieldCheck size={20} color={DT.colors.secondary} strokeWidth={2.5} />
+            <Text style={styles.verifiedText}>Government ID Verified (NIN)</Text>
+          </View>
         </View>
 
         {/* About */}
-        <View style={styles.aboutSection}>
+        <View style={styles.section}>
           <Text style={styles.sectionTitle}>About</Text>
-          <Text style={styles.aboutText}>
-            {runner.bio}
-          </Text>
+          <Text style={styles.aboutText}>{runner.bio}</Text>
         </View>
 
-        {/* Reviews Placeholder */}
-        <View style={styles.reviewsSection}>
+        {/* Reviews */}
+        <View style={[styles.section, { marginBottom: 120 }]}>
           <Text style={styles.sectionTitle}>Recent Reviews</Text>
           <Card style={styles.reviewCard}>
             <View style={styles.reviewHeader}>
@@ -94,168 +84,178 @@ export default function RunnerProfileScreen() {
               <Text style={styles.reviewTime}>2 days ago</Text>
             </View>
             <Text style={styles.reviewText}>
-              "Amazing runner! Got everything I needed from Balogun market in record time."
+              "Amazing runner! Got everything from Balogun market in record time."
             </Text>
           </Card>
         </View>
       </ScrollView>
 
       {/* Sticky Hire Button */}
-      <View style={styles.hireButtonContainer}>
-         <Button title={`Hire ${runner.name.split(' ')[0]} - ${runner.rate}`} />
+      <View style={styles.footer}>
+        <Button
+          title={`Hire ${runner.name.split(' ')[0]} – ${runner.rate}`}
+          onPress={() => router.push('/new-errand')}
+        />
       </View>
     </SafeAreaView>
   );
 }
 
-const getStyles = (colors: any, typography: any, spacing: any, radius: any) => StyleSheet.create({
+const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: DT.colors.background,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    paddingHorizontal: DT.spacing.lg,
+    paddingVertical: DT.spacing.md,
+    borderBottomWidth: 2,
+    borderBottomColor: DT.colors.text,
+    backgroundColor: DT.colors.background,
   },
-  headerTitle: {
-    fontFamily: typography.heading,
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.text,
-  },
-  flex1: {
-    flex: 1,
-  },
-  profileBlock: {
-    alignItems: 'center',
-    paddingVertical: spacing.lg,
-    paddingHorizontal: spacing.md,
-    backgroundColor: colors.surface,
-  },
-  avatarContainer: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.border,
-    marginBottom: spacing.md,
-    overflow: 'hidden',
-  },
-  avatar: {
-    width: '100%',
-    height: '100%',
-  },
-  runnerName: {
-    fontFamily: typography.heading,
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.text,
-  },
-  badgeContainer: {
-    marginTop: spacing.sm,
-  },
-  statsGrid: {
-    paddingHorizontal: spacing.md,
-    marginTop: spacing.lg,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  statCard: {
-    flex: 1,
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderWidth: 2,
+    borderColor: DT.colors.text,
+    backgroundColor: DT.colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing.md,
   },
-  statValue: {
-    fontFamily: typography.heading,
+  headerTitle: {
+    fontFamily: DT.typography.heading,
     fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.text,
+    color: DT.colors.text,
   },
-  statLabel: {
-    fontFamily: typography.body,
-    fontSize: 12,
-    color: colors.muted,
+  flex1: { flex: 1 },
+  profileBlock: {
+    alignItems: 'center',
+    paddingVertical: DT.spacing.xl,
+    backgroundColor: DT.colors.surface,
+    borderBottomWidth: 2,
+    borderBottomColor: DT.colors.text,
   },
-  verificationBanner: {
-    paddingHorizontal: spacing.md,
-    marginTop: spacing.lg,
+  avatarBox: {
+    width: 100,
+    height: 100,
+    borderWidth: 3,
+    borderColor: DT.colors.text,
+    overflow: 'hidden',
+    marginBottom: DT.spacing.md,
+    shadowColor: DT.colors.text,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 6,
   },
-  verificationCard: {
+  avatar: { width: '100%', height: '100%' },
+  runnerName: {
+    fontFamily: DT.typography.heading,
+    fontSize: 24,
+    color: DT.colors.text,
+    marginBottom: DT.spacing.sm,
+  },
+  ratingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderColor: colors.accent,
-    backgroundColor: colors.surface,
+    gap: 3,
   },
-  verificationText: {
-    fontFamily: typography.bodyMedium,
-    color: colors.text,
+  ratingText: {
+    fontFamily: DT.typography.bodySemiBold,
+    fontSize: 15,
+    color: DT.colors.text,
+    marginLeft: 4,
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    borderTopWidth: 0,
+    borderBottomWidth: 2,
+    borderBottomColor: DT.colors.text,
+    backgroundColor: DT.colors.background,
+  },
+  statItem: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: DT.spacing.md,
+    borderRightWidth: 2,
+    borderRightColor: DT.colors.text,
+  },
+  statValue: {
+    fontFamily: DT.typography.heading,
+    fontSize: 22,
+    color: DT.colors.text,
+  },
+  statLabel: {
+    fontFamily: DT.typography.body,
+    fontSize: 12,
+    color: DT.colors.muted,
+    marginTop: 2,
+  },
+  section: {
+    paddingHorizontal: DT.spacing.lg,
+    marginTop: DT.spacing.lg,
+  },
+  verifiedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: DT.colors.surface,
+    borderWidth: 2,
+    borderColor: DT.colors.secondary,
+    padding: DT.spacing.md,
+    gap: DT.spacing.sm,
+  },
+  verifiedText: {
+    fontFamily: DT.typography.bodySemiBold,
     fontSize: 14,
-    marginLeft: spacing.md,
-  },
-  aboutSection: {
-    paddingHorizontal: spacing.md,
-    marginTop: spacing.lg,
-    marginBottom: spacing.lg,
+    color: DT.colors.text,
   },
   sectionTitle: {
-    fontFamily: typography.heading,
+    fontFamily: DT.typography.heading,
     fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: spacing.md,
+    color: DT.colors.text,
+    marginBottom: DT.spacing.md,
   },
   aboutText: {
-    fontFamily: typography.body,
+    fontFamily: DT.typography.body,
     fontSize: 15,
-    color: colors.text,
+    color: DT.colors.text,
     lineHeight: 24,
   },
-  reviewsSection: {
-    paddingHorizontal: spacing.md,
-    marginBottom: 128,
-  },
   reviewCard: {
-    marginBottom: spacing.md,
+    marginBottom: DT.spacing.md,
   },
   reviewHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: spacing.sm,
+    marginBottom: DT.spacing.sm,
   },
   reviewerName: {
-    fontFamily: typography.heading,
+    fontFamily: DT.typography.heading,
     fontSize: 15,
-    fontWeight: 'bold',
-    color: colors.text,
+    color: DT.colors.text,
   },
   reviewTime: {
-    fontFamily: typography.body,
+    fontFamily: DT.typography.body,
     fontSize: 13,
-    color: colors.muted,
+    color: DT.colors.muted,
   },
   reviewText: {
-    fontFamily: typography.body,
+    fontFamily: DT.typography.body,
     fontSize: 14,
-    color: colors.text,
+    color: DT.colors.text,
+    lineHeight: 22,
   },
-  hireButtonContainer: {
+  footer: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    padding: spacing.md,
-    backgroundColor: colors.background,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
+    padding: DT.spacing.lg,
+    borderTopWidth: 2,
+    borderTopColor: DT.colors.text,
+    backgroundColor: DT.colors.background,
   },
 });
-

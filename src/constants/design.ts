@@ -1,5 +1,6 @@
 export const DesignTokens = {
   colors: {
+    // Sendam primary palette
     primary: '#FF5722',
     secondary: '#00A859',
     background: '#FFF8EF',
@@ -8,6 +9,11 @@ export const DesignTokens = {
     muted: '#6B6B6B',
     accent: '#FFC107',
     error: '#FF0000',
+    // Legacy aliases (kept for backward compatibility with older components)
+    backgroundElement: '#EFEFEF',
+    backgroundSelected: '#FF5722',
+    textSecondary: '#6B6B6B',
+    border: '#0F0F0F',
   },
   typography: {
     heading: 'Outfit_700Bold',
@@ -18,7 +24,6 @@ export const DesignTokens = {
   border: {
     width: 2,
     color: '#0F0F0F',
-    style: '2px solid #0F0F0F',
   },
   shadow: {
     hard: {

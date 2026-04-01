@@ -1,12 +1,16 @@
 import { Platform, StyleSheet, Text, type TextProps } from 'react-native';
 
-import { Fonts, ThemeColor } from '@/constants/theme';
+import { DesignTokens } from '@/constants/design';
 import { useTheme } from '@/hooks/use-theme';
+
+export type ThemeColor = keyof typeof DesignTokens.colors;
 
 export type ThemedTextProps = TextProps & {
   type?: 'default' | 'title' | 'small' | 'smallBold' | 'subtitle' | 'link' | 'linkPrimary' | 'code';
   themeColor?: ThemeColor;
 };
+
+const Fonts = { mono: Platform.select({ ios: 'Courier', default: 'monospace' }) ?? 'monospace' };
 
 export function ThemedText({ style, type = 'default', themeColor, ...rest }: ThemedTextProps) {
   const theme = useTheme();
