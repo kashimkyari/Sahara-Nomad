@@ -10,11 +10,11 @@ export const DesignTokens = {
       border: '#E3E8EE',
     },
     dark: {
-      primary: '#0A2540', // Maintain high-trust blue as primary
+      primary: '#4E8CE4', // Lighter brand blue — visible on dark backgrounds
       background: '#1A1F36', // Deep Navy background
       surface: '#2E344A', // Slightly lighter navy for cards
       text: '#FFFFFF',
-      muted: '#8792A2',
+      muted: '#A8B3C2', // Higher contrast muted for dark mode readability
       accent: '#00D47E', // Trust Green remains constant
       border: '#3E445B',
     },

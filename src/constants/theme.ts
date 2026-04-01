@@ -18,10 +18,10 @@ export const Colors = {
   dark: {
     text: '#FFFFFF',
     background: '#1A1F36',
-    tint: '#0A2540',
-    icon: '#8792A2',
-    tabIconDefault: '#8792A2',
-    tabIconSelected: '#FFFFFF',
+    tint: '#4E8CE4',
+    icon: '#A8B3C2',
+    tabIconDefault: '#A8B3C2',
+    tabIconSelected: '#4E8CE4',
   },
 } as const;
 

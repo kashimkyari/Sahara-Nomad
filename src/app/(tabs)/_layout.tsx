@@ -4,9 +4,12 @@ import React from 'react';
 import { useTheme } from '../../constants/theme';
 
 export default function TabLayout() {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
 
-  const activeColor = isDark ? '#ffffff' : colors.primary;
+  // `colors.primary` is already theme-resolved:
+  //   light → #0A2540 (deep navy, visible on white bar)
+  //   dark  → #4E8CE4 (bright blue, visible on dark bar)
+  const activeColor = colors.primary;
   const inactiveColor = colors.muted;
 
   return (
