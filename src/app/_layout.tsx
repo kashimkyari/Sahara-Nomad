@@ -45,6 +45,11 @@ export default function RootLayout() {
       <Stack.Screen name="settings/payment" />
       <Stack.Screen name="settings/safety" />
       <Stack.Screen name="settings/support" />
+      <Stack.Screen name="settings/edit-profile" />
+      <Stack.Screen name="settings/change-phone" />
+      <Stack.Screen name="settings/change-password" />
+      <Stack.Screen name="settings/become-runner" />
+      <Stack.Screen name="settings/language" />
     </Stack>
   );
 }

@@ -93,13 +93,13 @@ export default function SettingsScreen() {
         <Text style={[styles.sectionLabel, { marginTop: DT.spacing.lg }]}>ACCOUNT</Text>
         <View style={styles.group}>
           {[
-            { label: 'Edit Profile', sub: 'Name, bio, photo' },
-            { label: 'Change Phone Number', sub: 'Requires OTP verification' },
-            { label: 'Change Password', sub: '••••••••' },
-            { label: 'Become a Runner', sub: 'Earn by running errands' },
+            { label: 'Edit Profile', sub: 'Name, bio, photo', route: '/settings/edit-profile' },
+            { label: 'Change Phone Number', sub: 'Requires OTP verification', route: '/settings/change-phone' },
+            { label: 'Change Password', sub: '••••••••', route: '/settings/change-password' },
+            { label: 'Become a Runner', sub: 'Earn by running errands', route: '/settings/become-runner' },
           ].map((item, i, arr) => (
             <View key={item.label}>
-              <TouchableOpacity style={styles.linkRow}>
+              <TouchableOpacity style={styles.linkRow} onPress={() => router.push(item.route as any)}>
                 <View style={styles.linkInfo}>
                   <Text style={styles.linkTitle}>{item.label}</Text>
                   <Text style={styles.linkSub}>{item.sub}</Text>
@@ -114,7 +114,7 @@ export default function SettingsScreen() {
         {/* Language */}
         <Text style={[styles.sectionLabel, { marginTop: DT.spacing.lg }]}>LANGUAGE & REGION</Text>
         <View style={styles.group}>
-          <TouchableOpacity style={styles.linkRow}>
+          <TouchableOpacity style={styles.linkRow} onPress={() => router.push('/settings/language' as any)}>
             <View style={[styles.settingIcon, { backgroundColor: DT.colors.accent, marginRight: DT.spacing.md }]}>
               <Globe size={18} color={DT.colors.text} strokeWidth={2.5} />
             </View>
