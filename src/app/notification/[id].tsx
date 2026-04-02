@@ -6,14 +6,15 @@ import { ChevronLeft, CheckCircle2, AlertTriangle, Info, ArrowRight, ExternalLin
 import { DesignTokens as DT } from '../../constants/design';
 import { useTheme } from '../../hooks/use-theme';
 
-const notificationData: Record<string, { title: string; body: string; time: string; date: string; type: 'success' | 'warning' | 'info'; sender: string }> = {
+const notificationData: Record<string, { title: string; body: string; time: string; date: string; type: 'success' | 'warning' | 'info'; sender: string; wakaId?: string }> = {
   '1': { 
     title: 'Runner Accepted', 
     body: 'Chinedu O. has accepted your errand to Mile 12 Market. He is currently at Ketu and moving towards the market area.\n\nHe will provide photos of the items once he arrives at the stall. You can chat with him directly if you need to add more items or give specific instructions.', 
     time: '10:15 AM', 
     date: 'Today, Oct 12',
     type: 'success',
-    sender: 'Sendam System'
+    sender: 'Sendam System',
+    wakaId: 'w1'
   },
   '2': { 
     title: 'Payment Confirmed', 
@@ -29,7 +30,8 @@ const notificationData: Record<string, { title: string; body: string; time: stri
     time: '04:45 PM', 
     date: 'Yesterday, Oct 11',
     type: 'success',
-    sender: 'Support Team'
+    sender: 'Support Team',
+    wakaId: 'w1'
   },
   '4': { 
     title: 'Price Alert', 
@@ -89,7 +91,7 @@ export default function NotificationDetailScreen() {
           <TouchableOpacity 
             style={styles.primaryAction}
             onPress={() => {
-              if (note.title.includes('Runner')) router.push('/(tabs)');
+              if (note.title.includes('Runner') && note.wakaId) router.push(`/waka/${note.wakaId}` as any);
               else if (note.title.includes('Payment')) router.push('/profile/payment' as any);
               else if (note.title.includes('Dispute')) router.push('/profile/support' as any);
               else router.back();
