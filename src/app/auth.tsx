@@ -1,20 +1,19 @@
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  TouchableOpacity,
   StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { useTheme } from '../hooks/use-theme';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
-import { Eye, EyeOff } from 'lucide-react-native';
 import { DesignTokens as DT } from '../constants/design';
+import { useTheme } from '../hooks/use-theme';
 
 type Tab = 'login' | 'signup';
 
@@ -59,7 +58,9 @@ export default function AuthScreen() {
           {/* Header */}
           <View style={styles.header}>
             <Text style={styles.appName}>SENDAM</Text>
-            <Text style={styles.subtitle}>The errand network built for naija.</Text>
+            <View style={styles.subtitleBlock}>
+              <Text style={styles.subtitle}>THE ERRAND NETWORK</Text>
+            </View>
           </View>
 
           {/* Segmented Control */}
@@ -161,44 +162,60 @@ const getStyles = (colors: any) => StyleSheet.create({
     flexGrow: 1,
   },
   header: {
-    paddingTop: DT.spacing.lg,
-    marginBottom: DT.spacing.lg,
+    paddingTop: DT.spacing.xl,
+    marginBottom: DT.spacing.xl,
   },
   appName: {
     fontFamily: DT.typography.heading,
-    fontSize: 36,
-    color: colors.primary,
-    letterSpacing: -1,
-    textShadowColor: colors.text,
-    textShadowOffset: { width: 2, height: 2 },
+    fontSize: 56,
+    color: colors.text,
+    letterSpacing: -2,
+    lineHeight: 60,
+    textShadowColor: colors.primary,
+    textShadowOffset: { width: -4, height: 4 },
     textShadowRadius: 0,
   },
+  subtitleBlock: {
+    backgroundColor: colors.text,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginTop: 8,
+    transform: [{ rotate: '-1deg' }],
+  },
   subtitle: {
-    fontFamily: DT.typography.body,
-    fontSize: 15,
-    color: colors.muted,
-    marginTop: 4,
+    fontFamily: DT.typography.heading,
+    fontSize: 14,
+    color: colors.surface,
+    letterSpacing: 2,
   },
   tabBar: {
     flexDirection: 'row',
-    borderWidth: 2,
-    borderColor: colors.text,
-    marginBottom: DT.spacing.lg,
-    backgroundColor: colors.surface,
+    marginBottom: 40,
+    gap: 16,
   },
   tab: {
     flex: 1,
-    height: 44,
+    height: 56,
+    borderWidth: 3,
+    borderColor: colors.text,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.surface,
+    shadowColor: colors.text,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
   },
   tabActive: {
     backgroundColor: colors.primary,
+    shadowOffset: { width: 0, height: 0 },
+    transform: [{ translateX: 4 }, { translateY: 4 }],
   },
   tabLabel: {
     fontFamily: DT.typography.heading,
-    fontSize: 15,
+    fontSize: 16,
     color: colors.text,
   },
   tabLabelActive: {
@@ -220,7 +237,7 @@ const getStyles = (colors: any) => StyleSheet.create({
     height: 48,
     paddingHorizontal: DT.spacing.md,
     backgroundColor: colors.secondary,
-    borderWidth: 2,
+    borderWidth: 3,
     borderColor: colors.text,
     borderRightWidth: 0,
     alignItems: 'center',

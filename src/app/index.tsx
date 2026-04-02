@@ -43,7 +43,7 @@ export default function SplashScreen() {
 
   const barWidth = progress.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, 200],
+    outputRange: ['0%', '100%'],
   });
 
   const styles = getStyles(colors);
@@ -52,16 +52,23 @@ export default function SplashScreen() {
     <View style={styles.container}>
       <Animated.View
         style={[
-          styles.logoContainer,
+          styles.content,
           { opacity: logoOpacity, transform: [{ scale: logoScale }] },
         ]}
       >
-        <Text style={styles.logo}>SENDAM</Text>
-        <Text style={styles.tagline}>Anywhere, anyhow, we move.</Text>
+        <View style={styles.logoBox}>
+          <Text style={styles.logoText}>SENDAM</Text>
+        </View>
+        <Text style={styles.tagline}>ANYWHERE,</Text>
+        <Text style={styles.tagline}>ANYHOW,</Text>
+        <Text style={[styles.tagline, { color: colors.primary }]}>WE MOVE.</Text>
       </Animated.View>
 
-      <View style={styles.barTrack}>
-        <Animated.View style={[styles.barFill, { width: barWidth }]} />
+      <View style={styles.footerLoader}>
+        <Text style={styles.loadingText}>BOOTING CORE...</Text>
+        <View style={styles.barTrack}>
+          <Animated.View style={[styles.barFill, { width: barWidth }]} />
+        </View>
       </View>
     </View>
   );
@@ -69,41 +76,37 @@ export default function SplashScreen() {
 
 const getStyles = (colors: any) => StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: colors.background,
-    alignItems: 'center',
-    justifyContent: 'center',
+    flex: 1, backgroundColor: colors.background, padding: 32, justifyContent: 'space-between',
   },
-  logoContainer: {
-    alignItems: 'center',
-    marginBottom: 64,
+  content: {
+    flex: 1, justifyContent: 'center', alignItems: 'flex-start',
   },
-  logo: {
-    fontFamily: DT.typography.heading,
-    fontSize: 56,
-    color: colors.primary,
-    letterSpacing: -1,
-    textShadowColor: colors.text,
-    textShadowOffset: { width: 3, height: 3 },
-    textShadowRadius: 0,
+  logoBox: {
+    backgroundColor: colors.surface,
+    borderWidth: 4,
+    borderColor: colors.text,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    marginBottom: 48,
+    shadowColor: colors.text, shadowOffset: { width: 8, height: 8 }, shadowOpacity: 1, shadowRadius: 0, elevation: 8,
+    transform: [{ rotate: '-4deg' }],
+  },
+  logoText: {
+    fontFamily: DT.typography.heading, fontSize: 48, color: colors.text, letterSpacing: 4,
   },
   tagline: {
-    fontFamily: DT.typography.body,
-    fontSize: 16,
-    color: colors.text,
-    marginTop: 10,
-    letterSpacing: 0.3,
+    fontFamily: DT.typography.heading, fontSize: 44, color: colors.text, lineHeight: 48, marginBottom: -4,
+  },
+  footerLoader: {
+    marginBottom: 40,
+  },
+  loadingText: {
+    fontFamily: DT.typography.heading, fontSize: 16, color: colors.muted, marginBottom: 12, letterSpacing: 2,
   },
   barTrack: {
-    width: 200,
-    height: 8,
-    backgroundColor: colors.text,
-    borderRadius: 0,
-    overflow: 'hidden',
+    width: '100%', height: 16, backgroundColor: colors.surface, borderWidth: 3, borderColor: colors.text,
   },
   barFill: {
-    height: '100%',
-    backgroundColor: colors.secondary,
-    borderRadius: 0,
+    height: '100%', backgroundColor: colors.text,
   },
 });
