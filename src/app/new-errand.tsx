@@ -1,7 +1,7 @@
 import * as Location from 'expo-location';
 import { Stack, useRouter } from 'expo-router';
-import { ChevronLeft, MapPin } from 'lucide-react-native';
-import React, { useRef, useState } from 'react';
+import { ChevronLeft, MapPin, Package, ShoppingCart, Utensils, Zap, Clock } from 'lucide-react-native';
+import React, { useRef, useState, useEffect } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -15,6 +15,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DesignTokens as DT } from '../constants/design';
@@ -24,47 +25,86 @@ const { width } = Dimensions.get('window');
 const SLIDER_WIDTH = width - DT.spacing.lg * 2 - 4; // subtract padding
 const MIN_PRICE = 3000;
 const MAX_PRICE = 30000;
+const SLIDER_TICKS = [5000, 10000, 15000, 20000, 25000];
+
+const CATEGORIES = [
+  { id: 'package', label: 'Package', icon: Package },
+  { id: 'market', label: 'Market', icon: ShoppingCart },
+  { id: 'food', label: 'Food', icon: Utensils },
+  { id: 'custom', label: 'Custom', icon: Zap },
+];
 
 export default function NewErrandScreen() {
   const { colors } = useTheme();
   const router = useRouter();
+  
+  const [category, setCategory] = useState('package');
+  const [urgency, setUrgency] = useState('standard'); // 'standard' | 'flash'
   const [items, setItems] = useState('');
   const [location, setLocation] = useState('');
   const [deliveryLocation, setDeliveryLocation] = useState('');
+  
   const [isFetchingPickup, setIsFetchingPickup] = useState(false);
   const [isFetchingDelivery, setIsFetchingDelivery] = useState(false);
-  const [price, setPrice] = useState(5000); // Updated to fall within new bounds
+  
+  const [price, setPrice] = useState(5000);
   const [showSuccess, setShowSuccess] = useState(false);
   const [scrollEnabled, setScrollEnabled] = useState(true);
 
-  const sliderX = useRef(
-    new Animated.Value(((price - MIN_PRICE) / (MAX_PRICE - MIN_PRICE)) * SLIDER_WIDTH)
-  ).current;
-  const currentX = useRef(((price - MIN_PRICE) / (MAX_PRICE - MIN_PRICE)) * SLIDER_WIDTH);
+  // Re-calculate X based on price changes (e.g., Flash mode adds 1000)
+  const getXForPrice = (p: number) => ((p - MIN_PRICE) / (MAX_PRICE - MIN_PRICE)) * SLIDER_WIDTH;
+
+  const sliderX = useRef(new Animated.Value(getXForPrice(price))).current;
+  const currentX = useRef(getXForPrice(price));
+  const isDragging = useRef(false);
+
+  const [incentive, setIncentive] = useState(1000); // Default user-controlled flash incentive
+  const [isCustomIncentive, setIsCustomIncentive] = useState(false);
+
+  // Sync slider animation if price changes externally
+  useEffect(() => {
+    if (isDragging.current) return; // Prevent spring animation fighting the pan drag
+    
+    const newX = getXForPrice(price);
+    currentX.current = newX;
+    Animated.spring(sliderX, {
+      toValue: newX,
+      useNativeDriver: false,
+      friction: 8,
+    }).start();
+  }, [price]);
+
+  const handleUrgencyToggle = (mode: string) => {
+    setUrgency(mode);
+  };
 
   const panResponder = useRef(
     PanResponder.create({
+// ... (rest remains unchanged)
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
       onPanResponderGrant: () => {
         setScrollEnabled(false);
-        sliderX.extractOffset();
+        isDragging.current = true;
+        sliderX.setOffset(currentX.current);
+        sliderX.setValue(0);
       },
       onPanResponderMove: (_, gestureState) => {
         let newX = currentX.current + gestureState.dx;
         newX = Math.max(0, Math.min(SLIDER_WIDTH, newX));
         
+        // Visually slide with finger directly
+        sliderX.setValue(newX - currentX.current);
+        
+        // Update price state in background
         const rawPrice = MIN_PRICE + (newX / SLIDER_WIDTH) * (MAX_PRICE - MIN_PRICE);
         const snappedPrice = Math.round(rawPrice / 500) * 500;
         const boundedPrice = Math.max(MIN_PRICE, Math.min(MAX_PRICE, snappedPrice));
-        
-        const snappedX = ((boundedPrice - MIN_PRICE) / (MAX_PRICE - MIN_PRICE)) * SLIDER_WIDTH;
-        
-        sliderX.setValue(snappedX - currentX.current);
         setPrice(boundedPrice);
       },
       onPanResponderRelease: (_, gestureState) => {
         setScrollEnabled(true);
+        isDragging.current = false;
         sliderX.flattenOffset();
         
         let newX = currentX.current + gestureState.dx;
@@ -74,20 +114,28 @@ export default function NewErrandScreen() {
         const snappedPrice = Math.round(rawPrice / 500) * 500;
         const boundedPrice = Math.max(MIN_PRICE, Math.min(MAX_PRICE, snappedPrice));
         
-        const snappedX = ((boundedPrice - MIN_PRICE) / (MAX_PRICE - MIN_PRICE)) * SLIDER_WIDTH;
-        
+        // Snap visually to the exact interval
+        const snappedX = getXForPrice(boundedPrice);
         currentX.current = snappedX;
-        sliderX.setValue(snappedX);
+        
+        Animated.spring(sliderX, {
+          toValue: snappedX,
+          useNativeDriver: false,
+          friction: 8
+        }).start();
       },
     })
   ).current;
 
+  const isFormValid = items.length > 0 && location.length > 0 && deliveryLocation.length > 0;
+  const totalPrice = price + (urgency === 'flash' ? incentive : 0);
+
   const handleBroadcast = () => {
-    if (!items || !location || !deliveryLocation) return;
+    if (!isFormValid) return;
     setShowSuccess(true);
     setTimeout(() => {
       setShowSuccess(false);
-      router.replace('/(tabs)');
+      router.replace('/(tabs)' as any);
     }, 2000);
   };
 
@@ -105,7 +153,7 @@ export default function NewErrandScreen() {
       }
 
       const loc = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Highest, // Force highest precision
+        accuracy: Location.Accuracy.Highest,
       });
       const geocode = await Location.reverseGeocodeAsync({
         latitude: loc.coords.latitude,
@@ -114,20 +162,15 @@ export default function NewErrandScreen() {
 
       if (geocode && geocode.length > 0) {
         const place = geocode[0];
-
         const streetInfo = [place.streetNumber, place.street].filter(Boolean).join(' ');
-
-        // Collect granular parts: street -> landmark -> district -> city -> state
         const parts = [
-          streetInfo || place.name, // Use landmark/building name if street data is missing
+          streetInfo || place.name,
           place.district,
           place.city,
           place.region
         ].filter(Boolean);
 
-        // Deduplicate identical parts (e.g., if city and region are both "Lagos" or name is same as street)
         const uniqueParts = parts.filter((item, index) => parts.indexOf(item) === index);
-
         setValue(uniqueParts.join(', ') || 'Unknown Location');
       }
     } catch (error) {
@@ -160,10 +203,10 @@ export default function NewErrandScreen() {
           style={styles.backBtn}
           onPress={() => router.back()}
         >
-          <ChevronLeft size={24} color={colors.text} strokeWidth={2.5} />
+          <ChevronLeft size={24} color={colors.text} strokeWidth={3} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Send Someone</Text>
-        <View style={{ width: 40 }} />
+        <Text style={styles.headerTitle}>Post Errand</Text>
+        <View style={{ width: 44 }} />
       </View>
 
       <ScrollView
@@ -173,17 +216,37 @@ export default function NewErrandScreen() {
         keyboardShouldPersistTaps="handled"
         scrollEnabled={scrollEnabled}
       >
+        {/* Category Pills */}
+        <View style={styles.field}>
+          <Text style={styles.fieldLabel}>Errand Type</Text>
+          <View style={styles.categoryRow}>
+            {CATEGORIES.map((cat) => {
+              const active = category === cat.id;
+              const Icon = cat.icon;
+              return (
+                <TouchableOpacity
+                  key={cat.id}
+                  style={[styles.categoryChip, active && styles.categoryChipActive]}
+                  onPress={() => setCategory(cat.id)}
+                >
+                  <Icon size={16} color={active ? colors.surface : colors.text} strokeWidth={2.5} />
+                  <Text style={[styles.categoryText, active && styles.categoryTextActive]}>
+                    {cat.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+
         {/* Item Description */}
         <View style={styles.field}>
-          <Text style={styles.fieldLabel}>What should they get?</Text>
-          <Text style={styles.fieldHint}>
-            Be specific — mention market stall, colour, size, price limit.
-          </Text>
+          <Text style={styles.fieldLabel}>What should they carry?</Text>
           <TextInput
             style={styles.textArea}
             multiline
-            numberOfLines={5}
-            placeholder="E.g. 2 baskets of fresh pepper from Mama Ngozi's stall, Middle row at Mile 12..."
+            numberOfLines={4}
+            placeholder="Describe the item, reference sizes, constraints, etc."
             placeholderTextColor={colors.muted}
             value={items}
             onChangeText={setItems}
@@ -191,9 +254,9 @@ export default function NewErrandScreen() {
           />
         </View>
 
-        {/* Location */}
+        {/* Location Boxes */}
         <View style={styles.field}>
-          <Text style={styles.fieldLabel}>Market / Pickup Location</Text>
+          <Text style={styles.fieldLabel}>Pickup Location</Text>
           <View style={styles.locationInput}>
             <TextInput
               style={styles.locationTextInput}
@@ -217,9 +280,8 @@ export default function NewErrandScreen() {
           </View>
         </View>
 
-        {/* Delivery Location */}
         <View style={styles.field}>
-          <Text style={styles.fieldLabel}>Your Delivery Address</Text>
+          <Text style={styles.fieldLabel}>Dropoff Address</Text>
           <View style={styles.locationInput}>
             <TextInput
               style={styles.locationTextInput}
@@ -243,7 +305,82 @@ export default function NewErrandScreen() {
           </View>
         </View>
 
-        {/* Price Slider */}
+        {/* Urgency Toggles */}
+        <View style={[styles.field, urgency === 'flash' && { marginBottom: 12 }]}>
+          <Text style={styles.fieldLabel}>Delivery Speed</Text>
+          <View style={styles.urgencyRow}>
+            <TouchableOpacity 
+              style={[styles.urgencyBox, urgency === 'standard' && styles.urgencyBoxActive]}
+              onPress={() => handleUrgencyToggle('standard')}
+            >
+              <Clock size={20} color={urgency === 'standard' ? colors.surface : colors.text} strokeWidth={2} />
+              <View style={styles.urgencyTextWrap}>
+                <Text style={[styles.urgencyTitle, urgency === 'standard' && { color: colors.surface }]}>Standard</Text>
+                <Text style={[styles.urgencySub, urgency === 'standard' && { color: 'rgba(255,255,255,0.7)' }]}>Whenever</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.urgencyBox, urgency === 'flash' && styles.urgencyBoxFlashActive]}
+              onPress={() => handleUrgencyToggle('flash')}
+            >
+              <Zap size={20} color={colors.text} fill={colors.text} strokeWidth={2} />
+              <View style={styles.urgencyTextWrap}>
+                <Text style={[styles.urgencyTitle, { color: colors.text }]}>Flash Mode</Text>
+                <Text style={[styles.urgencySub, { color: 'rgba(0,0,0,0.6)' }]}>Right now!</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {urgency === 'flash' && (
+          <View style={styles.incentiveWrapper}>
+            <Text style={styles.incentiveTextLabel}>Extra Flash Incentive</Text>
+            <View style={styles.incentiveOptions}>
+              {[1000, 2000, 'custom'].map((val) => {
+                const isCustomOption = val === 'custom';
+                const isActive = isCustomOption ? isCustomIncentive : (!isCustomIncentive && incentive === val);
+
+                return (
+                  <TouchableOpacity
+                    key={val}
+                    style={[styles.incentiveChip, isActive && styles.incentiveChipActive]}
+                    onPress={() => {
+                      if (isCustomOption) {
+                        setIsCustomIncentive(true);
+                        setIncentive(0);
+                      } else {
+                        setIsCustomIncentive(false);
+                        setIncentive(val as number);
+                      }
+                    }}
+                  >
+                    <Text style={[styles.incentiveText, isActive && styles.incentiveTextActive]}>
+                      {isCustomOption ? 'Custom' : `+₦${val}`}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            
+            {isCustomIncentive && (
+              <TextInput
+                style={styles.customIncentiveInput}
+                keyboardType="numeric"
+                placeholder="Enter custom tip amount (e.g. 1500)"
+                placeholderTextColor={colors.muted}
+                value={incentive > 0 ? incentive.toString() : ''}
+                onChangeText={(text) => {
+                  const numericText = text.replace(/[^0-9]/g, '');
+                  const parsed = parseInt(numericText, 10);
+                  setIncentive(isNaN(parsed) ? 0 : parsed);
+                }}
+              />
+            )}
+          </View>
+        )}
+
+        {/* Tactile Price Slider */}
         <View style={styles.field}>
           <View style={styles.sliderHeader}>
             <Text style={styles.fieldLabel}>Runner's Fee</Text>
@@ -253,21 +390,40 @@ export default function NewErrandScreen() {
               </Text>
             </View>
           </View>
-          <Text style={styles.fieldHint}>Drag to set how much you'll pay the runner.</Text>
 
-          {/* Custom Slider */}
           <View style={styles.sliderContainer}>
-            {/* Track */}
             <View style={styles.sliderTrack}>
+              {/* Tick Marks */}
+              {SLIDER_TICKS.map((tick) => {
+                const tickX = getXForPrice(tick);
+                const isActive = price >= tick;
+                return (
+                  <View 
+                    key={tick} 
+                    style={[
+                      styles.sliderTick, 
+                      { left: tickX, backgroundColor: isActive ? colors.primary : colors.text, opacity: isActive ? 1 : 0.3 }
+                    ]} 
+                  />
+                );
+              })}
+              
               {/* Fill */}
               <Animated.View style={[styles.sliderFill, { width: fillWidth }]} />
             </View>
+            
             {/* Thumb */}
             <Animated.View
-              style={[styles.thumbWrapper, { left: thumbLeft }]}
+              style={[
+                styles.thumbWrapper, 
+                { left: thumbLeft },
+                urgency === 'flash' && { transform: [{ scale: 1.1 }] }
+              ]}
               {...panResponder.panHandlers}
             >
-              <View style={styles.thumb} />
+              <View style={styles.thumb}>
+                <View style={[styles.thumbInner, urgency === 'flash' && { backgroundColor: colors.accent }]} />
+              </View>
             </Animated.View>
           </View>
 
@@ -277,29 +433,17 @@ export default function NewErrandScreen() {
           </View>
         </View>
 
-        {/* Info Box */}
-        <View style={styles.infoBox}>
-          <Text style={styles.infoTitle}>⚡ How it works</Text>
-          <Text style={styles.infoText}>
-            1. Your waka is broadcast to nearby runners.{'\n'}
-            2. A runner accepts and heads to the market.{'\n'}
-            3. You confirm delivery to release payment.
-          </Text>
-        </View>
       </ScrollView>
 
-      {/* Sticky Footer */}
+      {/* Sticky Brutalist Footer */}
       <View style={styles.footer}>
         <TouchableOpacity
-          style={[
-            styles.broadcastBtn,
-            (!items || !location || !deliveryLocation) && styles.broadcastDisabled,
-          ]}
+          style={[styles.broadcastBtn, !isFormValid && styles.broadcastDashed]}
           onPress={handleBroadcast}
-          disabled={!items || !location || !deliveryLocation}
+          disabled={!isFormValid}
         >
-          <Text style={styles.broadcastText}>
-            Broadcast Waka — ₦{price.toLocaleString()}
+          <Text style={[styles.broadcastText, !isFormValid && styles.broadcastTextDisabled]}>
+            {isFormValid ? `BROADCAST — ₦${totalPrice.toLocaleString()}` : 'FILL DETAILS TO BROADCAST'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -309,9 +453,9 @@ export default function NewErrandScreen() {
         <View style={styles.successOverlay}>
           <View style={styles.successCard}>
             <Text style={styles.successEmoji}>🎉</Text>
-            <Text style={styles.successTitle}>Waka Broadcast!</Text>
+            <Text style={styles.successTitle}>Waka Sent!</Text>
             <Text style={styles.successBody}>
-              Runners nearby are being notified. Sit tight!
+              Runners nearby are being pinged right now. Get ready!
             </Text>
             <View style={styles.successProgress} />
           </View>
@@ -333,48 +477,171 @@ const getStyles = (colors: any) => StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: DT.spacing.lg,
     paddingVertical: DT.spacing.md,
-    borderBottomWidth: 2,
-    borderBottomColor: colors.text,
     backgroundColor: colors.background,
+    borderBottomWidth: 3,
+    borderBottomColor: colors.text,
   },
   backBtn: {
-    width: 40,
-    height: 40,
-    borderWidth: 2,
+    width: 44,
+    height: 44,
+    borderWidth: 3,
     borderColor: colors.text,
     backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: colors.text,
+    shadowOffset: { width: 3, height: 3 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
   },
   headerTitle: {
     fontFamily: DT.typography.heading,
-    fontSize: 20,
+    fontSize: 22,
     color: colors.text,
   },
   scrollContent: {
     paddingHorizontal: DT.spacing.lg,
     paddingTop: DT.spacing.lg,
-    paddingBottom: 120,
+    paddingBottom: 140, // Space for massive footer
   },
   field: {
-    marginBottom: DT.spacing.lg,
+    marginBottom: DT.spacing.xl,
   },
   fieldLabel: {
     fontFamily: DT.typography.heading,
-    fontSize: 15,
+    fontSize: 16,
     color: colors.text,
-    marginBottom: 4,
-  },
-  fieldHint: {
-    fontFamily: DT.typography.body,
-    fontSize: 12,
-    color: colors.muted,
     marginBottom: 8,
-    lineHeight: 18,
   },
-  textArea: {
-    height: 120,
+  
+  // Categories
+  categoryRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  categoryChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderWidth: 2,
+    borderColor: colors.text,
+    backgroundColor: colors.surface,
+  },
+  categoryChipActive: {
+    backgroundColor: colors.text,
+    shadowColor: colors.text,
+    shadowOffset: { width: 3, height: 3 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 3,
+  },
+  categoryText: {
+    fontFamily: DT.typography.bodySemiBold,
+    fontSize: 13,
+    color: colors.text,
+  },
+  categoryTextActive: {
+    color: colors.surface,
+  },
+
+  // Urgency Boxes
+  urgencyRow: {
+    flexDirection: 'row',
+    gap: DT.spacing.sm,
+  },
+  urgencyBox: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 14,
+    borderWidth: 2,
+    borderColor: colors.text,
+    backgroundColor: colors.surface,
+  },
+  urgencyBoxActive: {
+    backgroundColor: colors.text,
+  },
+  urgencyBoxFlashActive: {
+    backgroundColor: colors.accent,
+    borderWidth: 3,
+    shadowColor: colors.text,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
+  },
+  urgencyTextWrap: {
+    flex: 1,
+  },
+  urgencyTitle: {
+    fontFamily: DT.typography.heading,
+    fontSize: 14,
+    color: colors.text,
+  },
+  urgencySub: {
+    fontFamily: DT.typography.bodySemiBold,
+    fontSize: 11,
+    color: colors.muted,
+  },
+
+  incentiveWrapper: {
+    marginBottom: DT.spacing.xl,
+    padding: DT.spacing.md,
+    backgroundColor: '#FFF8EF',
+    borderWidth: 2,
+    borderColor: colors.text,
+    borderStyle: 'dashed',
+  },
+  incentiveTextLabel: {
+    fontFamily: DT.typography.heading,
+    fontSize: 14,
+    color: colors.text,
+    marginBottom: 8,
+  },
+  incentiveOptions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  incentiveChip: {
+    flex: 1,
+    paddingVertical: 10,
+    backgroundColor: colors.surface,
+    borderWidth: 2,
+    borderColor: colors.text,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  incentiveChipActive: {
+    backgroundColor: colors.accent,
+  },
+  incentiveText: {
+    fontFamily: DT.typography.heading,
+    fontSize: 14,
+    color: colors.text,
+  },
+  incentiveTextActive: {
+    color: colors.text,
+  },
+  customIncentiveInput: {
+    height: 48,
+    borderWidth: 3,
+    borderColor: colors.text,
+    backgroundColor: colors.surface,
+    paddingHorizontal: DT.spacing.md,
+    fontFamily: DT.typography.heading,
+    fontSize: 16,
+    color: colors.text,
+    marginTop: DT.spacing.md,
+  },
+
+  textArea: {
+    height: 100,
+    borderWidth: 3,
     borderColor: colors.text,
     backgroundColor: colors.surface,
     padding: DT.spacing.md,
@@ -383,85 +650,109 @@ const getStyles = (colors: any) => StyleSheet.create({
     color: colors.text,
     textAlignVertical: 'top',
     borderRadius: 0,
+    shadowColor: colors.text,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
   },
   locationInput: {
-    height: 48,
+    height: 52,
     flexDirection: 'row',
-    borderWidth: 2,
+    borderWidth: 3,
     borderColor: colors.text,
     backgroundColor: colors.surface,
-    overflow: 'hidden',
+    shadowColor: colors.text,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
   },
   locationTextInput: {
     flex: 1,
     paddingHorizontal: DT.spacing.md,
-    fontFamily: DT.typography.body,
+    fontFamily: DT.typography.bodySemiBold,
     fontSize: 15,
     color: colors.text,
   },
   locationIcon: {
-    width: 48,
+    width: 52,
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    borderLeftWidth: 2,
+    borderLeftWidth: 3,
     borderLeftColor: colors.text,
   },
   sliderHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 8,
   },
   priceTag: {
     backgroundColor: colors.accent,
     borderWidth: 2,
     borderColor: colors.text,
-    paddingHorizontal: 10,
-    paddingVertical: 2,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
     shadowColor: colors.text,
-    shadowOffset: { width: 2, height: 2 },
+    shadowOffset: { width: 3, height: 3 },
     shadowOpacity: 1,
     shadowRadius: 0,
     elevation: 3,
   },
   priceTagText: {
     fontFamily: DT.typography.heading,
-    fontSize: 16,
+    fontSize: 18,
     color: colors.text,
   },
   sliderContainer: {
-    height: 40,
-    marginTop: DT.spacing.md,
+    height: 44,
+    marginTop: DT.spacing.sm,
     justifyContent: 'center',
   },
   sliderTrack: {
-    height: 8,
+    height: 12,
     backgroundColor: colors.surface,
-    borderWidth: 2,
+    borderWidth: 3,
     borderColor: colors.text,
     overflow: 'visible',
+    position: 'relative',
+  },
+  sliderTick: {
+    position: 'absolute',
+    top: -3, // overlaps borders
+    width: 4,
+    height: 18,
+    zIndex: 2,
   },
   sliderFill: {
     height: '100%',
     backgroundColor: colors.primary,
+    zIndex: 1,
   },
   thumbWrapper: {
     position: 'absolute',
-    top: -8,
-    marginLeft: -14,
+    top: -10,
+    marginLeft: -16,
+    zIndex: 10,
   },
   thumb: {
-    width: 28,
-    height: 28,
+    width: 32,
+    height: 32,
     backgroundColor: colors.surface,
-    borderWidth: 2,
+    borderWidth: 3,
     borderColor: colors.text,
+    alignItems: 'center',
+    justifyContent: 'center',
     shadowColor: colors.text,
     shadowOffset: { width: 3, height: 3 },
     shadowOpacity: 1,
     shadowRadius: 0,
     elevation: 5,
+  },
+  thumbInner: {
+    width: 14,
+    height: 14,
+    backgroundColor: colors.text, // changes to accent on flash mode
   },
   sliderLabels: {
     flexDirection: 'row',
@@ -469,28 +760,9 @@ const getStyles = (colors: any) => StyleSheet.create({
     marginTop: DT.spacing.sm,
   },
   sliderLabelText: {
-    fontFamily: DT.typography.body,
+    fontFamily: DT.typography.bodySemiBold,
     fontSize: 12,
     color: colors.muted,
-  },
-  infoBox: {
-    backgroundColor: colors.surface,
-    borderWidth: 2,
-    borderColor: colors.text,
-    padding: DT.spacing.md,
-    marginBottom: DT.spacing.lg,
-  },
-  infoTitle: {
-    fontFamily: DT.typography.heading,
-    fontSize: 15,
-    color: colors.text,
-    marginBottom: 6,
-  },
-  infoText: {
-    fontFamily: DT.typography.body,
-    fontSize: 13,
-    color: colors.muted,
-    lineHeight: 22,
   },
   footer: {
     position: 'absolute',
@@ -498,27 +770,30 @@ const getStyles = (colors: any) => StyleSheet.create({
     left: 0,
     right: 0,
     paddingHorizontal: DT.spacing.lg,
-    paddingBottom: DT.spacing.lg,
+    paddingBottom: Platform.OS === 'ios' ? 32 : DT.spacing.lg,
     paddingTop: DT.spacing.md,
-    borderTopWidth: 2,
-    borderTopColor: colors.text,
     backgroundColor: colors.background,
+    borderTopWidth: 3,
+    borderTopColor: colors.text,
   },
   broadcastBtn: {
-    height: 56,
+    height: 64,
     backgroundColor: colors.primary,
-    borderWidth: 2,
+    borderWidth: 3,
     borderColor: colors.text,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: colors.text,
-    shadowOffset: { width: 4, height: 4 },
+    shadowOffset: { width: 6, height: 6 },
     shadowOpacity: 1,
     shadowRadius: 0,
-    elevation: 5,
+    elevation: 6,
   },
-  broadcastDisabled: {
-    opacity: 0.4,
+  broadcastDashed: {
+    backgroundColor: colors.background,
+    borderStyle: 'dashed',
+    borderWidth: 3,
+    borderColor: colors.muted,
     shadowOpacity: 0,
     elevation: 0,
   },
@@ -526,7 +801,10 @@ const getStyles = (colors: any) => StyleSheet.create({
     fontFamily: DT.typography.heading,
     fontSize: 18,
     color: colors.surface,
-    letterSpacing: 0.3,
+    letterSpacing: 0.5,
+  },
+  broadcastTextDisabled: {
+    color: colors.muted,
   },
   successOverlay: {
     flex: 1,
@@ -548,7 +826,7 @@ const getStyles = (colors: any) => StyleSheet.create({
     elevation: 10,
   },
   successEmoji: {
-    fontSize: 60,
+    fontSize: 64,
     marginBottom: DT.spacing.md,
   },
   successTitle: {
@@ -558,7 +836,7 @@ const getStyles = (colors: any) => StyleSheet.create({
     marginBottom: DT.spacing.sm,
   },
   successBody: {
-    fontFamily: DT.typography.body,
+    fontFamily: DT.typography.bodySemiBold,
     fontSize: 15,
     color: colors.muted,
     textAlign: 'center',
@@ -567,9 +845,9 @@ const getStyles = (colors: any) => StyleSheet.create({
   },
   successProgress: {
     width: '100%',
-    height: 6,
-    backgroundColor: colors.secondary,
-    borderWidth: 1,
+    height: 8,
+    backgroundColor: colors.primary,
+    borderWidth: 2,
     borderColor: colors.text,
   },
 });
