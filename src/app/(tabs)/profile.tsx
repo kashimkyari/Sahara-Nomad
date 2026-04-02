@@ -1,4 +1,15 @@
-import { CreditCard, HelpCircle, LogOut, Settings, Shield, ChevronRight } from 'lucide-react-native';
+import { 
+  CreditCard, 
+  HelpCircle, 
+  LogOut, 
+  Settings, 
+  Shield, 
+  ChevronRight, 
+  Edit3, 
+  CheckCircle2, 
+  Wallet,
+  Plus
+} from 'lucide-react-native';
 import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -21,38 +32,76 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
           <Text style={styles.title}>Profile</Text>
         </View>
 
-        {/* Profile Card */}
+        {/* Profile Details Card */}
         <View style={styles.profileCard}>
-          <View style={styles.avatarBox}>
-            <Image
-              source={{ uri: 'https://i.pravatar.cc/150?u=chidi' }}
-              style={styles.avatar}
-            />
+          <View style={styles.profileHeader}>
+            <View style={styles.avatarWrap}>
+              <View style={styles.avatarBox}>
+                <Image
+                  source={{ uri: 'https://i.pravatar.cc/150?u=chidi' }}
+                  style={styles.avatar}
+                />
+              </View>
+              {/* Loyalty Badge */}
+              <View style={styles.loyaltyBadge}>
+                <Text style={styles.loyaltyText}>🏆 SUPER SENDER</Text>
+              </View>
+            </View>
+
+            <TouchableOpacity 
+              style={styles.editBtn} 
+              onPress={() => router.push('/profile/edit' as any)}
+            >
+              <Edit3 size={16} color={colors.text} strokeWidth={2.5} />
+              <Text style={styles.editBtnText}>Edit</Text>
+            </TouchableOpacity>
           </View>
+
           <View style={styles.profileInfo}>
-            <Text style={styles.name}>Chidi Amaechi</Text>
+            <View style={styles.nameRow}>
+              <Text style={styles.name}>Chidi Amaechi</Text>
+              <View style={styles.verificationBadge}>
+                <CheckCircle2 size={12} color={colors.surface} strokeWidth={3} />
+                <Text style={styles.verificationText}>Verified</Text>
+              </View>
+            </View>
             <Text style={styles.email}>chidi@example.com</Text>
-          </View>
-          <View style={styles.ratingBadge}>
-            <Text style={styles.ratingText}>★ 4.9</Text>
           </View>
         </View>
 
-        {/* Stats Row */}
-        <View style={styles.statsRow}>
+        {/* Prominent Wallet Banner */}
+        <View style={styles.walletBanner}>
+          <View style={styles.walletInfo}>
+            <View style={styles.walletHeaderRow}>
+              <Wallet size={16} color={colors.text} />
+              <Text style={styles.walletLabel}>NAIRA WALLET</Text>
+            </View>
+            <Text style={styles.walletBalance}>₦45,000.00</Text>
+          </View>
+          <TouchableOpacity style={styles.addFundsBtn}>
+            <Plus size={20} color={colors.surface} strokeWidth={3} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Individual Chunky Stats */}
+        <View style={styles.statsContainer}>
           {[
-            { label: 'Errands', value: '24' },
-            { label: 'Spent', value: '₦182k' },
-            { label: 'Runners', value: '8' },
-          ].map((stat, i, arr) => (
-            <View key={stat.label} style={[styles.statBox, i < arr.length - 1 && styles.statBoxBorder]}>
-              <Text style={styles.statValue}>{stat.value}</Text>
-              <Text style={styles.statLabel}>{stat.label}</Text>
+            { label: 'ERRANDS', value: '24' },
+            { label: 'SPENT', value: '₦182k' },
+            { label: 'RATING', value: '4.9★' },
+          ].map((stat, i) => (
+            <View key={stat.label} style={[
+              styles.statBlock,
+              i === 1 && { backgroundColor: colors.accent },
+              i === 2 && { backgroundColor: colors.secondary }
+            ]}>
+              <Text style={[styles.statValue, (i === 1 || i === 2) && { color: i === 1 ? colors.text : colors.surface }]}>{stat.value}</Text>
+              <Text style={[styles.statLabel, (i === 1 || i === 2) && { color: i === 1 ? colors.text : colors.surface }]}>{stat.label}</Text>
             </View>
           ))}
         </View>
@@ -76,7 +125,7 @@ export default function ProfileScreen() {
 
         {/* Logout */}
         <TouchableOpacity style={styles.logoutButton}>
-          <LogOut size={20} color={colors.error} strokeWidth={2} />
+          <LogOut size={20} color={colors.surface} strokeWidth={2.5} />
           <Text style={styles.logoutText}>Sign Out</Text>
         </TouchableOpacity>
       </ScrollView>
@@ -89,24 +138,26 @@ const getStyles = (colors: any) => StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  scrollContent: {
+    paddingBottom: 100,
+  },
   header: {
     paddingHorizontal: DT.spacing.lg,
-    paddingVertical: DT.spacing.md,
-    borderBottomWidth: 2,
-    borderBottomColor: colors.text,
+    paddingTop: DT.spacing.lg,
+    paddingBottom: DT.spacing.md,
   },
   title: {
     fontFamily: DT.typography.heading,
-    fontSize: 24,
+    fontSize: 28,
     color: colors.text,
   },
   profileCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    margin: DT.spacing.lg,
+    marginHorizontal: DT.spacing.lg,
+    marginTop: DT.spacing.sm,
+    marginBottom: DT.spacing.lg,
     padding: DT.spacing.md,
     backgroundColor: colors.surface,
-    borderWidth: 2,
+    borderWidth: 3,
     borderColor: colors.text,
     shadowColor: colors.text,
     shadowOffset: { width: 4, height: 4 },
@@ -114,53 +165,179 @@ const getStyles = (colors: any) => StyleSheet.create({
     shadowRadius: 0,
     elevation: 5,
   },
+  profileHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: DT.spacing.md,
+  },
+  avatarWrap: {
+    position: 'relative',
+  },
   avatarBox: {
-    width: 64,
-    height: 64,
-    borderWidth: 2,
+    width: 80,
+    height: 80,
+    borderWidth: 3,
     borderColor: colors.text,
     overflow: 'hidden',
-    marginRight: DT.spacing.md,
+    backgroundColor: colors.background,
   },
   avatar: { width: '100%', height: '100%' },
-  profileInfo: { flex: 1 },
-  name: { fontFamily: DT.typography.heading, fontSize: 18, color: colors.text },
-  email: { fontFamily: DT.typography.body, fontSize: 13, color: colors.muted, marginTop: 2 },
-  ratingBadge: {
+  loyaltyBadge: {
+    position: 'absolute',
+    bottom: -10,
+    left: '50%',
+    transform: [{ translateX: -40 }],
     backgroundColor: colors.accent,
     borderWidth: 2,
     borderColor: colors.text,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  ratingText: { fontFamily: DT.typography.heading, fontSize: 13, color: colors.text },
-  statsRow: {
-    flexDirection: 'row',
-    marginHorizontal: DT.spacing.lg,
-    marginBottom: DT.spacing.lg,
-    borderWidth: 2,
-    borderColor: colors.text,
-    backgroundColor: colors.surface,
-  },
-  statBox: {
-    flex: 1,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    width: 100,
     alignItems: 'center',
-    paddingVertical: DT.spacing.md,
   },
-  statBoxBorder: {
-    borderRightWidth: 2,
-    borderRightColor: colors.text,
+  loyaltyText: {
+    fontFamily: DT.typography.heading,
+    fontSize: 8,
+    color: colors.text,
+    letterSpacing: 1,
   },
-  statValue: { fontFamily: DT.typography.heading, fontSize: 20, color: colors.text },
-  statLabel: { fontFamily: DT.typography.body, fontSize: 12, color: colors.muted, marginTop: 2 },
-  menu: {
-    marginHorizontal: DT.spacing.lg,
+  editBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     borderWidth: 2,
     borderColor: colors.text,
-    backgroundColor: colors.surface,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: colors.background,
+    shadowColor: colors.text,
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+  },
+  editBtnText: {
+    fontFamily: DT.typography.heading,
+    fontSize: 13,
+    color: colors.text,
+  },
+  profileInfo: {
+    marginTop: DT.spacing.sm,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: DT.spacing.sm,
+    marginBottom: 4,
+  },
+  name: { 
+    fontFamily: DT.typography.heading, 
+    fontSize: 22, 
+    color: colors.text 
+  },
+  verificationBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.secondary,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    gap: 4,
+    borderWidth: 1.5,
+    borderColor: colors.text,
+  },
+  verificationText: {
+    fontFamily: DT.typography.heading,
+    fontSize: 10,
+    color: colors.surface,
+    letterSpacing: 0.5,
+  },
+  email: { 
+    fontFamily: DT.typography.body, 
+    fontSize: 14, 
+    color: colors.muted 
+  },
+  walletBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.primary,
+    marginHorizontal: DT.spacing.lg,
     marginBottom: DT.spacing.lg,
+    padding: DT.spacing.lg,
+    borderWidth: 3,
+    borderColor: colors.text,
+    shadowColor: colors.text,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
+  },
+  walletInfo: {},
+  walletHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 6,
+  },
+  walletLabel: {
+    fontFamily: DT.typography.heading,
+    fontSize: 12,
+    color: colors.text,
+    letterSpacing: 1.5,
+  },
+  walletBalance: {
+    fontFamily: DT.typography.heading,
+    fontSize: 28,
+    color: colors.surface,
+  },
+  addFundsBtn: {
+    width: 48,
+    height: 48,
+    backgroundColor: colors.text,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginHorizontal: DT.spacing.lg,
+    marginBottom: DT.spacing.xl,
+    gap: DT.spacing.sm,
+  },
+  statBlock: {
+    flex: 1,
+    backgroundColor: colors.surface,
+    borderWidth: 3,
+    borderColor: colors.text,
+    alignItems: 'center',
+    paddingVertical: DT.spacing.lg,
+    paddingHorizontal: 8,
     shadowColor: colors.text,
     shadowOffset: { width: 3, height: 3 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
+  },
+  statValue: { 
+    fontFamily: DT.typography.heading, 
+    fontSize: 18, 
+    color: colors.text,
+    marginBottom: 4,
+  },
+  statLabel: { 
+    fontFamily: DT.typography.bodySemiBold, 
+    fontSize: 10, 
+    color: colors.muted,
+    letterSpacing: 1,
+  },
+  menu: {
+    marginHorizontal: DT.spacing.lg,
+    borderWidth: 3,
+    borderColor: colors.text,
+    backgroundColor: colors.surface,
+    marginBottom: DT.spacing.xl,
+    shadowColor: colors.text,
+    shadowOffset: { width: 4, height: 4 },
     shadowOpacity: 1,
     shadowRadius: 0,
     elevation: 4,
@@ -174,7 +351,7 @@ const getStyles = (colors: any) => StyleSheet.create({
   },
   menuDivider: { height: 2, backgroundColor: colors.text },
   menuItemText: {
-    fontFamily: DT.typography.body,
+    fontFamily: DT.typography.bodySemiBold,
     fontSize: 15,
     color: colors.text,
     flex: 1,
@@ -182,17 +359,23 @@ const getStyles = (colors: any) => StyleSheet.create({
   logoutButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     marginHorizontal: DT.spacing.lg,
     padding: DT.spacing.md,
-    gap: DT.spacing.md,
-    borderWidth: 2,
-    borderColor: colors.error,
-    backgroundColor: colors.surface,
+    gap: DT.spacing.sm,
+    borderWidth: 3,
+    borderColor: colors.text,
+    backgroundColor: colors.error,
     marginBottom: DT.spacing.xl,
+    shadowColor: colors.text,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
   },
   logoutText: {
-    fontFamily: DT.typography.bodySemiBold,
-    fontSize: 15,
-    color: colors.error,
+    fontFamily: DT.typography.heading,
+    fontSize: 16,
+    color: colors.surface,
   },
 });
