@@ -16,12 +16,22 @@ interface User {
   is_dark_mode: boolean;
   language: string;
   region: string;
+  spent_total: number;
+  errands_count: number;
+  wallet_balance: number;
   runner_profile?: {
     bio?: string;
     hourly_rate?: number;
     stats_trips: number;
     stats_rating: number;
     is_online: boolean;
+    reviews?: Array<{
+      id: string;
+      rating: number;
+      comment: string;
+      reviewer_name?: string;
+      created_at: string;
+    }>;
   } | null;
 }
 

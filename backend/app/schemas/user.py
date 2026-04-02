@@ -2,6 +2,7 @@ from pydantic import BaseModel, EmailStr, Field
 from uuid import UUID
 from typing import Optional, List
 from datetime import datetime
+from .review import ReviewResponse
 
 class UserBase(BaseModel):
     full_name: str
@@ -28,6 +29,7 @@ class RunnerProfileResponse(BaseModel):
     stats_trips: int = 0
     stats_rating: float = 5.0
     is_online: bool = False
+    reviews: List[ReviewResponse] = []
 
     class Config:
         from_attributes = True
@@ -43,6 +45,9 @@ class UserResponse(UserBase):
     is_dark_mode: bool
     language: str
     region: str
+    spent_total: float = 0.0
+    errands_count: int = 0
+    wallet_balance: float = 0.0
     runner_profile: Optional[RunnerProfileResponse] = None
 
     class Config:

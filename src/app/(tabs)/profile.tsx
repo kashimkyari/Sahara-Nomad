@@ -98,7 +98,7 @@ export default function ProfileScreen() {
               <Text style={styles.walletLabel}>NAIRA WALLET</Text>
             </View>
             <Text style={styles.walletBalance}>
-              ₦{(0).toLocaleString()}
+              ₦{(user?.wallet_balance || 0).toLocaleString()}
             </Text>
           </View>
           <TouchableOpacity style={styles.addFundsBtn}>
@@ -109,8 +109,8 @@ export default function ProfileScreen() {
         {/* Individual Chunky Stats */}
         <View style={styles.statsContainer}>
           {[
-            { label: 'ERRANDS', value: user?.runner_profile?.stats_trips?.toString() || '0' },
-            { label: 'SPENT', value: '₦0' },
+            { label: 'ERRANDS', value: user?.errands_count?.toString() || '0' },
+            { label: 'SPENT', value: `₦${(user?.spent_total || 0).toLocaleString()}` },
             { label: 'RATING', value: `${user?.runner_profile?.stats_rating || 5.0}★` },
           ].map((stat, i) => (
             <View key={stat.label} style={[
@@ -140,6 +140,23 @@ export default function ProfileScreen() {
             </View>
           ))}
         </View>
+
+        {/* Recent Reviews (If Runner) */}
+        {user?.runner_profile?.reviews && user.runner_profile.reviews.length > 0 && (
+          <View style={styles.reviewsSection}>
+            <Text style={styles.reviewsTitle}>Recent Reviews</Text>
+            {user.runner_profile.reviews.map((review: any) => (
+              <View key={review.id} style={styles.reviewCard}>
+                <View style={styles.reviewHeader}>
+                  <Text style={styles.reviewerName}>{review.reviewer_name || 'Verified User'}</Text>
+                  <Text style={styles.reviewRating}>{review.rating}★</Text>
+                </View>
+                <Text style={styles.reviewComment}>{review.comment}</Text>
+                <Text style={styles.reviewDate}>{new Date(review.created_at).toLocaleDateString()}</Text>
+              </View>
+            ))}
+          </View>
+        )}
 
         {/* Logout */}
         <TouchableOpacity style={styles.logoutButton} onPress={signOut}>
@@ -395,5 +412,52 @@ const getStyles = (colors: any) => StyleSheet.create({
     fontFamily: DT.typography.heading,
     fontSize: 16,
     color: colors.surface,
+  },
+  reviewsSection: {
+    marginHorizontal: DT.spacing.lg,
+    marginBottom: DT.spacing.xl,
+  },
+  reviewsTitle: {
+    fontFamily: DT.typography.heading,
+    fontSize: 18,
+    color: colors.text,
+    marginBottom: DT.spacing.md,
+  },
+  reviewCard: {
+    backgroundColor: colors.surface,
+    borderWidth: 2,
+    borderColor: colors.text,
+    padding: DT.spacing.md,
+    marginBottom: DT.spacing.sm,
+    shadowColor: colors.text,
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+  },
+  reviewHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  reviewerName: {
+    fontFamily: DT.typography.heading,
+    fontSize: 14,
+    color: colors.text,
+  },
+  reviewRating: {
+    fontFamily: DT.typography.heading,
+    fontSize: 14,
+    color: colors.secondary,
+  },
+  reviewComment: {
+    fontFamily: DT.typography.body,
+    fontSize: 13,
+    color: colors.text,
+    marginBottom: 4,
+  },
+  reviewDate: {
+    fontFamily: DT.typography.body,
+    fontSize: 10,
+    color: colors.muted,
   },
 });

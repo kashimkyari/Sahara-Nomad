@@ -1,16 +1,21 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
+from sqlalchemy.orm import selectinload
 from ...database import get_db
 from ...models.user import User, RunnerProfile
-from ...models.wallet import Wallet
+from ...models.wallet import Wallet, Transaction
+from ...models.waka import Waka
+from ...models.review import Review
 from ...schemas.user import UserCreate, UserResponse, Token, UserLogin, OTPVerify, UserUpdate
+from ...schemas.review import ReviewBase, ReviewCreate, ReviewResponse
 from ...core.security import get_password_hash, create_access_token, verify_password
 from .deps import get_current_user
 from fastapi.security import OAuth2PasswordRequestForm
 
 from datetime import datetime, timedelta
 import random
+import uuid
 import os
 import shutil
 from fastapi import File, UploadFile
@@ -39,11 +44,13 @@ async def signup(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
         password_hash=get_password_hash(user_in.password),
         email=user_in.email,
         is_verified=False,
-        otp_code="123456", # Fixed for dev, replace with random.randint(100000, 999999) later
+        otp_code="123456",
         otp_expires_at=datetime.utcnow() + timedelta(minutes=10)
     )
     db.add(db_obj)
     await db.flush()
+    # Set default avatar url based on id
+    db_obj.avatar_url = f"/auth/users/{db_obj.id}/avatar"
 
     # Create Wallet
     wallet = Wallet(user_id=db_obj.id)
@@ -106,9 +113,100 @@ async def verify_otp(verify_in: OTPVerify, db: AsyncSession = Depends(get_db)):
         "token_type": "bearer",
     }
 
+async def _hydrate_user_response(user: User, db: AsyncSession) -> UserResponse:
+    # Calculate spent_total
+    spent_result = await db.execute(
+        select(func.sum(Transaction.amount))
+        .where(Transaction.wallet_id == user.wallet.id)
+        .where(Transaction.type == "waka_payment")
+        .where(Transaction.is_completed == True)
+    )
+    spent_total = spent_result.scalar() or 0.0
+    
+    # Calculate errands_count
+    errands_result = await db.execute(
+        select(func.count(Waka.id))
+        .where(Waka.employer_id == user.id)
+    )
+    errands_count = errands_result.scalar() or 0
+    
+    # Pre-populate some fields in the response dictionary
+    resp = UserResponse.from_orm(user)
+    resp.spent_total = float(spent_total)
+    resp.errands_count = errands_count
+    resp.wallet_balance = float(user.wallet.balance)
+    
+    # Populate reviewer names for runner reviews if they exist
+    if user.runner_profile and user.runner_profile.reviews:
+        for review in user.runner_profile.reviews:
+            if hasattr(review, 'reviewer') and review.reviewer:
+                review.reviewer_name = review.reviewer.full_name
+    
+    return resp
+
 @router.get("/me", response_model=UserResponse)
-async def get_me(current_user: User = Depends(get_current_user)):
-    return current_user
+async def get_me(current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    # Re-fetch with reviews if runner
+    if current_user.runner_profile:
+        result = await db.execute(
+            select(User)
+            .options(
+                selectinload(User.runner_profile).selectinload(RunnerProfile.reviews).selectinload(Review.reviewer)
+            )
+            .where(User.id == current_user.id)
+        )
+        current_user = result.scalars().first()
+        
+    return await _hydrate_user_response(current_user, db)
+
+@router.get("/runners/{runner_id}", response_model=UserResponse)
+async def get_runner_profile(runner_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(User)
+        .options(
+            selectinload(User.runner_profile).selectinload(RunnerProfile.reviews).selectinload(Review.reviewer)
+        )
+        .where(User.id == runner_id)
+    )
+    user = result.scalars().first()
+    if not user or not user.runner_profile:
+        raise HTTPException(status_code=404, detail="Runner not found")
+        
+    return await _hydrate_user_response(user, db)
+
+@router.post("/runners/{runner_id}/reviews", response_model=ReviewResponse)
+async def create_review(
+    runner_id: uuid.UUID,
+    review_in: ReviewBase,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    # Check if runner profile exists
+    result = await db.execute(select(RunnerProfile).where(User.id == runner_id))
+    runner_profile = result.scalars().first()
+    if not runner_profile:
+        raise HTTPException(status_code=404, detail="Runner profile not found")
+    
+    review = Review(
+        runner_id=runner_profile.id,
+        reviewer_id=current_user.id,
+        rating=review_in.rating,
+        comment=review_in.comment
+    )
+    db.add(review)
+    
+    # Update runner average rating
+    result = await db.execute(
+        select(func.avg(Review.rating)).where(Review.runner_id == runner_profile.id)
+    )
+    avg_rating = result.scalar() or review_in.rating
+    runner_profile.stats_rating = avg_rating
+    
+    await db.commit()
+    await db.refresh(review)
+    
+    review.reviewer_name = current_user.full_name
+    return review
 
 @router.patch("/me", response_model=UserResponse)
 async def update_me(
@@ -137,7 +235,7 @@ async def update_me(
             
     await db.commit()
     await db.refresh(current_user)
-    return current_user
+    return await _hydrate_user_response(current_user, db)
 
 @router.post("/me/avatar")
 async def upload_avatar(
@@ -152,15 +250,19 @@ async def upload_avatar(
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
     
-    current_user.avatar_url = "/auth/me/avatarurl"
+    current_user.avatar_url = f"/auth/users/{current_user.id}/avatar"
     await db.commit()
     return {"status": "ok", "avatar_url": current_user.avatar_url}
 
-@router.get("/me/avatarurl")
-async def get_avatar(current_user: User = Depends(get_current_user)):
+@router.get("/users/{user_id}/avatar")
+async def get_user_avatar(user_id: uuid.UUID, current_user: User = Depends(get_current_user)):
     # Find the file that starts with user id
     for f in os.listdir(UPLOAD_DIR):
-        if f.startswith(str(current_user.id)):
+        if f.startswith(str(user_id)):
             return FileResponse(os.path.join(UPLOAD_DIR, f))
     
     raise HTTPException(status_code=404, detail="Avatar not found")
+
+@router.get("/me/avatarurl")
+async def get_avatar(current_user: User = Depends(get_current_user)):
+    return await get_user_avatar(current_user.id, current_user)

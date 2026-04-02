@@ -1,5 +1,6 @@
-import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Button } from '../../components/ui/Button';
@@ -7,22 +8,49 @@ import { Card } from '../../components/ui/Card';
 import { ChevronLeft, ShieldCheck, Star } from 'lucide-react-native';
 import { DesignTokens as DT } from '../../constants/design';
 import { useTheme } from '../../hooks/use-theme';
+import { useAuth } from '../../context/AuthContext';
+import API from '../../constants/api';
 
 export default function RunnerProfileScreen() {
   const { colors } = useTheme();
   const router = useRouter();
   const { id } = useLocalSearchParams();
+  const { token } = useAuth();
   const styles = getStyles(colors);
 
-  const runner = {
-    name: 'Chinedu O.',
-    rating: '4.9',
-    trips: '142',
-    joined: '2022',
-    image: `https://i.pravatar.cc/150?u=${id}`,
-    rate: '₦2,500/hr',
-    bio: "I've been sourcing items at Balogun and Yaba markets for 5+ years. Fast, reliable, and I know where to get the best prices.",
-  };
+  const [runner, setRunner] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchRunner = async () => {
+      try {
+        const response = await fetch(`${API.API_URL}/auth/runners/${id}`);
+        const data = await response.json();
+        setRunner(data);
+      } catch (error) {
+        console.error('Failed to fetch runner:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (id) fetchRunner();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <View style={[styles.safeArea, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
+  if (!runner) {
+    return (
+      <View style={[styles.safeArea, { justifyContent: 'center', alignItems: 'center' }]}>
+        <Text style={{ color: colors.text }}>Runner not found</Text>
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -39,23 +67,34 @@ export default function RunnerProfileScreen() {
         {/* Hero profile block */}
         <View style={styles.profileBlock}>
           <View style={styles.avatarBox}>
-            <Image source={{ uri: runner.image }} style={styles.avatar} />
+            <Image 
+              source={runner.avatar_url 
+                ? { uri: `${API.API_URL}${runner.avatar_url}`, headers: { Authorization: `Bearer ${token}` } }
+                : { uri: `https://i.pravatar.cc/150?u=${id}` }
+              } 
+              style={styles.avatar} 
+            />
           </View>
-          <Text style={styles.runnerName}>{runner.name}</Text>
+          <Text style={styles.runnerName}>{runner.full_name}</Text>
           <View style={styles.ratingRow}>
             {[1, 2, 3, 4, 5].map((i) => (
-              <Star key={i} size={16} color={colors.accent} fill={colors.accent} />
+              <Star 
+                key={i} 
+                size={16} 
+                color={i <= Math.round(runner.runner_profile?.stats_rating || 5) ? colors.accent : colors.muted} 
+                fill={i <= Math.round(runner.runner_profile?.stats_rating || 5) ? colors.accent : 'transparent'} 
+              />
             ))}
-            <Text style={styles.ratingText}>{runner.rating}</Text>
+            <Text style={styles.ratingText}>{runner.runner_profile?.stats_rating || '5.0'}</Text>
           </View>
         </View>
 
         {/* Stats Row */}
         <View style={styles.statsContainer}>
           {[
-            { value: runner.trips, label: 'Trips' },
-            { value: runner.rating, label: 'Rating' },
-            { value: runner.joined, label: 'Since' },
+            { value: runner.runner_profile?.stats_trips || '0', label: 'Trips' },
+            { value: runner.runner_profile?.stats_rating || '5.0', label: 'Rating' },
+            { value: new Date(runner.created_at).getFullYear().toString(), label: 'Since' },
           ].map((s) => (
             <View key={s.label} style={styles.statItem}>
               <Text style={styles.statValue}>{s.value}</Text>
@@ -75,28 +114,35 @@ export default function RunnerProfileScreen() {
         {/* About */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>About</Text>
-          <Text style={styles.aboutText}>{runner.bio}</Text>
+          <Text style={styles.aboutText}>{runner.runner_profile?.bio || 'No bio provided.'}</Text>
         </View>
 
         {/* Reviews */}
         <View style={[styles.section, { marginBottom: 120 }]}>
           <Text style={styles.sectionTitle}>Recent Reviews</Text>
-          <Card style={styles.reviewCard}>
-            <View style={styles.reviewHeader}>
-              <Text style={styles.reviewerName}>Fola A.</Text>
-              <Text style={styles.reviewTime}>2 days ago</Text>
-            </View>
-            <Text style={styles.reviewText}>
-              "Amazing runner! Got everything from Balogun market in record time."
-            </Text>
-          </Card>
+          {runner.runner_profile?.reviews && runner.runner_profile.reviews.length > 0 ? (
+            runner.runner_profile.reviews.map((review: any) => (
+              <Card key={review.id} style={styles.reviewCard}>
+                <View style={styles.reviewHeader}>
+                  <Text style={styles.reviewerName}>{review.reviewer_name || 'Verified User'}</Text>
+                  <Text style={styles.reviewTime}>{new Date(review.created_at).toLocaleDateString()}</Text>
+                </View>
+                <Text style={styles.reviewText}>
+                  "{review.comment}"
+                </Text>
+                <Text style={styles.reviewRating}>{review.rating}★</Text>
+              </Card>
+            ))
+          ) : (
+            <Text style={styles.aboutText}>No reviews yet.</Text>
+          )}
         </View>
       </ScrollView>
 
       {/* Sticky Hire Button */}
       <View style={styles.footer}>
         <Button
-          title={`Hire ${runner.name.split(' ')[0]} – ${runner.rate}`}
+          title={`Hire ${runner.full_name.split(' ')[0]} – ₦${(runner.runner_profile?.hourly_rate || 0).toLocaleString()}/hr`}
           onPress={() => router.push('/new-errand')}
         />
       </View>
@@ -250,6 +296,12 @@ const getStyles = (colors: any) => StyleSheet.create({
     fontSize: 14,
     color: colors.text,
     lineHeight: 22,
+    marginBottom: 4,
+  },
+  reviewRating: {
+    fontFamily: DT.typography.heading,
+    fontSize: 12,
+    color: colors.secondary,
   },
   footer: {
     position: 'absolute',

@@ -1,5 +1,6 @@
 from .base import Base, AuditableBase
 from .user import User, RunnerProfile
+from .review import Review
 from .wallet import Wallet, Transaction
 from .waka import Waka
 from .notification import InAppNotification
@@ -10,6 +11,7 @@ __all__ = [
     "AuditableBase",
     "User",
     "RunnerProfile",
+    "Review",
     "Wallet",
     "Transaction",
     "Waka",
