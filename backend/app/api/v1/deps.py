@@ -41,7 +41,6 @@ async def get_user_from_token(db: AsyncSession, token: str) -> User:
     result = await db.execute(
         select(User)
         .where(User.id == token_data.user_id)
-        .options(selectinload(User.runner_profile))
     )
     user = result.scalars().first()
     

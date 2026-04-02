@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, update
 from sqlalchemy.orm import selectinload
 from ...database import get_db
-from ...models.user import User, RunnerProfile
+from ...models.user import User
 from ...models.wallet import Wallet, Transaction
 from ...models.waka import Waka
 from ...models.review import Review
@@ -159,7 +159,6 @@ async def _hydrate_user_response(user: User, db: AsyncSession) -> UserResponse:
             func.ST_X(func.cast(User.last_location, Geometry)).label("lng")
         )
         .options(
-            selectinload(User.runner_profile),
             selectinload(User.reviews_received).selectinload(Review.reviewer)
         )
         .where(User.id == user.id)
@@ -200,6 +199,17 @@ async def _hydrate_user_response(user: User, db: AsyncSession) -> UserResponse:
     resp.latitude = lat
     resp.longitude = lng
     
+    # Populate runner_profile if is_runner
+    from ...schemas.user import RunnerProfileResponse
+    if user.is_runner:
+        resp.runner_profile = RunnerProfileResponse(
+            bio=user.bio,
+            hourly_rate=float(user.hourly_rate) if user.hourly_rate else 0.0,
+            stats_trips=user.stats_trips,
+            stats_rating=float(user.stats_rating),
+            is_online=user.is_online
+        )
+
     # Populate reviewer names for user reviews if they exist
     if user.reviews_received:
         for review in user.reviews_received:
@@ -324,7 +334,7 @@ async def update_me(
     update_data = user_update.dict(exclude_unset=True)
     
     # Update User fields
-    for field in ["full_name", "email", "push_notifications_enabled", "location_services_enabled", "is_dark_mode", "language", "region", "city", "expo_push_token"]:
+    for field in ["full_name", "email", "push_notifications_enabled", "location_services_enabled", "is_dark_mode", "language", "region", "city", "expo_push_token", "bio", "hourly_rate", "is_online"]:
         if field in update_data:
             setattr(current_user, field, update_data[field])
             
@@ -333,24 +343,8 @@ async def update_me(
         lat = update_data["latitude"]
         lng = update_data["longitude"]
         if lat is not None and lng is not None:
-            # ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)
             point = func.ST_SetSRID(func.ST_MakePoint(lng, lat), 4326)
             current_user.last_location = point
-            # Also update current_location if it's a runner
-            if current_user.runner_profile:
-                current_user.runner_profile.current_location = point
-    
-    # Update RunnerProfile if bio or hourly_rate is provided
-    if "bio" in update_data or "hourly_rate" in update_data:
-        if not current_user.runner_profile:
-            # Create runner profile if it doesn't exist (though it should be created via different flow usually, but for UX we can auto-create)
-            current_user.runner_profile = RunnerProfile(user_id=current_user.id)
-            db.add(current_user.runner_profile)
-        
-        if "bio" in update_data:
-            current_user.runner_profile.bio = update_data["bio"]
-        if "hourly_rate" in update_data:
-            current_user.runner_profile.hourly_rate = update_data["hourly_rate"]
             
     await db.commit()
     await db.refresh(current_user)

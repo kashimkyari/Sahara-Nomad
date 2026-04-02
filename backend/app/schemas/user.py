@@ -31,6 +31,7 @@ class UserUpdate(BaseModel):
     city: Optional[str] = None
     bio: Optional[str] = None
     hourly_rate: Optional[float] = None
+    is_online: Optional[bool] = None
     expo_push_token: Optional[str] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None

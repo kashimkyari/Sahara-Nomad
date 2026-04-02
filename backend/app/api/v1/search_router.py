@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, cast
 from geoalchemy2 import Geography
 from ...database import get_db
-from ...models.user import RunnerProfile, User
+from ...models.user import User
 from ...models.waka import Waka
 from ...schemas.search import SearchResponse, RunnerSearchResponse
 from .deps import get_current_user
@@ -35,19 +35,18 @@ async def search_runners(
     )
 
     stmt = select(
-        RunnerProfile, 
         User, 
-        func.ST_Distance(func.cast(RunnerProfile.current_location, Geography), func.cast(user_location, Geography)).label("distance_m"),
+        func.ST_Distance(func.cast(User.last_location, Geography), func.cast(user_location, Geography)).label("distance_m"),
         active_waka_sq.label("active_wakas")
-    ).join(User).where(RunnerProfile.is_deleted == False)
+    ).where(User.is_runner == True, User.is_user_deleted == False)
     
     if q:
         stmt = stmt.where(User.full_name.ilike(f"%{q}%"))
         
     if filter == "available_now":
-        stmt = stmt.where(RunnerProfile.is_online == True)
+        stmt = stmt.where(User.is_online == True)
     elif filter == "5_star":
-        stmt = stmt.where(RunnerProfile.stats_rating >= 4.8)
+        stmt = stmt.where(User.stats_rating >= 4.8)
     elif filter == "nearby":
         stmt = stmt.order_by("distance_m")
         
@@ -59,16 +58,16 @@ async def search_runners(
     rows = result.all()
     
     runners = []
-    for runner_profile, user, distance_m, active_wakas in rows:
+    for user, distance_m, active_wakas in rows:
         distance_km = round((distance_m or 0) / 1000.0, 1)
         img = user.avatar_url if user.avatar_url else f"https://i.pravatar.cc/150?u={user.id}"
         
         runners.append(RunnerSearchResponse(
-            id=runner_profile.id,
+            id=user.id,
             name=user.full_name,
-            rating=float(runner_profile.stats_rating),
+            rating=float(user.stats_rating),
             distance_km=distance_km,
-            is_online=runner_profile.is_online,
+            is_online=user.is_online,
             image=img,
             active_waka_count=active_wakas or 0
         ))

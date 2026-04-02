@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from geoalchemy2 import Geography
 from ...database import get_db
-from ...models.user import RunnerProfile, User
+from ...models.user import User
 from ...models.review import Review
 from .deps import get_current_user
 import uuid
@@ -22,8 +22,8 @@ async def get_active_runners_count(
     
     if lat is None or lng is None:
         result = await db.execute(
-            select(func.count(RunnerProfile.id))
-            .where(RunnerProfile.is_online == True, RunnerProfile.is_deleted == False)
+            select(func.count(User.id))
+            .where(User.is_runner == True, User.is_online == True, User.is_user_deleted == False)
         )
         return {"count": result.scalar()}
 
@@ -32,11 +32,12 @@ async def get_active_runners_count(
     user_geog = func.cast(user_point, Geography)
 
     result = await db.execute(
-        select(func.count(RunnerProfile.id))
+        select(func.count(User.id))
         .where(
-            RunnerProfile.is_online == True,
-            RunnerProfile.is_deleted == False,
-            func.ST_DWithin(RunnerProfile.current_location, user_geog, radius_m)
+            User.is_runner == True,
+            User.is_online == True,
+            User.is_user_deleted == False,
+            func.ST_DWithin(User.last_location, user_geog, radius_m)
         )
     )
     return {"count": result.scalar()}
@@ -47,18 +48,17 @@ async def get_runner_profile(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    stmt = select(RunnerProfile, User).join(User).where(
-        RunnerProfile.id == runner_id,
-        RunnerProfile.is_deleted == False
+    stmt = select(User).where(
+        User.id == runner_id,
+        User.is_runner == True,
+        User.is_user_deleted == False
     )
     result = await db.execute(stmt)
-    row = result.first()
+    user = result.scalar_one_or_none()
     
-    if not row:
+    if not user:
         raise HTTPException(status_code=404, detail="Runner not found")
         
-    runner_profile, user = row
-    
     # Fetch active wakas for THIS runner
     active_stmt = select(func.count(Waka.id)).where(
         Waka.runner_id == user.id,
@@ -76,16 +76,16 @@ async def get_runner_profile(
 
     # Molded response matching runner/[id].tsx expectations
     return {
-        "id": str(runner_profile.id),
+        "id": str(user.id),
         "full_name": user.full_name,
         "avatar_url": user.avatar_url,
         "created_at": user.created_at.isoformat(),
         "runner_profile": {
-            "id": str(runner_profile.id),
-            "bio": runner_profile.bio,
-            "hourly_rate": float(runner_profile.hourly_rate) if runner_profile.hourly_rate else 0,
-            "stats_rating": float(runner_profile.stats_rating),
-            "stats_trips": runner_profile.stats_trips,
+            "id": str(user.id),
+            "bio": user.bio,
+            "hourly_rate": float(user.hourly_rate) if user.hourly_rate else 0,
+            "stats_rating": float(user.stats_rating),
+            "stats_trips": user.stats_trips,
             "active_wakas": active_count,
             "reviews": [
                 {

@@ -1,5 +1,5 @@
 from .base import Base, AuditableBase
-from .user import User, RunnerProfile, RunnerApplication
+from .user import User, RunnerApplication
 from .review import Review
 from .wallet import Wallet, Transaction
 from .waka import Waka
@@ -10,7 +10,6 @@ __all__ = [
     "Base",
     "AuditableBase",
     "User",
-    "RunnerProfile",
     "RunnerApplication",
     "Review",
     "Wallet",

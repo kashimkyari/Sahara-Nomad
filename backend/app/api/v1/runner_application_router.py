@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from ...database import get_db
-from ...models.user import User, RunnerApplication, RunnerProfile
+from ...models.user import User, RunnerApplication
 from ...schemas.runner_application import (
     RunnerApplicationCreate,
     RunnerApplicationResponse,
@@ -91,7 +91,7 @@ async def review_application(
     # TODO: replace with is_admin dependency when admin system is implemented
 ):
     """Admin-only: approve or reject a runner application.
-    On approval → sets user.is_runner = True and creates a RunnerProfile if missing.
+    On approval → sets user.is_runner = True.
     """
     result = await db.execute(
         select(RunnerApplication).where(RunnerApplication.id == application_id)
@@ -110,13 +110,6 @@ async def review_application(
         user = user_result.scalars().first()
         if user:
             user.is_runner = True
-
-            # Auto-create a RunnerProfile if one doesn't exist yet
-            profile_result = await db.execute(
-                select(RunnerProfile).where(RunnerProfile.user_id == user.id)
-            )
-            if not profile_result.scalars().first():
-                db.add(RunnerProfile(user_id=user.id))
 
         # Notify User of Status Update
         title = "Application Approved! 🎉" if update.status == "approved" else "Application Update"
