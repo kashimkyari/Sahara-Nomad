@@ -1,64 +1,39 @@
-import { Ionicons } from '@expo/vector-icons';
-import { NativeTabs } from 'expo-router/unstable-native-tabs';
+import { Tabs } from 'expo-router';
 import React from 'react';
-import { useTheme } from '../../hooks/use-theme';
-import { DesignTokens as DT } from '../../constants/design';
+import { CustomTabBar } from '../../components/ui/CustomTabBar';
 
 export default function TabLayout() {
-  const { colors } = useTheme();
-  const triggerOptions = {
-    disableAutomaticContentInsets: true,
-    contentStyle: { paddingBottom: 0 },
-  };
-
   return (
-    <NativeTabs
-      backgroundColor={colors.surface}
-      blurEffect="systemMaterial"
-      iconColor={{
-        default: colors.muted,
-        selected: colors.primary,
-      }}
-      labelStyle={{
-        default: {
-          fontFamily: 'PlusJakartaSans_500Medium',
-          fontSize: 10,
-          color: colors.muted,
-        },
-        selected: {
-          fontFamily: 'PlusJakartaSans_600SemiBold',
-          fontSize: 10,
-          color: colors.primary,
-        },
+    <Tabs
+      tabBar={(props) => <CustomTabBar {...props} />}
+      screenOptions={{
+        headerShown: false,
       }}
     >
-      <NativeTabs.Trigger name="index" {...triggerOptions}>
-        <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon
-          src={<NativeTabs.Trigger.VectorIcon family={Ionicons} name="home" />}
-        />
-      </NativeTabs.Trigger>
-
-      <NativeTabs.Trigger name="search" role="search" {...triggerOptions}>
-        <NativeTabs.Trigger.Label>Runners</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon
-          src={<NativeTabs.Trigger.VectorIcon family={Ionicons} name="search" />}
-        />
-      </NativeTabs.Trigger>
-
-      <NativeTabs.Trigger name="messages" {...triggerOptions}>
-        <NativeTabs.Trigger.Label>Messages</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon
-          src={<NativeTabs.Trigger.VectorIcon family={Ionicons} name="chatbubble" />}
-        />
-      </NativeTabs.Trigger>
-
-      <NativeTabs.Trigger name="profile" {...triggerOptions}>
-        <NativeTabs.Trigger.Label>Profile</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon
-          src={<NativeTabs.Trigger.VectorIcon family={Ionicons} name="person" />}
-        />
-      </NativeTabs.Trigger>
-    </NativeTabs>
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: 'Home',
+        }}
+      />
+      <Tabs.Screen
+        name="search"
+        options={{
+          title: 'Runners',
+        }}
+      />
+      <Tabs.Screen
+        name="messages"
+        options={{
+          title: 'Messages',
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Profile',
+        }}
+      />
+    </Tabs>
   );
 }
