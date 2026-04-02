@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, Modal, TouchableOpacity, StyleSheet, Animated, Dimensions } from 'react-native';
+import React, { useRef, useEffect } from 'react';
+import { View, Text, Modal, TouchableOpacity, StyleSheet, Animated, ActivityIndicator } from 'react-native';
 import { useTheme } from '../../hooks/use-theme';
 import { DesignTokens as DT } from '../../constants/design';
 
@@ -7,6 +7,8 @@ interface AlertButton {
   text: string;
   onPress?: () => void;
   style?: 'default' | 'cancel' | 'destructive';
+  loading?: boolean;
+  loadingText?: string;
 }
 
 interface BrutalistAlertProps {
@@ -25,10 +27,10 @@ export const BrutalistAlert: React.FC<BrutalistAlertProps> = ({
   onClose 
 }) => {
   const { colors } = useTheme();
-  const fadeAnim = React.useRef(new Animated.Value(0)).current;
-  const scaleAnim = React.useRef(new Animated.Value(0.9)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.9)).current;
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (visible) {
       Animated.parallel([
         Animated.timing(fadeAnim, {
@@ -92,17 +94,34 @@ export const BrutalistAlert: React.FC<BrutalistAlertProps> = ({
                     index > 0 && { marginTop: DT.spacing.sm }
                   ]}
                   onPress={() => {
+                    if (btn.loading) return;
                     if (btn.onPress) btn.onPress();
-                    onClose();
+                    if (!btn.loading) onClose();
                   }}
+                  disabled={btn.loading}
                 >
-                  <Text style={[
-                    styles.buttonText,
-                    isDestructive && { color: colors.surface },
-                    isCancel && { color: colors.text }
-                  ]}>
-                    {btn.text.toUpperCase()}
-                  </Text>
+                  {btn.loading ? (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: DT.spacing.sm }}>
+                      <ActivityIndicator color={isDestructive ? colors.surface : colors.text} />
+                      {btn.loadingText && (
+                        <Text style={[
+                          styles.buttonText,
+                          isDestructive && { color: colors.surface },
+                          isCancel && { color: colors.text }
+                        ]}>
+                          {btn.loadingText.toUpperCase()}
+                        </Text>
+                      )}
+                    </View>
+                  ) : (
+                    <Text style={[
+                      styles.buttonText,
+                      isDestructive && { color: colors.surface },
+                      isCancel && { color: colors.text }
+                    ]}>
+                      {btn.text.toUpperCase()}
+                    </Text>
+                  )}
                 </TouchableOpacity>
               );
             })}

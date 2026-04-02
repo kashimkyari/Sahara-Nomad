@@ -292,6 +292,13 @@ async def delete_me(
     await db.commit()
     return {"status": "account_deleted"}
 
+@router.post("/logout")
+async def logout(current_user: User = Depends(get_current_user)):
+    """Log out the current user."""
+    # Since we are using stateless JWT, we just return success.
+    # In the future, we could add the token to a denylist.
+    return {"status": "logged_out"}
+
 @router.post("/me/avatar")
 async def upload_avatar(
     file: UploadFile = File(...),

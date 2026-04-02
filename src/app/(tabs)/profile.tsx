@@ -33,6 +33,7 @@ export default function ProfileScreen() {
   const { colors } = useTheme();
   const { user, token, signOut } = useAuth();
   const router = useRouter();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   // Alert State
   const [alertVisible, setAlertVisible] = useState(false);
@@ -53,9 +54,23 @@ export default function ProfileScreen() {
       { 
         text: 'Sign Out', 
         style: 'destructive',
-        onPress: () => {
+        loading: isLoggingOut,
+        loadingText: 'Signing Out...',
+        onPress: async () => {
+          setIsLoggingOut(true);
+          try {
+            await fetch(`${API.API_URL}/auth/logout`, {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${token}` }
+            });
+          } catch (e) {
+            console.log('Logout error', e);
+          }
+          await new Promise(resolve => setTimeout(resolve, 800));
           signOut();
-          router.replace('/');
+          router.replace('/onboarding');
+          setIsLoggingOut(false);
+          setAlertVisible(false);
         } 
       }
     ]);
