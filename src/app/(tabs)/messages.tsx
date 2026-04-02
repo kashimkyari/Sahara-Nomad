@@ -5,6 +5,10 @@ import { useRouter } from 'expo-router';
 import { Search, Pin, Check, CheckCheck } from 'lucide-react-native';
 import { DesignTokens as DT } from '../../constants/design';
 import { useTheme } from '../../hooks/use-theme';
+import { useAuth } from '../../context/AuthContext';
+import API from '../../constants/api';
+import { useEffect } from 'react';
+import { ActivityIndicator } from 'react-native';
 
 const filters = ['All Chats', 'Unread', 'Active Errands', 'Archived'];
 
@@ -44,10 +48,43 @@ const mockMessages = [
 export default function MessagesScreen() {
   const { colors } = useTheme();
   const router = useRouter();
+  const { token } = useAuth();
   const [query, setQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('All Chats');
+  const [conversations, setConversations] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   
   const styles = getStyles(colors);
+
+  useEffect(() => {
+    fetchConversations();
+  }, [token]);
+
+  const fetchConversations = async () => {
+    try {
+      const res = await fetch(API.MESSAGES.CONVERSATIONS, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!res.ok) throw new Error('Failed to fetch conversations');
+      const data = await res.json();
+      setConversations(data);
+    } catch (e) {
+      console.error('Error fetching conversations:', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredConversations = conversations.filter((c) => {
+    const matchQuery = c.other_user?.full_name.toLowerCase().includes(query.toLowerCase()) || 
+                       c.last_message_text?.toLowerCase().includes(query.toLowerCase());
+    
+    if (activeFilter === 'Unread') return matchQuery && c.unread_count > 0;
+    if (activeFilter === 'Active Errands') return matchQuery && c.waka_id;
+    return matchQuery;
+  });
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -109,63 +146,72 @@ export default function MessagesScreen() {
 
         {/* Message Cards List */}
         <View style={styles.messagesContainer}>
-          {mockMessages.map((msg) => (
-            <TouchableOpacity
-              key={msg.id}
-              style={[
-                styles.messageCard,
-                msg.unread && styles.messageCardUnread
-              ]}
-              onPress={() => router.push(`/conversation/${msg.id}` as any)}
-            >
-              <View style={styles.cardHeaderRow}>
-                {/* Avatar */}
-                <View style={[styles.avatarWrap, msg.unread && styles.avatarWrapUnread]}>
-                  <Image
-                    source={{ uri: `https://i.pravatar.cc/150?u=${msg.name}` }}
-                    style={styles.avatar}
-                  />
-                  {msg.unread && <View style={styles.avatarDot} />}
-                </View>
-
-                {/* Info Block */}
-                <View style={styles.infoBlock}>
-                  <View style={styles.nameTimeRow}>
-                    <Text style={[styles.name, msg.unread && styles.nameBold]}>
-                      {msg.name}
-                    </Text>
-                    <View style={styles.timeWrap}>
-                      {msg.pinned && <Pin size={12} color={colors.accent} fill={colors.accent} style={{ marginRight: 4 }} />}
-                      <Text style={[styles.time, msg.unread && styles.timeBold]}>{msg.time}</Text>
+          {loading ? (
+            <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 40 }} />
+          ) : filteredConversations.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyEmoji}>💬</Text>
+              <Text style={styles.emptyText}>No conversations found.</Text>
+            </View>
+          ) : (
+            filteredConversations.map((conv) => (
+              <TouchableOpacity
+                key={conv.id}
+                style={[
+                  styles.messageCard,
+                  conv.unread_count > 0 && styles.messageCardUnread
+                ]}
+                onPress={() => router.push(`/conversation/${conv.id}` as any)}
+              >
+                <View style={styles.cardHeaderRow}>
+                  {/* Avatar */}
+                  <View style={[styles.avatarWrap, conv.unread_count > 0 && styles.avatarWrapUnread]}>
+                    <Image
+                      source={{ uri: conv.other_user?.avatar_url || `https://i.pravatar.cc/150?u=${conv.other_user?.id}` }}
+                      style={styles.avatar}
+                    />
+                    {conv.unread_count > 0 && <View style={styles.avatarDot} />}
+                  </View>
+  
+                  {/* Info Block */}
+                  <View style={styles.infoBlock}>
+                    <View style={styles.nameTimeRow}>
+                      <Text style={[styles.name, conv.unread_count > 0 && styles.nameBold]}>
+                        {conv.other_user?.full_name}
+                      </Text>
+                      <View style={styles.timeWrap}>
+                        {conv.is_pinned && <Pin size={12} color={colors.accent} fill={colors.accent} style={{ marginRight: 4 }} />}
+                        <Text style={[styles.time, conv.unread_count > 0 && styles.timeBold]}>
+                          {conv.last_message_at ? new Date(conv.last_message_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                        </Text>
+                      </View>
                     </View>
-                  </View>
-                  
-                  {/* Context Tag */}
-                  <View style={styles.errandTagWrap}>
-                    <Text style={styles.errandTagText}>{msg.errandTag}</Text>
-                  </View>
-                </View>
-              </View>
-
-              <View style={styles.previewRow}>
-                <Text style={[styles.lastMsg, msg.unread && styles.lastMsgUnread]} numberOfLines={1}>
-                  {msg.lastMsg}
-                </Text>
-
-                {/* Read Receipts Layout */}
-                {!msg.unread && msg.status !== 'none' && (
-                  <View style={styles.receiptWrap}>
-                    {msg.status === 'read' ? (
-                      <CheckCheck size={16} color={colors.primary} strokeWidth={3} />
-                    ) : (
-                      <Check size={16} color={colors.muted} strokeWidth={3} />
+                    
+                    {/* Context Tag */}
+                    {conv.waka_title && (
+                      <View style={styles.errandTagWrap}>
+                        <Text style={styles.errandTagText}>{conv.waka_emoji} {conv.waka_title}</Text>
+                      </View>
                     )}
                   </View>
-                )}
-              </View>
-
-            </TouchableOpacity>
-          ))}
+                </View>
+  
+                <View style={styles.previewRow}>
+                  <Text style={[styles.lastMsg, conv.unread_count > 0 && styles.lastMsgUnread]} numberOfLines={1}>
+                    {conv.last_message_text || 'No messages yet'}
+                  </Text>
+  
+                  {/* Read Receipts Layout - Simplified for now */}
+                  {conv.unread_count === 0 && conv.last_message_text && (
+                    <View style={styles.receiptWrap}>
+                      <CheckCheck size={16} color={colors.primary} strokeWidth={3} />
+                    </View>
+                  )}
+                </View>
+  
+              </TouchableOpacity>
+            ))
+          )}
         </View>
 
       </ScrollView>
@@ -372,5 +418,19 @@ const getStyles = (colors: any) => StyleSheet.create({
   },
   receiptWrap: {
     marginLeft: DT.spacing.sm,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 60,
+    gap: 12,
+  },
+  emptyEmoji: {
+    fontSize: 48,
+  },
+  emptyText: {
+    fontFamily: DT.typography.heading,
+    fontSize: 16,
+    color: colors.muted,
   },
 });

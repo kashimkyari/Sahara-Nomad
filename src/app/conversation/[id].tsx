@@ -15,77 +15,113 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DesignTokens as DT } from '../../constants/design';
 import { useTheme } from '../../hooks/use-theme';
+import { useAuth } from '../../context/AuthContext';
+import API from '../../constants/api';
+import { ActivityIndicator } from 'react-native';
 
-type Message = {
-  id: string;
-  text: string;
-  from: 'me' | 'them';
-  time: string;
-  status?: 'sent' | 'read';
-};
-
-const mockConversations: Record<string, { name: string; img: string; errandContext: string; price: string; messages: Message[] }> = {
-  '1': {
-    name: 'Chinedu O.',
-    img: 'https://i.pravatar.cc/150?u=chinedu',
-    errandContext: '🛒 Mile 12 Tomato Sourcing',
-    price: '₦2,500',
-    messages: [
-      { id: 'm1', text: 'Hello! I accepted your errand. Heading to Mile 12 now.', from: 'them', time: '12:30 PM' },
-      { id: 'm2', text: 'Great! Please get the freshest tomatoes — avoid the back stalls.', from: 'me', time: '12:31 PM', status: 'read' },
-      { id: 'm3', text: 'No problem. I know exactly where to go. Will send you photos once I get there.', from: 'them', time: '12:33 PM' },
-      { id: 'm4', text: 'I am at the market now, I found the best ones!', from: 'them', time: '12:45 PM' },
-    ],
-  },
-  '2': {
-    name: 'Amina B.',
-    img: 'https://i.pravatar.cc/150?u=amina',
-    errandContext: '📦 Dispatch package to Lekki',
-    price: '₦4,000',
-    messages: [
-      { id: 'm1', text: 'Your package has been delivered. Please confirm!', from: 'them', time: 'Yesterday' },
-      { id: 'm2', text: 'Confirmed! Thank you so much Amina, you were fast 🙏', from: 'me', time: 'Yesterday', status: 'read' },
-    ],
-  },
-  '3': {
-    name: 'Tunde S.',
-    img: 'https://i.pravatar.cc/150?u=tunde',
-    errandContext: '🍔 Food Pickup (Chicken Republic)',
-    price: '₦1,500',
-    messages: [
-      { id: 'm1', text: 'On my way! ETA 15 mins.', from: 'them', time: 'Mon' },
-      { id: 'm2', text: 'Ok, I am downstairs waiting.', from: 'me', time: 'Mon', status: 'sent' },
-    ],
-  },
-};
 
 export default function ConversationScreen() {
   const { colors } = useTheme();
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id: convoId } = useLocalSearchParams<{ id: string }>();
+  const { token, user } = useAuth();
+  
   const [message, setMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [messages, setMessages] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [conversation, setConversation] = useState<any>(null);
+  
   const scrollRef = useRef<ScrollView>(null);
+  const ws = useRef<WebSocket | null>(null);
   const styles = getStyles(colors);
 
-  const convo = mockConversations[id as string] ?? mockConversations['1'];
-  const [messages, setMessages] = useState<Message[]>(convo.messages);
-
   useEffect(() => {
-    // Simulate user typing after we enter for 'Chinedu'
-    if (id === '1') {
-      setTimeout(() => setIsTyping(true), 2000);
-    }
-  }, [id]);
+    fetchHistory();
+    connectWebSocket();
+    return () => {
+      ws.current?.close();
+    };
+  }, [convoId]);
 
-  const sendMessage = () => {
+  const fetchHistory = async () => {
+    try {
+      // First get conversations list to find this specific one (optional if we had a GET /conversations/{id})
+      const convsRes = await fetch(API.MESSAGES.CONVERSATIONS, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const convs = await convsRes.json();
+      const currentConv = convs.find((c: any) => c.id === convoId);
+      if (currentConv) setConversation(currentConv);
+
+      const res = await fetch(API.MESSAGES.HISTORY(convoId!), {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      setMessages(data);
+    } catch (e) {
+      console.error('Error fetching history:', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const connectWebSocket = () => {
+    if (!convoId) return;
+    
+    // In a real app, you might want to reconnect on error
+    ws.current = new WebSocket(API.MESSAGES.WS(convoId));
+    
+    ws.current.onmessage = (e) => {
+      const newMsg = JSON.parse(e.data);
+      setMessages(prev => {
+        // Avoid duplicates if HTTP send already added it
+        if (prev.find(m => m.id === newMsg.id)) return prev;
+        return [...prev, newMsg];
+      });
+      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
+    };
+
+    ws.current.onerror = (e) => {
+      console.error('WS Error:', e);
+    };
+  };
+
+  const sendMessage = async () => {
     if (!message.trim()) return;
-    setMessages(prev => [
-      ...prev,
-      { id: `m${Date.now()}`, text: message.trim(), from: 'me', time: 'Just now', status: 'sent' },
-    ]);
+
+    const content = message.trim();
     setMessage('');
-    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
+
+    try {
+      // Use HTTP for sending to ensure easy DB persistence and broadcast logic on backend
+      const res = await fetch(API.MESSAGES.SEND, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          conversation_id: convoId,
+          content_text: content,
+        }),
+      });
+      
+      if (!res.ok) throw new Error('Failed to send message');
+      
+      const sentMsg = await res.json();
+      // Optimistically add or let WS handle it? 
+      // Let's add it if not already there (though WS is usually fast)
+      setMessages(prev => {
+        if (prev.find(m => m.id === sentMsg.id)) return prev;
+        return [...prev, sentMsg];
+      });
+      
+      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
+    } catch (e) {
+      console.error('Send error:', e);
+      // Fallback: restore message to input or show error
+    }
   };
 
   return (
@@ -98,37 +134,42 @@ export default function ConversationScreen() {
         
         <TouchableOpacity 
           style={{ flexDirection: 'row', alignItems: 'center', flex: 1, gap: DT.spacing.md }}
-          onPress={() => router.push(`/runner/${id}` as any)}
+          onPress={() => router.push(`/runner/${conversation?.other_user?.id}` as any)}
         >
-          <Image source={{ uri: convo.img }} style={styles.headerAvatar} />
+          <Image 
+            source={{ uri: conversation?.other_user?.avatar_url || `https://i.pravatar.cc/150?u=${conversation?.other_user?.id}` }} 
+            style={styles.headerAvatar} 
+          />
           <View style={styles.headerInfo}>
-            <Text style={styles.headerName}>{convo.name}</Text>
+            <Text style={styles.headerName}>{conversation?.other_user?.full_name || 'Loading...'}</Text>
             <View style={styles.onlineRow}>
-              <View style={styles.onlineDot} />
-              <Text style={styles.onlineText}>Online now</Text>
+              <View style={[styles.onlineDot, { backgroundColor: conversation?.other_user?.is_online ? colors.secondary : colors.muted }]} />
+              <Text style={styles.onlineText}>{conversation?.other_user?.is_online ? 'Online now' : 'Offline'}</Text>
             </View>
           </View>
         </TouchableOpacity>
       </View>
 
       {/* Errand Context Banner */}
-      <View style={styles.errandBannerWrapper}>
-        <View style={styles.errandBanner}>
-          <View style={styles.errandBannerLeft}>
-            <Package size={20} color={colors.text} strokeWidth={2} />
-            <View>
-              <Text style={styles.errandContextText} numberOfLines={1}>{convo.errandContext}</Text>
-              <Text style={styles.errandContextPrice}>{convo.price}</Text>
+      {conversation?.waka_title && (
+        <View style={styles.errandBannerWrapper}>
+          <View style={styles.errandBanner}>
+            <View style={styles.errandBannerLeft}>
+              <Package size={20} color={colors.text} strokeWidth={2} />
+              <View>
+                <Text style={styles.errandContextText} numberOfLines={1}>{conversation.waka_emoji} {conversation.waka_title}</Text>
+                <Text style={styles.errandContextPrice}>View Errands Details</Text>
+              </View>
             </View>
+            <TouchableOpacity
+              style={styles.errandActionBtn}
+              onPress={() => router.push(`/waka/${conversation.waka_id}` as any)}
+            >
+              <Text style={styles.errandActionText}>VIEW</Text>
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity
-            style={styles.errandActionBtn}
-            onPress={() => router.push(`/waka/${id}` as any)}
-          >
-            <Text style={styles.errandActionText}>VIEW</Text>
-          </TouchableOpacity>
         </View>
-      </View>
+      )}
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -143,43 +184,50 @@ export default function ConversationScreen() {
           showsVerticalScrollIndicator={false}
           onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: false })}
         >
-          {messages.map((msg) => {
-            const isMe = msg.from === 'me';
-            return (
-              <View
-                key={msg.id}
-                style={[styles.bubbleWrapper, isMe ? styles.myWrapper : styles.theirWrapper]}
-              >
-                {!isMe && (
-                  <View style={styles.theirAvatarBox}>
-                    <Image source={{ uri: convo.img }} style={styles.theirAvatar} />
-                  </View>
-                )}
+          {loading ? (
+            <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 40 }} />
+          ) : (
+            messages.map((msg) => {
+              const isMe = msg.sender_id === user?.id;
+              return (
+                <View
+                  key={msg.id}
+                  style={[styles.bubbleWrapper, isMe ? styles.myWrapper : styles.theirWrapper]}
+                >
+                  {!isMe && (
+                    <View style={styles.theirAvatarBox}>
+                      <Image 
+                        source={{ uri: conversation?.other_user?.avatar_url || `https://i.pravatar.cc/150?u=${msg.sender_id}` }} 
+                        style={styles.theirAvatar} 
+                      />
+                    </View>
+                  )}
 
-                <View style={[styles.bubble, isMe ? styles.myBubble : styles.theirBubble]}>
-                  <Text style={[styles.bubbleText, isMe && styles.myBubbleText]}>
-                    {msg.text}
-                  </Text>
-                  <View style={styles.bubbleFooter}>
-                    <Text style={[styles.bubbleTime, isMe && styles.myBubbleTime]}>
-                      {msg.time}
+                  <View style={[styles.bubble, isMe ? styles.myBubble : styles.theirBubble]}>
+                    <Text style={[styles.bubbleText, isMe && styles.myBubbleText]}>
+                      {msg.content_text}
                     </Text>
-                    {isMe && msg.status === 'read' && (
-                      <CheckCheck size={14} color={colors.surface} strokeWidth={3} style={{ marginLeft: 4 }} />
-                    )}
-                    {isMe && msg.status === 'sent' && (
-                      <CheckCheck size={14} color={'rgba(255,255,255,0.5)'} strokeWidth={3} style={{ marginLeft: 4 }} />
-                    )}
+                    <View style={styles.bubbleFooter}>
+                      <Text style={[styles.bubbleTime, isMe && styles.myBubbleTime]}>
+                        {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </Text>
+                      {isMe && msg.is_read && (
+                        <CheckCheck size={14} color={colors.surface} strokeWidth={3} style={{ marginLeft: 4 }} />
+                      )}
+                      {isMe && !msg.is_read && (
+                        <CheckCheck size={14} color={'rgba(255,255,255,0.5)'} strokeWidth={3} style={{ marginLeft: 4 }} />
+                      )}
+                    </View>
                   </View>
                 </View>
-              </View>
-            );
-          })}
+              );
+            })
+          )}
 
           {isTyping && (
             <View style={[styles.bubbleWrapper, styles.theirWrapper, { marginTop: 8 }]}>
               <View style={styles.typingIndicator}>
-                <Text style={styles.typingText}>{convo.name.split(' ')[0]} is typing...</Text>
+                <Text style={styles.typingText}>{conversation?.other_user?.full_name?.split(' ')[0]} is typing...</Text>
               </View>
             </View>
           )}

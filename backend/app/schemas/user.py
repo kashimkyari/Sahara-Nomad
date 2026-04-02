@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, ConfigDict
 from uuid import UUID
 from typing import Optional, List
 from datetime import datetime
@@ -8,6 +8,14 @@ class UserBase(BaseModel):
     full_name: str
     phone_number: str
     email: Optional[EmailStr] = None
+
+class UserInfo(BaseModel):
+    id: UUID
+    full_name: str
+    avatar_url: Optional[str] = None
+    is_online: bool = False
+    
+    model_config = ConfigDict(from_attributes=True)
 
 class UserCreate(UserBase):
     password: str
