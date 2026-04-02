@@ -29,6 +29,6 @@ export default {
         CONVERSATIONS: `${API_URL}/chat/conversations`,
         HISTORY: (id: string) => `${API_URL}/chat/${id}/history`,
         SEND: `${API_URL}/chat/messages`,
-        WS: (id: string) => `ws://172.20.10.9:8000/api/v1/chat/ws/${id}`,
+        WS: (id: string, token: string) => `ws://172.20.10.9:8000/api/v1/chat/ws/${id}?token=${token}`,
     }
 };

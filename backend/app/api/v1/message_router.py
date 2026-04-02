@@ -227,11 +227,28 @@ manager = ConnectionManager()
 async def websocket_endpoint(
     websocket: WebSocket, 
     convo_id: str,
+    token: str = None,
     db: AsyncSession = Depends(get_db)
 ):
-    # Note: In FastAPI WebSockets, Depends(get_current_user) is tricky due to auth headers.
-    # For now, we assume the client sends the token in the first message or query param.
-    # Simplified for this task.
+    if not token:
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        return
+
+    try:
+        from .deps import get_user_from_token
+        current_user = await get_user_from_token(db, token)
+    except Exception:
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        return
+        
+    # Check if user is part of the conversation
+    conv_stmt = select(Conversation).where(Conversation.id == uuid.UUID(convo_id))
+    conv_res = await db.execute(conv_stmt)
+    conv = conv_res.scalar_one_or_none()
+    
+    if not conv or current_user.id not in [conv.employer_id, conv.runner_id]:
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        return
     
     await manager.connect(websocket, convo_id)
     try:

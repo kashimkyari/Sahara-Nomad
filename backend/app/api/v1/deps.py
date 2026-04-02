@@ -14,10 +14,7 @@ reusable_oauth2 = OAuth2PasswordBearer(
     tokenUrl=f"{settings.API_V1_STR}/auth/login"
 )
 
-async def get_current_user(
-    db: AsyncSession = Depends(get_db),
-    token: str = Depends(reusable_oauth2)
-) -> User:
+async def get_user_from_token(db: AsyncSession, token: str) -> User:
     try:
         payload = jwt.decode(
             token, settings.JWT_SECRET, algorithms=[settings.ALGORITHM]
@@ -54,3 +51,9 @@ async def get_current_user(
         raise HTTPException(status_code=400, detail="User account is deleted")
         
     return user
+
+async def get_current_user(
+    db: AsyncSession = Depends(get_db),
+    token: str = Depends(reusable_oauth2)
+) -> User:
+    return await get_user_from_token(db, token)

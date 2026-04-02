@@ -38,11 +38,11 @@ export default function ConversationScreen() {
 
   useEffect(() => {
     fetchHistory();
-    connectWebSocket();
+    if (token) connectWebSocket(token);
     return () => {
       ws.current?.close();
     };
-  }, [convoId]);
+  }, [convoId, token]);
 
   const fetchHistory = async () => {
     try {
@@ -66,11 +66,11 @@ export default function ConversationScreen() {
     }
   };
 
-  const connectWebSocket = () => {
+  const connectWebSocket = (authToken: string) => {
     if (!convoId) return;
     
     // In a real app, you might want to reconnect on error
-    ws.current = new WebSocket(API.MESSAGES.WS(convoId));
+    ws.current = new WebSocket(API.MESSAGES.WS(convoId, authToken));
     
     ws.current.onmessage = (e) => {
       const newMsg = JSON.parse(e.data);
