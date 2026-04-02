@@ -5,6 +5,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ChevronLeft, AlertTriangle, CheckCircle2, ChevronRight } from 'lucide-react-native';
 import { DesignTokens as DT } from '../../constants/design';
 import { useTheme } from '../../hooks/use-theme';
+import { BrutalistAlert } from '../../components/ui/BrutalistAlert';
 
 const REASONS = [
   'Runner did not show up',
@@ -22,11 +23,24 @@ export default function CreateDisputeScreen() {
   const [description, setDescription] = useState('');
   const [submitted, setSubmitted] = useState(false);
   
+  // Alert State
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertConfig, setAlertConfig] = useState<{ title: string, message: string, buttons: any[] }>({
+    title: '',
+    message: '',
+    buttons: []
+  });
+
+  const showAlert = (title: string, message: string, buttons: any[] = [{ text: 'OK' }]) => {
+    setAlertConfig({ title, message, buttons });
+    setAlertVisible(true);
+  };
+
   const styles = getStyles(colors);
 
   const handleSubmit = () => {
     if (!selectedReason) {
-      Alert.alert('Ehn?', 'Please select a reason for the dispute.');
+      showAlert('Ehn?', 'Please select a reason for the dispute.');
       return;
     }
     setSubmitted(true);
@@ -103,6 +117,14 @@ export default function CreateDisputeScreen() {
           By submitting, you agree to our dispute resolution policy. Funds will be held until the issue is resolved.
         </Text>
       </ScrollView>
+
+      <BrutalistAlert
+        visible={alertVisible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        buttons={alertConfig.buttons}
+        onClose={() => setAlertVisible(false)}
+      />
     </SafeAreaView>
   );
 }

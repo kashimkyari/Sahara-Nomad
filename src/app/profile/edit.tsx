@@ -10,6 +10,7 @@ import { ChevronLeft, Camera } from 'lucide-react-native';
 import { DesignTokens as DT } from '../../constants/design';
 import { Image as ExpoImage } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
+import { BrutalistAlert } from '../../components/ui/BrutalistAlert';
 
 import { useAuth } from '../../context/AuthContext';
 import API from '../../constants/api';
@@ -25,6 +26,19 @@ export default function EditProfileScreen() {
   const [location, setLocation] = useState('Lagos, Nigeria');
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+
+  // Alert State
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertConfig, setAlertConfig] = useState<{ title: string, message: string, buttons: any[] }>({
+    title: '',
+    message: '',
+    buttons: []
+  });
+
+  const showAlert = (title: string, message: string, buttons: any[] = [{ text: 'OK' }]) => {
+    setAlertConfig({ title, message, buttons });
+    setAlertVisible(true);
+  };
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -66,9 +80,9 @@ export default function EditProfileScreen() {
       if (!response.ok) throw new Error('Upload failed');
       
       await refreshUser();
-      Alert.alert('Success', 'Profile photo updated!');
+      showAlert('Success', 'Profile photo updated!');
     } catch (error: any) {
-      Alert.alert('Error', 'Failed to upload image');
+      showAlert('Error', 'Failed to upload image');
     } finally {
       setUploading(false);
     }
@@ -106,10 +120,11 @@ export default function EditProfileScreen() {
       }
 
       await refreshUser();
-      Alert.alert('Success', 'Profile updated successfully!');
-      router.back();
+      showAlert('Success', 'Profile updated successfully!', [
+        { text: 'OK', onPress: () => router.back() }
+      ]);
     } catch (error: any) {
-      Alert.alert('Error', error.message);
+      showAlert('Error', error.message);
     } finally {
       setLoading(false);
     }
@@ -219,6 +234,14 @@ export default function EditProfileScreen() {
           <Text style={styles.saveBtnText}>{loading ? 'Saving...' : 'Save Changes'}</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      <BrutalistAlert
+        visible={alertVisible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        buttons={alertConfig.buttons}
+        onClose={() => setAlertVisible(false)}
+      />
     </SafeAreaView>
   );
 }

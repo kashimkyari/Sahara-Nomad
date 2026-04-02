@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { BrutalistAlert } from '../../../components/ui/BrutalistAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ChevronLeft, CreditCard, Trash2, CheckCircle2 } from 'lucide-react-native';
@@ -17,13 +18,27 @@ export default function CardDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const card = cardData[id as string] ?? cardData['1'];
   const [isDefault, setIsDefault] = useState(card.active);
+
+  // Alert State
+  const [alertVisible, setAlertVisible] = React.useState(false);
+  const [alertConfig, setAlertConfig] = React.useState<{ title: string, message: string, buttons: any[] }>({
+    title: '',
+    message: '',
+    buttons: []
+  });
+
+  const showAlert = (title: string, message: string, buttons: any[] = [{ text: 'OK' }]) => {
+    setAlertConfig({ title, message, buttons });
+    setAlertVisible(true);
+  };
+
   const styles = getStyles(colors);
   const isBank = card.type === 'Bank Transfer';
 
   const handleSetDefault = () => setIsDefault(true);
 
   const handleDelete = () => {
-    Alert.alert(
+    showAlert(
       'Remove Payment Method',
       `Remove ${card.label} from your account?`,
       [
@@ -109,6 +124,14 @@ export default function CardDetailScreen() {
           <Text style={styles.deleteText}>Remove {isBank ? 'Account' : 'Card'}</Text>
         </TouchableOpacity>
       </View>
+
+      <BrutalistAlert
+        visible={alertVisible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        buttons={alertConfig.buttons}
+        onClose={() => setAlertVisible(false)}
+      />
     </SafeAreaView>
   );
 }

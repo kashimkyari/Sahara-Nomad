@@ -9,6 +9,7 @@ import { DesignTokens as DT } from '../../constants/design';
 import { useTheme } from '../../hooks/use-theme';
 import { useAuth } from '../../context/AuthContext';
 import API from '../../constants/api';
+import { BrutalistAlert } from '../../components/ui/BrutalistAlert';
 import { ActivityIndicator } from 'react-native';
 
 const steps = [
@@ -31,6 +32,20 @@ export default function BecomeRunnerScreen() {
   const [address, setAddress] = useState('');
   const [transport, setTransport] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Alert State
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertConfig, setAlertConfig] = useState<{ title: string, message: string, buttons: any[] }>({
+    title: '',
+    message: '',
+    buttons: []
+  });
+
+  const showAlert = (title: string, message: string, buttons: any[] = [{ text: 'OK' }]) => {
+    setAlertConfig({ title, message, buttons });
+    setAlertVisible(true);
+  };
+
   const styles = getStyles(colors);
 
   const transports = ['Motorcycle', 'Keke Napep', 'Car', 'On Foot'];
@@ -261,7 +276,7 @@ export default function BecomeRunnerScreen() {
                     }
                     setCurrentStep(3); // Show success screen
                   } catch (e: any) {
-                    Alert.alert('Submission Failed', e.message || 'Please try again.');
+                    showAlert('Submission Failed', e.message || 'Please try again.');
                   } finally {
                     setIsSubmitting(false);
                   }
@@ -302,6 +317,14 @@ export default function BecomeRunnerScreen() {
           </View>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
+
+      <BrutalistAlert
+        visible={alertVisible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        buttons={alertConfig.buttons}
+        onClose={() => setAlertVisible(false)}
+      />
     </SafeAreaView>
   );
 }

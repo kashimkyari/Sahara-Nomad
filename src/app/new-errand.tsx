@@ -22,6 +22,7 @@ import { DesignTokens as DT } from '../constants/design';
 import { useTheme } from '../hooks/use-theme';
 import { useAuth } from '../context/AuthContext';
 import API from '../constants/api';
+import { BrutalistAlert } from '../components/ui/BrutalistAlert';
 
 const { width } = Dimensions.get('window');
 const SLIDER_WIDTH = width - DT.spacing.lg * 2 - 4; // subtract padding
@@ -58,6 +59,19 @@ export default function NewErrandScreen() {
   const [price, setPrice] = useState(5000);
   const [showSuccess, setShowSuccess] = useState(false);
   const [scrollEnabled, setScrollEnabled] = useState(true);
+
+  // Alert State
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertConfig, setAlertConfig] = useState<{ title: string, message: string, buttons: any[] }>({
+    title: '',
+    message: '',
+    buttons: []
+  });
+
+  const showAlert = (title: string, message: string, buttons: any[] = [{ text: 'OK' }]) => {
+    setAlertConfig({ title, message, buttons });
+    setAlertVisible(true);
+  };
 
   // Re-calculate X based on price changes (e.g., Flash mode adds 1000)
   const getXForPrice = (p: number) => ((p - MIN_PRICE) / (MAX_PRICE - MIN_PRICE)) * SLIDER_WIDTH;
@@ -183,7 +197,7 @@ export default function NewErrandScreen() {
         router.replace(`/waka/${waka.id}` as any);
       }, 2000);
     } catch (e: any) {
-      Alert.alert('Broadcast Failed', e.message || 'Something went wrong. Please try again.');
+      showAlert('Broadcast Failed', e.message || 'Something went wrong. Please try again.');
     } finally {
       setIsBroadcasting(false);
     }
@@ -199,7 +213,7 @@ export default function NewErrandScreen() {
       setLoading(true);
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission Denied', 'Please enable location permissions in your settings.');
+        showAlert('Permission Denied', 'Please enable location permissions in your settings.');
         return;
       }
 
@@ -225,7 +239,7 @@ export default function NewErrandScreen() {
         setValue(uniqueParts.join(', ') || 'Unknown Location');
       }
     } catch (error) {
-      Alert.alert('Error', 'Could not determine your location.');
+      showAlert('Error', 'Could not determine your location.');
     } finally {
       setLoading(false);
     }
@@ -516,6 +530,14 @@ export default function NewErrandScreen() {
           </View>
         </View>
       </Modal>
+
+      <BrutalistAlert
+        visible={alertVisible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        buttons={alertConfig.buttons}
+        onClose={() => setAlertVisible(false)}
+      />
     </SafeAreaView>
   );
 }

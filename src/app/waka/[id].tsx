@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -15,7 +15,8 @@ import { DesignTokens as DT } from '../../constants/design';
 import { useTheme } from '../../hooks/use-theme';
 import { useAuth } from '../../context/AuthContext';
 import API from '../../constants/api';
-import { ActivityIndicator, Alert } from 'react-native';
+import { ActivityIndicator } from 'react-native';
+import { BrutalistAlert } from '../../components/ui/BrutalistAlert';
 
 // Mock data removed in favor of real API calls
 
@@ -36,6 +37,20 @@ export default function WakaStatusScreen() {
   const [loading, setLoading] = React.useState(true);
   const [isCancelling, setIsCancelling] = React.useState(false);
   const pulseAnim = React.useRef(new Animated.Value(1)).current;
+  
+  // Alert State
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertConfig, setAlertConfig] = useState<{ title: string, message: string, buttons: any[] }>({
+    title: '',
+    message: '',
+    buttons: []
+  });
+
+  const showAlert = (title: string, message: string, buttons: any[] = [{ text: 'OK' }]) => {
+    setAlertConfig({ title, message, buttons });
+    setAlertVisible(true);
+  };
+
   const styles = getStyles(colors);
 
   const getStatusText = (step: number, status: string) => {
@@ -62,8 +77,9 @@ export default function WakaStatusScreen() {
       const data = await res.json();
       setWaka(data);
     } catch (e: any) {
-      Alert.alert('Error', e.message);
-      router.back();
+      showAlert('Error', e.message, [
+        { text: 'OK', onPress: () => router.back() }
+      ]);
     } finally {
       setLoading(false);
     }
@@ -72,7 +88,7 @@ export default function WakaStatusScreen() {
   const handleCancel = async () => {
     if (!id || !token) return;
 
-    Alert.alert(
+    showAlert(
       'Cancel Waka?',
       'Are you sure you want to cancel this errand?',
       [
@@ -95,9 +111,9 @@ export default function WakaStatusScreen() {
 
               const updatedWaka = await res.json();
               setWaka(updatedWaka);
-              Alert.alert('Cancelled', 'Errand has been cancelled.');
+              showAlert('Cancelled', 'Errand has been cancelled.');
             } catch (e: any) {
-              Alert.alert('Error', e.message);
+              showAlert('Error', e.message);
             } finally {
               setIsCancelling(false);
             }
@@ -273,6 +289,14 @@ export default function WakaStatusScreen() {
           </View>
         )}
       </ScrollView>
+
+      <BrutalistAlert
+        visible={alertVisible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        buttons={alertConfig.buttons}
+        onClose={() => setAlertVisible(false)}
+      />
     </SafeAreaView>
   );
 }

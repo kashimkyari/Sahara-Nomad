@@ -16,6 +16,7 @@ import { DesignTokens as DT } from '../constants/design';
 import { useTheme } from '../hooks/use-theme';
 import { useAuth } from '../context/AuthContext';
 import API from '../constants/api';
+import { BrutalistAlert } from '../components/ui/BrutalistAlert';
 
 type Tab = 'login' | 'signup';
 
@@ -32,6 +33,19 @@ export default function AuthScreen() {
   const [phoneError, setPhoneError] = useState('');
   const [isOtpView, setIsOtpView] = useState(false);
   const [otpCode, setOtpCode] = useState('');
+
+  // Alert State
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertConfig, setAlertConfig] = useState<{ title: string, message: string, buttons: any[] }>({
+    title: '',
+    message: '',
+    buttons: []
+  });
+
+  const showAlert = (title: string, message: string, buttons: any[] = [{ text: 'OK' }]) => {
+    setAlertConfig({ title, message, buttons });
+    setAlertVisible(true);
+  };
 
   const handleSubmit = async () => {
     if (phone.length < 10) {
@@ -136,7 +150,7 @@ export default function AuthScreen() {
         const err = await response.json();
         throw new Error(err.detail || 'Failed to resend OTP');
       }
-      alert('New code sent! Check your messages (Dev: 123456)');
+      showAlert('Success', 'New code sent! Check your messages (Dev: 123456)');
     } catch (error: any) {
       setPhoneError(error.message);
     } finally {
@@ -289,6 +303,14 @@ export default function AuthScreen() {
           </View>
         </View>
       </KeyboardAvoidingView>
+
+      <BrutalistAlert
+        visible={alertVisible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        buttons={alertConfig.buttons}
+        onClose={() => setAlertVisible(false)}
+      />
     </SafeAreaView>
   );
 }
