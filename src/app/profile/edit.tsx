@@ -8,7 +8,7 @@ import { useRouter } from 'expo-router';
 import { useTheme } from '../../hooks/use-theme';
 import { ChevronLeft, Camera } from 'lucide-react-native';
 import { DesignTokens as DT } from '../../constants/design';
-import { Image } from 'expo-image';
+import { Image as ExpoImage } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 
 import { useAuth } from '../../context/AuthContext';
@@ -125,8 +125,14 @@ export default function EditProfileScreen() {
         {/* Avatar section */}
         <View style={styles.avatarSection}>
           <View style={styles.avatarWrapper}>
-            <Image
-              source={user?.avatar_url ? { uri: `${API.API_URL}${user.avatar_url}?t=${new Date().getTime()}` } : { uri: 'https://i.pravatar.cc/150?u=chidi' }}
+            <ExpoImage
+              source={user?.avatar_url 
+                ? { 
+                    uri: `${API.API_URL}${user.avatar_url}?t=${new Date().getTime()}`,
+                    headers: { Authorization: `Bearer ${token}` }
+                  } 
+                : { uri: 'https://i.pravatar.cc/150?u=chidi' }
+              }
               style={styles.avatar}
               contentFit="cover"
               transition={200}

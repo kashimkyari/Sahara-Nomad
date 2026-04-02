@@ -29,7 +29,7 @@ const menuItems = [
 
 export default function ProfileScreen() {
   const { colors } = useTheme();
-  const { user, signOut } = useAuth();
+  const { user, token, signOut } = useAuth();
   const router = useRouter();
 
   const styles = getStyles(colors);
@@ -47,7 +47,13 @@ export default function ProfileScreen() {
             <View style={styles.avatarWrap}>
             <View style={styles.avatarBox}>
               <Image
-                source={user?.avatar_url ? { uri: `${API.API_URL}${user.avatar_url}` } : { uri: 'https://i.pravatar.cc/150?u=chidi' }}
+                source={user?.avatar_url 
+                  ? { 
+                      uri: `${API.API_URL}${user.avatar_url}`,
+                      headers: { Authorization: `Bearer ${token}` }
+                    } 
+                  : { uri: 'https://i.pravatar.cc/150?u=chidi' }
+                }
                 style={styles.avatar}
                 contentFit="cover"
                 transition={200}

@@ -12,7 +12,6 @@ import {
 import React, { useEffect, useState } from 'react';
 import {
   BackHandler,
-  Image,
   Platform,
   ScrollView,
   StyleSheet,
@@ -20,6 +19,9 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import { Image } from 'expo-image';
+import { useAuth } from '../../context/AuthContext';
+import API from '../../constants/api';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DesignTokens as DT } from '../../constants/design';
 import { useTheme } from '../../hooks/use-theme';
@@ -38,6 +40,7 @@ const activeWakas = [
 
 export default function HomeScreen() {
   const { colors } = useTheme();
+  const { user, token } = useAuth();
   const router = useRouter();
   const navigation = useNavigation();
   const styles = getStyles(colors);
@@ -79,7 +82,7 @@ export default function HomeScreen() {
         {/* ── Dynamic Header ── */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.greeting}>{greeting}, Chidi</Text>
+            <Text style={styles.greeting}>{greeting}, {user?.full_name?.split(' ')[0] || 'Nomad'}</Text>
             <View style={styles.marketStatusRow}>
               <View style={styles.marketDot} />
               <Text style={styles.marketStats}>124 Runners Active</Text>
@@ -90,10 +93,18 @@ export default function HomeScreen() {
               <Bell size={22} color={colors.text} strokeWidth={2.5} />
               <View style={styles.bellDot} />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.avatarBox} onPress={() => router.push('/profile')}>
+            <TouchableOpacity style={styles.avatarBox} onPress={() => router.push('/profile' as any)}>
               <Image
-                source={{ uri: 'https://i.pravatar.cc/150?u=chidi' }}
+                source={user?.avatar_url 
+                  ? { 
+                      uri: `${API.API_URL}${user.avatar_url}`,
+                      headers: { Authorization: `Bearer ${token}` }
+                    } 
+                  : { uri: 'https://i.pravatar.cc/150?u=chidi' }
+                }
                 style={styles.avatar}
+                contentFit="cover"
+                transition={200}
               />
             </TouchableOpacity>
           </View>
