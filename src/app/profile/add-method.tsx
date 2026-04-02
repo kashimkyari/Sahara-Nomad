@@ -8,15 +8,34 @@ import { useRouter } from 'expo-router';
 import { ChevronLeft, CreditCard, Landmark, CheckCircle2 } from 'lucide-react-native';
 import { DesignTokens as DT } from '../../constants/design';
 import { useTheme } from '../../hooks/use-theme';
+import { useAuth } from '../../context/AuthContext';
+import API from '../../constants/api';
+import { BrutalistAlert } from '../../components/ui/BrutalistAlert';
+import { ActivityIndicator } from 'react-native';
 
 type Tab = 'card' | 'bank';
 
 export default function AddMethodScreen() {
   const { colors } = useTheme();
+  const { token } = useAuth();
   const router = useRouter();
   const [tab, setTab] = useState<Tab>('card');
   const [done, setDone] = useState(false);
+  const [loading, setLoading] = useState(false);
   const styles = getStyles(colors);
+
+  // Alert State
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertConfig, setAlertConfig] = useState<{ title: string, message: string, buttons: any[] }>({
+    title: '',
+    message: '',
+    buttons: []
+  });
+
+  const showAlert = (title: string, message: string, buttons: any[] = [{ text: 'OK' }]) => {
+    setAlertConfig({ title, message, buttons });
+    setAlertVisible(true);
+  };
 
   // Card fields
   const [cardNum, setCardNum] = useState('');
@@ -40,6 +59,48 @@ export default function AddMethodScreen() {
   const cardValid = cardNum.replace(/\s/g, '').length === 16 && expiry.length === 5 && cvv.length >= 3 && cardName.length > 2;
   const bankValid = bankName.length > 2 && acctNum.length === 10 && acctName.length > 2;
   const canSave = tab === 'card' ? cardValid : bankValid;
+
+  const handleSave = async () => {
+    if (!canSave) return;
+    setLoading(true);
+
+    try {
+      const payload = tab === 'card' ? {
+        type: 'card',
+        provider: 'paystack', // placeholder
+        label: cardName,
+        last4: cardNum.replace(/\s/g, '').slice(-4),
+        brand: cardNum.startsWith('4') ? 'visa' : 'mastercard', // simple logic
+        is_default: true,
+      } : {
+        type: 'bank_account',
+        provider: bankName.toLowerCase(),
+        label: acctName,
+        last4: acctNum.slice(-4),
+        is_default: true,
+      };
+
+      const response = await fetch(API.PAYMENT_METHODS.CREATE, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.detail || 'Failed to save method');
+      }
+
+      setDone(true);
+    } catch (error: any) {
+      showAlert('Error', error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (done) {
     return (
@@ -155,16 +216,26 @@ export default function AddMethodScreen() {
           )}
 
           <TouchableOpacity
-            style={[styles.saveBtn, !canSave && styles.saveBtnDisabled]}
-            onPress={() => canSave && setDone(true)}
-            disabled={!canSave}
+            style={[styles.saveBtn, (!canSave || loading) && styles.saveBtnDisabled]}
+            onPress={handleSave}
+            disabled={!canSave || loading}
           >
             <Text style={styles.saveBtnText}>
-              {tab === 'card' ? 'Save Card' : 'Link Account'}
+              {loading 
+                ? <ActivityIndicator color={colors.surface} />
+                : tab === 'card' ? 'Save Card' : 'Link Account'}
             </Text>
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <BrutalistAlert
+        visible={alertVisible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        buttons={alertConfig.buttons}
+        onClose={() => setAlertVisible(false)}
+      />
     </SafeAreaView>
   );
 }

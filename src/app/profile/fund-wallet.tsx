@@ -8,6 +8,10 @@ import { useRouter } from 'expo-router';
 import { ChevronLeft, Landmark, CreditCard, CheckCircle2 } from 'lucide-react-native';
 import { DesignTokens as DT } from '../../constants/design';
 import { useTheme } from '../../hooks/use-theme';
+import { useAuth } from '../../context/AuthContext';
+import API from '../../constants/api';
+import { BrutalistAlert } from '../../components/ui/BrutalistAlert';
+import { ActivityIndicator } from 'react-native';
 
 const QUICK_AMOUNTS = [1000, 2000, 5000, 10000, 20000, 50000];
 
@@ -15,10 +19,27 @@ type Method = 'bank' | 'card' | 'ussd';
 
 export default function FundWalletScreen() {
   const { colors } = useTheme();
+  const { token } = useAuth();
   const router = useRouter();
   const [amount, setAmount] = useState('');
   const [method, setMethod] = useState<Method>('bank');
   const [done, setDone] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [txnRef, setTxnRef] = useState('');
+
+  // Alert State
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertConfig, setAlertConfig] = useState<{ title: string, message: string, buttons: any[] }>({
+    title: '',
+    message: '',
+    buttons: []
+  });
+
+  const showAlert = (title: string, message: string, buttons: any[] = [{ text: 'OK' }]) => {
+    setAlertConfig({ title, message, buttons });
+    setAlertVisible(true);
+  };
+
   const styles = getStyles(colors);
 
   const formatted = amount ? `₦${Number(amount.replace(/\D/g, '')).toLocaleString()}` : '';
@@ -27,9 +48,40 @@ export default function FundWalletScreen() {
     setAmount(String(val));
   };
 
-  const handleFund = () => {
+  const handleFund = async () => {
     if (!amount) return;
-    setDone(true);
+    setLoading(true);
+
+    try {
+      // Generate unique idempotency key
+      const idpKey = `fund_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+      
+      const response = await fetch(API.WALLET.FUND, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          amount: Number(amount),
+          type: method,
+          idempotency_key: idpKey,
+        }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.detail || 'Funding failed');
+      }
+
+      const res = await response.json();
+      setTxnRef(res.provider_reference);
+      setDone(true);
+    } catch (error: any) {
+      showAlert('Funding Error', error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (done) {
@@ -51,7 +103,7 @@ export default function FundWalletScreen() {
           </Text>
           <View style={styles.receiptCard}>
             {[
-              { label: 'Reference', value: `TXN${Date.now().toString().slice(-8)}` },
+              { label: 'Reference', value: txnRef || 'N/A' },
               { label: 'Method', value: method === 'bank' ? 'Bank Transfer' : method === 'card' ? 'Card' : 'USSD' },
               { label: 'Status', value: 'Successful' },
               { label: 'Time', value: new Date().toLocaleTimeString('en-NG', { hour: '2-digit', minute: '2-digit' }) },
@@ -183,16 +235,26 @@ export default function FundWalletScreen() {
           )}
 
           <TouchableOpacity
-            style={[styles.fundBtn, !amount && styles.fundBtnDisabled]}
+            style={[styles.fundBtn, (!amount || loading) && styles.fundBtnDisabled]}
             onPress={handleFund}
-            disabled={!amount}
+            disabled={!amount || loading}
           >
             <Text style={styles.fundBtnText}>
-              {amount ? `Fund ${formatted}` : 'Enter an Amount'}
+              {loading 
+                ? <ActivityIndicator color={colors.surface} />
+                : amount ? `Fund ${formatted}` : 'Enter an Amount'}
             </Text>
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <BrutalistAlert
+        visible={alertVisible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        buttons={alertConfig.buttons}
+        onClose={() => setAlertVisible(false)}
+      />
     </SafeAreaView>
   );
 }

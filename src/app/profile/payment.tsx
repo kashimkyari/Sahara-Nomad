@@ -6,6 +6,10 @@ import { useRouter } from 'expo-router';
 import { ChevronLeft, ChevronRight, CreditCard, Plus, Trash2 } from 'lucide-react-native';
 import { DesignTokens as DT } from '../../constants/design';
 import { useTheme } from '../../hooks/use-theme';
+import { useAuth } from '../../context/AuthContext';
+import API from '../../constants/api';
+import { useFocusEffect } from 'expo-router';
+import { ActivityIndicator } from 'react-native';
 
 const cards = [
   { id: '1', label: 'Kuda Bank', number: '•••• •••• •••• 4521', type: 'Bank Transfer', active: true },
@@ -18,9 +22,23 @@ const transactions = [
   { id: '2', label: 'Waka — Shoprite Lekki', amount: '-₦3,000', date: 'Mon, Apr 31', positive: false },
 ];
 
+interface PaymentMethod {
+  id: string;
+  label: string;
+  last4: string;
+  type: string;
+  brand?: string;
+  is_default: boolean;
+}
+
 export default function ProfilePaymentScreen() {
   const { colors } = useTheme();
+  const { user, token } = useAuth();
   const router = useRouter();
+
+  const [methods, setMethods] = React.useState<PaymentMethod[]>([]);
+  const [balance, setBalance] = React.useState(0);
+  const [loading, setLoading] = React.useState(true);
 
   // Alert State
   const [alertVisible, setAlertVisible] = React.useState(false);
@@ -35,12 +53,60 @@ export default function ProfilePaymentScreen() {
     setAlertVisible(true);
   };
 
+  const fetchData = async () => {
+    if (!user) return;
+    try {
+      const [methodsRes, balanceRes] = await Promise.all([
+        fetch(API.PAYMENT_METHODS.LIST, {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        fetch(API.WALLET.BALANCE(user.id), {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      ]);
+
+      if (methodsRes.ok) {
+        const data = await methodsRes.json();
+        setMethods(data);
+      }
+      if (balanceRes.ok) {
+        const data = await balanceRes.json();
+        setBalance(data.balance);
+      }
+    } catch (e) {
+      console.error('Failed to fetch payment data:', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchData();
+    }, [user, token])
+  );
+
   const styles = getStyles(colors);
 
-  const handleDelete = (card: typeof cards[number]) => {
-    showAlert('Remove Payment Method', `Remove ${card.label}?`, [
+  const handleDelete = (method: PaymentMethod) => {
+    showAlert('Remove Payment Method', `Remove ${method.label}?`, [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Remove', style: 'destructive', onPress: () => {} },
+      { 
+        text: 'Remove', 
+        style: 'destructive', 
+        onPress: async () => {
+          try {
+            const res = await fetch(API.PAYMENT_METHODS.DELETE(method.id), {
+              method: 'DELETE',
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            if (!res.ok) throw new Error('Delete failed');
+            fetchData();
+          } catch (e: any) {
+            showAlert('Error', e.message);
+          }
+        } 
+      },
     ]);
   };
 
@@ -58,7 +124,7 @@ export default function ProfilePaymentScreen() {
         {/* Wallet */}
         <View style={styles.walletCard}>
           <Text style={styles.walletLabel}>SENDAM WALLET</Text>
-          <Text style={styles.walletBalance}>₦ 12,400.00</Text>
+          <Text style={styles.walletBalance}>₦ {Number(balance).toLocaleString()}</Text>
           <Text style={styles.walletSub}>Available balance</Text>
           <TouchableOpacity style={styles.fundBtn} onPress={() => router.push('/profile/fund-wallet' as any)}>
             <Text style={styles.fundBtnText}>Fund Wallet</Text>
@@ -67,17 +133,23 @@ export default function ProfilePaymentScreen() {
 
         {/* Cards */}
         <Text style={styles.sectionLabel}>SAVED CARDS & ACCOUNTS</Text>
-        {cards.map((card) => (
-          <TouchableOpacity key={card.id} style={styles.cardRow} onPress={() => router.push(`/profile/card/${card.id}` as any)}>
-            <View style={[styles.cardIcon, card.active && styles.cardIconActive]}>
-              <CreditCard size={20} color={card.active ? colors.surface : colors.text} strokeWidth={2} />
+        {loading ? (
+          <ActivityIndicator color={colors.primary} style={{ marginVertical: DT.spacing.xl }} />
+        ) : methods.length === 0 ? (
+          <View style={styles.emptyBox}>
+            <Text style={styles.emptyText}>No payment methods added yet.</Text>
+          </View>
+        ) : methods.map((method) => (
+          <TouchableOpacity key={method.id} style={styles.cardRow} onPress={() => router.push(`/profile/card/${method.id}` as any)}>
+            <View style={[styles.cardIcon, method.is_default && styles.cardIconActive]}>
+              <CreditCard size={20} color={method.is_default ? colors.surface : colors.text} strokeWidth={2} />
             </View>
             <View style={styles.cardInfo}>
-              <Text style={styles.cardLabel}>{card.label}</Text>
-              <Text style={styles.cardNumber}>{card.number} · {card.type}</Text>
-              {card.active && <View style={styles.activePill}><Text style={styles.activePillText}>DEFAULT</Text></View>}
+              <Text style={styles.cardLabel}>{method.label}</Text>
+              <Text style={styles.cardNumber}>•••• {method.last4} · {method.type === 'card' ? 'Card' : 'Bank'}</Text>
+              {method.is_default && <View style={styles.activePill}><Text style={styles.activePillText}>DEFAULT</Text></View>}
             </View>
-            <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDelete(card)}>
+            <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDelete(method)}>
               <Trash2 size={16} color={colors.error} strokeWidth={2} />
             </TouchableOpacity>
           </TouchableOpacity>
@@ -144,4 +216,13 @@ const getStyles = (colors: any) => StyleSheet.create({
   txLabel: { fontFamily: DT.typography.bodySemiBold, fontSize: 14, color: colors.text },
   txDate: { fontFamily: DT.typography.body, fontSize: 12, color: colors.muted },
   txAmount: { fontFamily: DT.typography.heading, fontSize: 15 },
+  emptyBox: { 
+    padding: DT.spacing.xl, 
+    borderWidth: 2, 
+    borderColor: colors.text, 
+    borderStyle: 'dashed', 
+    alignItems: 'center', 
+    marginBottom: DT.spacing.lg 
+  },
+  emptyText: { fontFamily: DT.typography.body, color: colors.muted },
 });

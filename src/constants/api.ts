@@ -14,4 +14,14 @@ export default {
         CANCEL: (id: string) => `${API_URL}/waka/${id}/cancel`,
         COMPLETE: (id: string) => `${API_URL}/waka/${id}/complete`,
     },
+    WALLET: {
+        BALANCE: (userId: string) => `${API_URL}/wallet/${userId}/balance`,
+        TRANSACTIONS: (userId: string) => `${API_URL}/wallet/${userId}/transactions`,
+        FUND: `${API_URL}/wallet/fund`,
+    },
+    PAYMENT_METHODS: {
+        LIST: `${API_URL}/wallet/payment-methods`,
+        CREATE: `${API_URL}/wallet/payment-methods`,
+        DELETE: (id: string) => `${API_URL}/wallet/payment-methods/${id}`,
+    }
 };
