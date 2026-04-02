@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  View, Text, TouchableOpacity, ScrollView, StyleSheet, Animated, TextInput, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, Alert
+  View, Text, TouchableOpacity, ScrollView, StyleSheet, Animated, TextInput, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, Alert, ActivityIndicator
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -10,7 +10,8 @@ import { useTheme } from '../../hooks/use-theme';
 import { useAuth } from '../../context/AuthContext';
 import API from '../../constants/api';
 import { BrutalistAlert } from '../../components/ui/BrutalistAlert';
-import { ActivityIndicator } from 'react-native';
+import * as Location from 'expo-location';
+import * as ImagePicker from 'expo-image-picker';
 
 const steps = [
   { icon: ShieldCheck, title: 'BVN Verification', desc: 'We verify your Bank Verification Number to confirm your identity. Takes 2 minutes.' },
@@ -32,6 +33,8 @@ export default function BecomeRunnerScreen() {
   const [address, setAddress] = useState('');
   const [transport, setTransport] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
+  const [selfieUri, setSelfieUri] = useState<string | null>(null);
 
   // Alert State
   const [alertVisible, setAlertVisible] = useState(false);
@@ -47,8 +50,56 @@ export default function BecomeRunnerScreen() {
   };
 
   const styles = getStyles(colors);
-
   const transports = ['Motorcycle', 'Keke Napep', 'Car', 'On Foot'];
+
+  const handleGetLocation = async () => {
+    setIsGettingLocation(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        showAlert('Permission Denied', 'We need location access to verify your primary area.');
+        return;
+      }
+      const loc = await Location.getCurrentPositionAsync({});
+      const [addressResult] = await Location.reverseGeocodeAsync({
+        latitude: loc.coords.latitude,
+        longitude: loc.coords.longitude,
+      });
+      if (addressResult) {
+        const fullAddress = `${addressResult.name || ''} ${addressResult.street || ''}, ${addressResult.city || ''} ${addressResult.region || ''}`.trim().replace(/^,/, '');
+        setAddress(fullAddress);
+      }
+    } catch (e: any) {
+      showAlert('Location Error', e.message || 'Could not fetch your location.');
+    } finally {
+      setIsGettingLocation(false);
+    }
+  };
+
+  const handleTakeSelfie = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      showAlert('Permission Denied', 'Camera access is required for liveness verification.');
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+    if (!result.canceled) {
+      setSelfieUri(result.assets[0].uri);
+    }
+  };
+
+  const sendOtp = async () => {
+    setIsSubmitting(true);
+    // Mocking OTP send — in production, call backend /verification/send-bvn-otp
+    setTimeout(() => {
+      setIsSubmitting(false);
+      setBvnPhase(2);
+    }, 1500);
+  };
 
   if (!started) {
     return (
@@ -130,190 +181,235 @@ export default function BecomeRunnerScreen() {
         <View style={[styles.progressFill, { width: `${((currentStep + 1) / steps.length) * 100}%` as any }]} />
       </View>
 
-      <View style={styles.stepContent}>
-        {currentStep < 3 && (
-          <>
-            <View style={styles.stepIconCircle}>
-              {React.createElement(steps[currentStep].icon, { size: 32, color: colors.surface, strokeWidth: 2.5 })}
-            </View>
-            <Text style={styles.bigStepTitle}>{steps[currentStep].title}</Text>
-            <Text style={styles.bigStepDesc}>{steps[currentStep].desc}</Text>
+        <ScrollView 
+          style={{ flex: 1 }} 
+          contentContainerStyle={styles.stepContent}
+          keyboardShouldPersistTaps="handled"
+        >
+          {currentStep < 3 && (
+            <>
+              <View style={styles.stepIconCircle}>
+                {React.createElement(steps[currentStep].icon, { size: 32, color: colors.surface, strokeWidth: 2.5 })}
+              </View>
+              <Text style={styles.bigStepTitle}>{steps[currentStep].title}</Text>
+              <Text style={styles.bigStepDesc}>{steps[currentStep].desc}</Text>
 
-            {currentStep === 0 && bvnPhase === 0 && (
-              <View style={styles.inputWrapper}>
-                <Text style={styles.inputLabel}>ENTER 11-DIGIT BVN</Text>
-                <TextInput
-                  style={[styles.bvnInput, { color: colors.text }]}
-                  keyboardType="number-pad"
-                  maxLength={11}
-                  placeholder="00000000000"
-                  placeholderTextColor={colors.muted}
-                  value={bvn}
-                  onChangeText={setBvn}
-                  secureTextEntry
-                />
-                <View style={styles.bvnInfoBox}>
-                  <ShieldCheck size={16} color={colors.text} />
-                  <Text style={styles.bvnInfoText}>Encrypted & matched via NIBSS.</Text>
+              {currentStep === 0 && bvnPhase === 0 && (
+                <View style={styles.inputWrapper}>
+                  <Text style={styles.inputLabel}>ENTER 11-DIGIT BVN</Text>
+                  <TextInput
+                    style={[styles.bvnInput, { color: colors.text }]}
+                    keyboardType="number-pad"
+                    maxLength={11}
+                    placeholder="00000000000"
+                    placeholderTextColor={colors.muted}
+                    value={bvn}
+                    onChangeText={setBvn}
+                  />
+                  <View style={styles.bvnInfoBox}>
+                    <ShieldCheck size={16} color={colors.text} />
+                    <Text style={styles.bvnInfoText}>Encrypted & matched via NIBSS.</Text>
+                  </View>
                 </View>
-              </View>
-            )}
+              )}
 
-            {currentStep === 0 && bvnPhase === 1 && (
-              <View style={styles.inputWrapper}>
-                <Text style={styles.inputLabel}>VERIFICATION METHOD</Text>
-                <TouchableOpacity 
-                  style={[styles.methodCard, verificationMethod === 'otp' && styles.methodCardActive]}
-                  onPress={() => setVerificationMethod('otp')}
-                >
-                  <Smartphone size={24} color={colors.text} />
-                  <Text style={[styles.methodTitle, verificationMethod === 'otp' && styles.methodTitleActive]}>OTP to linked phone</Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity 
-                  style={[styles.methodCard, verificationMethod === 'liveness' && styles.methodCardActive]}
-                  onPress={() => setVerificationMethod('liveness')}
-                >
-                  <Camera size={24} color={colors.text} />
-                  <Text style={[styles.methodTitle, verificationMethod === 'liveness' && styles.methodTitleActive]}>Liveness Check (Selfie)</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {currentStep === 0 && bvnPhase === 2 && verificationMethod === 'otp' && (
-              <View style={styles.inputWrapper}>
-                <Text style={styles.inputLabel}>ENTER 6-DIGIT OTP</Text>
-                <TextInput
-                  style={[styles.bvnInput, { color: colors.text }]}
-                  keyboardType="number-pad"
-                  maxLength={6}
-                  placeholder="000000"
-                  placeholderTextColor={colors.muted}
-                  value={otp}
-                  onChangeText={setOtp}
-                />
-              </View>
-            )}
-
-            {currentStep === 0 && bvnPhase === 2 && verificationMethod === 'liveness' && (
-              <View style={styles.livenessBox}>
-                <View style={styles.livenessOutline}>
-                  <Camera size={48} color={colors.text} opacity={0.5} />
-                </View>
-                <Text style={styles.bvnInfoText}>Center your face in the frame.</Text>
-              </View>
-            )}
-
-            {currentStep === 1 && (
-              <View style={styles.inputWrapper}>
-                <Text style={styles.inputLabel}>YOUR PRIMARY AREA</Text>
-                <TextInput
-                  style={[styles.bvnInput, { color: colors.text, fontSize: 18, letterSpacing: 1 }]}
-                  placeholder="e.g. 15 Awolowo Road, Ikoyi"
-                  placeholderTextColor={colors.muted}
-                  value={address}
-                  onChangeText={setAddress}
-                />
-                <TouchableOpacity style={styles.gpsBtn}>
-                  <MapPin size={20} color={colors.surface} />
-                  <Text style={styles.gpsBtnText}>Use Current Location</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {currentStep === 2 && (
-              <View style={styles.transportGrid}>
-                {transports.map((t) => (
-                  <TouchableOpacity
-                    key={t}
-                    style={[styles.transportChip, transport === t && styles.transportChipActive]}
-                    onPress={() => setTransport(t)}
+              {currentStep === 0 && bvnPhase === 1 && (
+                <View style={styles.inputWrapper}>
+                  <Text style={styles.inputLabel}>VERIFICATION METHOD</Text>
+                  <TouchableOpacity 
+                    style={[styles.methodCard, verificationMethod === 'otp' && styles.methodCardActive]}
+                    onPress={() => setVerificationMethod('otp')}
                   >
-                    <Text style={[styles.transportText, transport === t && styles.transportTextActive]}>{t}</Text>
+                    <Smartphone size={24} color={colors.text} />
+                    <Text style={[styles.methodTitle, verificationMethod === 'otp' && styles.methodTitleActive]}>OTP to linked phone</Text>
                   </TouchableOpacity>
-                ))}
-              </View>
-            )}
+                  
+                  <TouchableOpacity 
+                    style={[styles.methodCard, verificationMethod === 'liveness' && styles.methodCardActive]}
+                    onPress={() => setVerificationMethod('liveness')}
+                  >
+                    <Camera size={24} color={colors.text} />
+                    <Text style={[styles.methodTitle, verificationMethod === 'liveness' && styles.methodTitleActive]}>Liveness Check (Selfie)</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
 
-            <TouchableOpacity
-              style={[
-                styles.nextBtn, 
-                (
+              {currentStep === 0 && bvnPhase === 2 && verificationMethod === 'otp' && (
+                <View style={styles.inputWrapper}>
+                  <Text style={styles.inputLabel}>ENTER 6-DIGIT OTP</Text>
+                  <TextInput
+                    style={[styles.bvnInput, { color: colors.text }]}
+                    keyboardType="number-pad"
+                    maxLength={6}
+                    placeholder="000000"
+                    placeholderTextColor={colors.muted}
+                    value={otp}
+                    onChangeText={setOtp}
+                  />
+                </View>
+              )}
+
+              {currentStep === 0 && bvnPhase === 2 && verificationMethod === 'liveness' && (
+                <View style={styles.livenessBox}>
+                  {selfieUri ? (
+                    <View style={styles.livenessOutline}>
+                      <Text style={styles.successEmoji}>🤳</Text>
+                      <CheckCircle2 size={32} color={colors.secondary} style={styles.checkIcon} />
+                    </View>
+                  ) : (
+                    <TouchableOpacity style={styles.livenessOutline} onPress={handleTakeSelfie}>
+                      <Camera size={48} color={colors.text} opacity={0.5} />
+                    </TouchableOpacity>
+                  )}
+                  <Text style={styles.bvnInfoText}>
+                    {selfieUri ? 'Selfie captured successfully!' : 'Tap to take a quick selfie scan.'}
+                  </Text>
+                  {selfieUri && (
+                    <TouchableOpacity onPress={() => setSelfieUri(null)}>
+                      <Text style={{ color: colors.primary, fontFamily: DT.typography.heading }}>Retake</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
+
+              {currentStep === 1 && (
+                <View style={styles.inputWrapper}>
+                  <Text style={styles.inputLabel}>YOUR PRIMARY AREA</Text>
+                  <TextInput
+                    style={[styles.bvnInput, { color: colors.text, fontSize: 18, letterSpacing: 1 }]}
+                    placeholder="e.g. 15 Awolowo Road, Ikoyi"
+                    placeholderTextColor={colors.muted}
+                    value={address}
+                    onChangeText={setAddress}
+                    multiline
+                    numberOfLines={2}
+                  />
+                  <TouchableOpacity 
+                    style={[styles.gpsBtn, isGettingLocation && { opacity: 0.7 }]} 
+                    onPress={handleGetLocation}
+                    disabled={isGettingLocation}
+                  >
+                    {isGettingLocation ? (
+                      <ActivityIndicator color={colors.surface} />
+                    ) : (
+                      <>
+                        <MapPin size={20} color={colors.surface} />
+                        <Text style={styles.gpsBtnText}>Use Current Location</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {currentStep === 2 && (
+                <View style={styles.transportGrid}>
+                  {transports.map((t) => (
+                    <TouchableOpacity
+                      key={t}
+                      style={[styles.transportChip, transport === t && styles.transportChipActive]}
+                      onPress={() => setTransport(t)}
+                    >
+                      <Text style={[styles.transportText, transport === t && styles.transportTextActive]}>{t}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+
+              <TouchableOpacity
+                style={[
+                  styles.nextBtn, 
+                  (
+                    (currentStep === 0 && bvnPhase === 0 && bvn.length !== 11) || 
+                    (currentStep === 0 && bvnPhase === 1 && !verificationMethod) || 
+                    (currentStep === 0 && bvnPhase === 2 && verificationMethod === 'otp' && otp.length !== 6) || 
+                    (currentStep === 0 && bvnPhase === 2 && verificationMethod === 'liveness' && !selfieUri) ||
+                    (currentStep === 1 && address.length < 5) ||
+                    (currentStep === 2 && !transport)
+                  ) && styles.nextBtnDisabled
+                ]}
+                onPress={async () => {
+                  if (currentStep === 0) {
+                    if (bvnPhase === 0) setBvnPhase(1);
+                    else if (bvnPhase === 1) {
+                      if (verificationMethod === 'otp') sendOtp();
+                      else setBvnPhase(2);
+                    }
+                    else if (bvnPhase === 2) setCurrentStep(c => c + 1);
+                  } else if (currentStep < 2) {
+                    setCurrentStep(c => c + 1);
+                  } else {
+                    // Final step — submit to backend
+                    setIsSubmitting(true);
+                    try {
+                      const res = await fetch(`${API.API_URL}/runner-applications/apply`, {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          Authorization: `Bearer ${token}`,
+                        },
+                        body: JSON.stringify({
+                          bvn,
+                          home_address: address,
+                          transport_mode: transport,
+                          verification_method: verificationMethod || 'otp',
+                        }),
+                      });
+                      if (!res.ok) {
+                        const err = await res.json().catch(() => ({}));
+                        throw new Error(err.detail || `Error ${res.status}`);
+                      }
+                      setCurrentStep(3); // Show success screen
+                    } catch (e: any) {
+                      showAlert('Submission Failed', e.message || 'Please try again.');
+                    } finally {
+                      setIsSubmitting(false);
+                    }
+                  }
+                }}
+                disabled={
                   (currentStep === 0 && bvnPhase === 0 && bvn.length !== 11) || 
                   (currentStep === 0 && bvnPhase === 1 && !verificationMethod) || 
                   (currentStep === 0 && bvnPhase === 2 && verificationMethod === 'otp' && otp.length !== 6) || 
+                  (currentStep === 0 && bvnPhase === 2 && verificationMethod === 'liveness' && !selfieUri) ||
                   (currentStep === 1 && address.length < 5) ||
                   (currentStep === 2 && !transport)
-                ) && styles.nextBtnDisabled
-              ]}
-              onPress={async () => {
-                if (currentStep === 0) {
-                  if (bvnPhase === 0) setBvnPhase(1);
-                  else if (bvnPhase === 1) setBvnPhase(2);
-                  else if (bvnPhase === 2) setCurrentStep(c => c + 1);
-                } else if (currentStep < 2) {
-                  setCurrentStep(c => c + 1);
-                } else {
-                  // Final step — submit to backend
-                  setIsSubmitting(true);
-                  try {
-                    const res = await fetch(`${API.API_URL}/runner-applications/apply`, {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json',
-                        Authorization: `Bearer ${token}`,
-                      },
-                      body: JSON.stringify({
-                        bvn,
-                        home_address: address,
-                        transport_mode: transport,
-                        verification_method: verificationMethod || 'otp',
-                      }),
-                    });
-                    if (!res.ok) {
-                      const err = await res.json().catch(() => ({}));
-                      throw new Error(err.detail || `Error ${res.status}`);
-                    }
-                    setCurrentStep(3); // Show success screen
-                  } catch (e: any) {
-                    showAlert('Submission Failed', e.message || 'Please try again.');
-                  } finally {
-                    setIsSubmitting(false);
-                  }
                 }
-              }}
-              disabled={
-                (currentStep === 0 && bvnPhase === 0 && bvn.length !== 11) || 
-                (currentStep === 0 && bvnPhase === 1 && !verificationMethod) || 
-                (currentStep === 0 && bvnPhase === 2 && verificationMethod === 'otp' && otp.length !== 6) || 
-                (currentStep === 1 && address.length < 5) ||
-                (currentStep === 2 && !transport)
-              }
-            >
-              <Text style={styles.nextBtnText}>
-                {isSubmitting
-                  ? <ActivityIndicator color={colors.surface} />
-                  : currentStep === 2
-                    ? 'Submit Application'
-                    : currentStep === 0 && bvnPhase === 2 && verificationMethod === 'liveness'
-                      ? 'Start Scan & Verify'
-                      : 'Continue'}
-              </Text>
-            </TouchableOpacity>
-          </>
-        )}
+              >
+                <Text style={styles.nextBtnText}>
+                  {isSubmitting
+                    ? <ActivityIndicator color={colors.surface} />
+                    : currentStep === 2
+                      ? 'Submit Application'
+                      : currentStep === 0 && bvnPhase === 2 && verificationMethod === 'liveness'
+                        ? 'Verify Identity'
+                        : 'Continue'}
+                </Text>
+              </TouchableOpacity>
+            </>
+          )}
 
-        {currentStep === 3 && (
-          <View style={styles.successBox}>
-            <CheckCircle2 size={64} color={colors.secondary} strokeWidth={2} />
-            <Text style={styles.successTitle}>Application Submitted!</Text>
-            <Text style={styles.successSub}>We'll verify your details within 24 hours. You'll get an SMS when you're approved.</Text>
-            <TouchableOpacity style={styles.nextBtn} onPress={() => router.back()}>
-              <Text style={styles.nextBtnText}>Back to Settings</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-      </View>
+          {currentStep === 3 && (
+            <View style={styles.successBox}>
+              <View style={styles.successCircle}>
+                <CheckCircle2 size={64} color={colors.surface} strokeWidth={3} />
+              </View>
+              <Text style={styles.successTitle}>Application Submitted!</Text>
+              <Text style={styles.successSub}>
+                We'll verify your details within 24 hours.{'\n'}
+                You'll get a notification when you're approved.
+              </Text>
+              <TouchableOpacity 
+                style={[styles.nextBtn, { width: '100%', marginTop: 20 }]} 
+                onPress={() => {
+                  refreshUser();
+                  router.back();
+                }}
+              >
+                <Text style={styles.nextBtnText}>Back to Profile</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </ScrollView>
           </View>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
@@ -429,9 +525,14 @@ const getStyles = (colors: any) => StyleSheet.create({
   },
   nextBtnDisabled: { backgroundColor: colors.muted, shadowOpacity: 0, elevation: 0 },
   nextBtnText: { fontFamily: DT.typography.heading, fontSize: 17, color: colors.surface },
-  successBox: { alignItems: 'center', gap: DT.spacing.md, paddingTop: DT.spacing.xl },
-  successTitle: { fontFamily: DT.typography.heading, fontSize: 26, color: colors.text },
-  successSub: { fontFamily: DT.typography.body, fontSize: 15, color: colors.muted, textAlign: 'center', lineHeight: 22 },
+  successBox: { alignItems: 'center', gap: DT.spacing.lg, paddingTop: DT.spacing.xl, paddingHorizontal: DT.spacing.md },
+  successCircle: { 
+    width: 120, height: 120, borderRadius: 60, backgroundColor: colors.secondary, 
+    alignItems: 'center', justifyContent: 'center', borderWidth: 4, borderColor: colors.text,
+    shadowColor: colors.text, shadowOffset: { width: 6, height: 6 }, shadowOpacity: 1, shadowRadius: 0,
+  },
+  successTitle: { fontFamily: DT.typography.heading, fontSize: 26, color: colors.text, textAlign: 'center' },
+  successSub: { fontFamily: DT.typography.body, fontSize: 16, color: colors.muted, textAlign: 'center', lineHeight: 24 },
   methodCard: {
     flexDirection: 'row', alignItems: 'center', gap: DT.spacing.md,
     backgroundColor: colors.surface, padding: DT.spacing.lg,
@@ -448,4 +549,6 @@ const getStyles = (colors: any) => StyleSheet.create({
     width: 200, height: 260, borderWidth: 4, borderColor: colors.text, borderStyle: 'dashed',
     borderRadius: 100, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface,
   },
+  successEmoji: { fontSize: 80 },
+  checkIcon: { position: 'absolute', bottom: -10, right: 20, backgroundColor: colors.surface, borderRadius: 20, borderWidth: 2, borderColor: colors.text },
 });

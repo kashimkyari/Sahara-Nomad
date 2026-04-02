@@ -18,7 +18,6 @@ import {
   Text,
   TouchableOpacity,
   View,
-  Animated,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useAuth } from '../../context/AuthContext';
@@ -81,7 +80,7 @@ export default function HomeScreen() {
     fetchActiveWakas();
   }, [token]);
 
-  const { refreshControl, refreshBanner, scrollY } = useBrutalistRefresh({
+  const { refreshControl, refreshBanner, onScroll, refreshing } = useBrutalistRefresh({
     onRefresh: async () => { 
       await Promise.all([refreshUser(), fetchActiveWakas()]);
     },
@@ -116,14 +115,11 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       {refreshBanner}
-      <Animated.ScrollView
+      <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
         refreshControl={refreshControl}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: true }
-        )}
+        onScroll={onScroll}
         scrollEventThrottle={16}
       >
         {/* ── Dynamic Header ── */}
@@ -271,7 +267,7 @@ export default function HomeScreen() {
           </ScrollView>
         </View>
 
-      </Animated.ScrollView>
+      </ScrollView>
     </SafeAreaView>
   );
 }
