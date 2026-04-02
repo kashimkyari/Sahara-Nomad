@@ -1,32 +1,34 @@
-import React, { useRef } from 'react';
+import { useNavigation, useRouter } from 'expo-router';
 import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  Image,
-  StyleSheet,
-  Animated,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import {
-  Bell,
-  Plus,
-  MapPin,
-  Star,
   ArrowRight,
+  Bell,
+  MapPin,
+  Package,
+  ShoppingCart,
+  Star,
+  Utensils,
   Zap,
 } from 'lucide-react-native';
-import { useTheme } from '../../hooks/use-theme';
+import React, { useEffect, useState } from 'react';
+import {
+  BackHandler,
+  Image,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { DesignTokens as DT } from '../../constants/design';
+import { useTheme } from '../../hooks/use-theme';
 
 const runners = [
-  { id: '1', name: 'Chinedu O.', rating: 4.9, km: '0.8km', img: 'https://i.pravatar.cc/150?u=chinedu', online: true },
-  { id: '2', name: 'Amina B.', rating: 4.8, km: '1.2km', img: 'https://i.pravatar.cc/150?u=amina', online: true },
-  { id: '3', name: 'Tunde S.', rating: 5.0, km: '2.1km', img: 'https://i.pravatar.cc/150?u=tunde', online: false },
-  { id: '4', name: 'Ngozi A.', rating: 4.7, km: '3.0km', img: 'https://i.pravatar.cc/150?u=ngozi', online: true },
-  { id: '5', name: 'Emeka C.', rating: 4.9, km: '1.5km', img: 'https://i.pravatar.cc/150?u=emeka', online: true },
+  { id: '1', name: 'Chinedu O.', rating: 4.9, km: '0.8km', img: 'https://i.pravatar.cc/150?u=chinedu', online: true, jobs: 142 },
+  { id: '2', name: 'Amina B.', rating: 4.8, km: '1.2km', img: 'https://i.pravatar.cc/150?u=amina', online: true, jobs: 89 },
+  { id: '3', name: 'Tunde S.', rating: 5.0, km: '2.1km', img: 'https://i.pravatar.cc/150?u=tunde', online: false, jobs: 310 },
+  { id: '4', name: 'Ngozi A.', rating: 4.7, km: '3.0km', img: 'https://i.pravatar.cc/150?u=ngozi', online: true, jobs: 45 },
 ];
 
 const activeWakas = [
@@ -37,14 +39,36 @@ const activeWakas = [
 export default function HomeScreen() {
   const { colors } = useTheme();
   const router = useRouter();
-  const fabScale = useRef(new Animated.Value(1)).current;
-
-  const onFABPressIn = () =>
-    Animated.spring(fabScale, { toValue: 0.9, useNativeDriver: true }).start();
-  const onFABPressOut = () =>
-    Animated.spring(fabScale, { toValue: 1, useNativeDriver: true }).start();
-
+  const navigation = useNavigation();
   const styles = getStyles(colors);
+
+  const [greeting, setGreeting] = useState('');
+
+  // 1. Gesture/Back Handler Prevention
+  useEffect(() => {
+    // Android Hardware Back Block
+    const onBackPress = () => true; // Returns true to stop propagation
+    const backSubscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
+    // React Navigation Stack/Swipe Block
+    const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+      // Prevent going back
+      e.preventDefault();
+    });
+
+    return () => {
+      backSubscription.remove();
+      unsubscribe();
+    };
+  }, [navigation]);
+
+  // 2. Dynamic Greeting
+  useEffect(() => {
+    const hour = new Date().getHours();
+    if (hour < 12) setGreeting('Good Morning ☀️');
+    else if (hour < 18) setGreeting('Good Afternoon 🌤️');
+    else setGreeting('Good Evening 🌙');
+  }, []);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -52,11 +76,14 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* ── Header ── */}
+        {/* ── Dynamic Header ── */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.greeting}>Welcome,</Text>
-            <Text style={styles.username}>Chidi 👋</Text>
+            <Text style={styles.greeting}>{greeting}, Chidi</Text>
+            <View style={styles.marketStatusRow}>
+              <View style={styles.marketDot} />
+              <Text style={styles.marketStats}>124 Runners Active</Text>
+            </View>
           </View>
           <View style={styles.headerRight}>
             <TouchableOpacity style={styles.bellWrapper} onPress={() => router.push('/notifications' as any)}>
@@ -85,13 +112,13 @@ export default function HomeScreen() {
                 <TouchableOpacity
                   key={waka.id}
                   style={styles.wakaCardWrapper}
-                  onPress={() => router.push(`/waka/${waka.id}`)}
+                  onPress={() => router.push(`/waka/${waka.id}` as any)}
                 >
                   <View style={styles.wakaCard}>
                     <View style={styles.wakaLive}>
                       <Text style={styles.wakaLiveText}>LIVE</Text>
                     </View>
-                    <Text style={styles.wakaTitle}>{waka.title}</Text>
+                    <Text style={styles.wakaTitle} numberOfLines={2}>{waka.title}</Text>
                     <View style={styles.wakaFooter}>
                       <Text style={styles.wakaStatus}>{waka.status}</Text>
                       <ArrowRight size={16} color={colors.surface} />
@@ -103,21 +130,34 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {/* ── Quick Post ── */}
-        <TouchableOpacity
-          style={styles.postBanner}
-          onPress={() => router.push('/new-errand')}
-        >
-          <View style={styles.postBannerLeft}>
-            <Zap size={20} color={colors.text} fill={colors.accent} />
-            <Text style={styles.postBannerText}>What do you need today?</Text>
+        {/* ── 2x2 Quick Grid ── */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>WHAT DO YOU NEED?</Text>
+          <View style={styles.gridContainer}>
+            <View style={styles.gridRow}>
+              <TouchableOpacity style={[styles.gridBox, { backgroundColor: colors.accent }]} onPress={() => router.push('/new-errand')}>
+                <Package size={28} color={colors.text} strokeWidth={2.5} />
+                <Text style={styles.gridBoxText}>Package</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.gridBox, { backgroundColor: colors.primary }]} onPress={() => router.push('/new-errand')}>
+                <ShoppingCart size={28} color={colors.surface} strokeWidth={2.5} />
+                <Text style={[styles.gridBoxText, { color: colors.surface }]}>Market</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.gridRow}>
+              <TouchableOpacity style={[styles.gridBox, { backgroundColor: colors.secondary }]} onPress={() => router.push('/new-errand')}>
+                <Utensils size={28} color={colors.text} strokeWidth={2.5} />
+                <Text style={styles.gridBoxText}>Food</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.gridBox, { backgroundColor: colors.surface }]} onPress={() => router.push('/new-errand')}>
+                <Zap size={28} color={colors.text} strokeWidth={2.5} />
+                <Text style={styles.gridBoxText}>Custom</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-          <View style={styles.postBannerArrow}>
-            <ArrowRight size={18} color={colors.surface} />
-          </View>
-        </TouchableOpacity>
+        </View>
 
-        {/* ── Nearby Runners ── */}
+        {/* ── Runners Carousel ── */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionLabel}>RUNNERS NEARBY</Text>
@@ -126,54 +166,51 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
 
-          {runners.map((runner) => (
-            <TouchableOpacity
-              key={runner.id}
-              style={styles.runnerRow}
-              onPress={() => router.push(`/runner/${runner.id}`)}
-            >
-              <View style={styles.runnerAvatarWrap}>
-                <Image source={{ uri: runner.img }} style={styles.runnerAvatar} />
-                {runner.online && <View style={styles.onlineDot} />}
-              </View>
-              <View style={styles.runnerInfo}>
-                <Text style={styles.runnerName}>{runner.name}</Text>
-                <View style={styles.runnerMeta}>
-                  <Star size={12} color={colors.accent} fill={colors.accent} />
-                  <Text style={styles.runnerRating}>{runner.rating}</Text>
-                  <View style={styles.dot} />
-                  <MapPin size={12} color={colors.muted} />
-                  <Text style={styles.runnerKm}>{runner.km} away</Text>
-                </View>
-              </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.horizontalList}
+          >
+            {runners.map((runner) => (
               <TouchableOpacity
-                style={styles.hireBtn}
-                onPress={() => router.push('/new-errand')}
+                key={runner.id}
+                style={styles.runnerCard}
+                onPress={() => router.push(`/runner/${runner.id}` as any)}
               >
-                <Text style={styles.hireBtnText}>Hire</Text>
-              </TouchableOpacity>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </ScrollView>
+                <View style={styles.runnerCardHeader}>
+                  <View style={styles.runnerImageWrap}>
+                    <Image source={{ uri: runner.img }} style={styles.runnerImageFull} />
+                    {runner.online && <View style={styles.onlineDot} />}
+                  </View>
+                </View>
 
-      {/* ── FAB ── */}
-      {/* <Animated.View
-        style={[
-          styles.fabShadow,
-          { transform: [{ scale: fabScale }] },
-        ]}
-      >
-        <TouchableOpacity
-          style={styles.fab}
-          onPress={() => router.push('/new-errand')}
-          onPressIn={onFABPressIn}
-          onPressOut={onFABPressOut}
-          activeOpacity={1}
-        >
-          <Plus size={30} color={colors.surface} strokeWidth={3} />
-        </TouchableOpacity>
-      </Animated.View> */}
+                <View style={styles.runnerCardBody}>
+                  <Text style={styles.runnerNameFull}>{runner.name}</Text>
+
+                  <View style={styles.runnerStatsRow}>
+                    <View style={styles.runnerStatItem}>
+                      <Star size={14} color={colors.accent} fill={colors.accent} />
+                      <Text style={styles.runnerStatText}>{runner.rating}</Text>
+                    </View>
+                    <View style={styles.dot} />
+                    <View style={styles.runnerStatItem}>
+                      <MapPin size={14} color={colors.text} />
+                      <Text style={styles.runnerStatText}>{runner.km}</Text>
+                    </View>
+                  </View>
+
+                  <Text style={styles.jobsCompletedText}>{runner.jobs} trips completed</Text>
+                </View>
+
+                <View style={styles.runnerCardFooter}>
+                  <Text style={styles.hireBtnTextSmall}>HIRE RUNNER</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -185,7 +222,7 @@ const getStyles = (colors: any) => StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: DT.spacing.lg,
-    paddingBottom: 120,
+    paddingBottom: 140, // pad for docked action
   },
   header: {
     flexDirection: 'row',
@@ -195,14 +232,27 @@ const getStyles = (colors: any) => StyleSheet.create({
     paddingBottom: DT.spacing.lg,
   },
   greeting: {
-    fontFamily: DT.typography.body,
-    fontSize: 14,
-    color: colors.muted,
-  },
-  username: {
     fontFamily: DT.typography.heading,
-    fontSize: 26,
+    fontSize: 22,
     color: colors.text,
+    marginBottom: 4,
+  },
+  marketStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  marketDot: {
+    width: 10,
+    height: 10,
+    backgroundColor: colors.primary,
+    borderWidth: 2,
+    borderColor: colors.text,
+  },
+  marketStats: {
+    fontFamily: DT.typography.bodySemiBold,
+    fontSize: 12,
+    color: colors.muted,
   },
   headerRight: {
     flexDirection: 'row',
@@ -210,35 +260,39 @@ const getStyles = (colors: any) => StyleSheet.create({
     gap: 12,
   },
   bellWrapper: {
-    width: 40,
-    height: 40,
-    borderWidth: 2,
+    width: 44,
+    height: 44,
+    borderWidth: 3,
     borderColor: colors.text,
     backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: colors.text,
+    shadowOffset: { width: 3, height: 3 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
   },
   bellDot: {
     position: 'absolute',
     top: 6,
     right: 6,
-    width: 8,
-    height: 8,
+    width: 10,
+    height: 10,
     backgroundColor: colors.primary,
     borderRadius: 0,
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: colors.text,
   },
   avatarBox: {
-    width: 40,
-    height: 40,
-    borderWidth: 2,
+    width: 44,
+    height: 44,
+    borderWidth: 3,
     borderColor: colors.text,
     overflow: 'hidden',
   },
   avatar: { width: '100%', height: '100%' },
   section: {
-    marginBottom: DT.spacing.lg,
+    marginBottom: DT.spacing.xl,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -248,13 +302,13 @@ const getStyles = (colors: any) => StyleSheet.create({
   },
   sectionLabel: {
     fontFamily: DT.typography.heading,
-    fontSize: 12,
+    fontSize: 13,
     color: colors.muted,
     letterSpacing: 1.5,
     marginBottom: DT.spacing.md,
   },
   seeAll: {
-    fontFamily: DT.typography.body,
+    fontFamily: DT.typography.bodySemiBold,
     fontSize: 13,
     color: colors.primary,
     textDecorationLine: 'underline',
@@ -264,9 +318,9 @@ const getStyles = (colors: any) => StyleSheet.create({
   },
   wakaCardWrapper: {},
   wakaCard: {
-    width: 260,
+    width: 250,
     backgroundColor: colors.secondary,
-    borderWidth: 2,
+    borderWidth: 3,
     borderColor: colors.text,
     padding: DT.spacing.md,
     shadowColor: colors.text,
@@ -280,7 +334,7 @@ const getStyles = (colors: any) => StyleSheet.create({
     backgroundColor: colors.accent,
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderWidth: 1.5,
+    borderWidth: 2,
     borderColor: colors.text,
     marginBottom: 8,
   },
@@ -295,145 +349,130 @@ const getStyles = (colors: any) => StyleSheet.create({
     fontSize: 16,
     color: colors.surface,
     marginBottom: 8,
+    minHeight: 40,
   },
   wakaFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    borderTopWidth: 2,
+    borderTopColor: 'rgba(0,0,0,0.1)',
+    paddingTop: 8,
+    marginTop: 8,
   },
   wakaStatus: {
-    fontFamily: DT.typography.body,
+    fontFamily: DT.typography.bodySemiBold,
     fontSize: 12,
     color: colors.surface,
-    opacity: 0.85,
+    opacity: 0.9,
   },
-  postBanner: {
+  gridContainer: {
+    gap: DT.spacing.sm,
+  },
+  gridRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.accent,
-    borderWidth: 2,
+    gap: DT.spacing.sm,
+  },
+  gridBox: {
+    flex: 1,
+    height: 100,
+    borderWidth: 3,
     borderColor: colors.text,
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
     padding: DT.spacing.md,
-    marginBottom: DT.spacing.lg,
     shadowColor: colors.text,
     shadowOffset: { width: 4, height: 4 },
     shadowOpacity: 1,
     shadowRadius: 0,
-    elevation: 5,
+    elevation: 4,
   },
-  postBannerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  postBannerText: {
+  gridBoxText: {
     fontFamily: DT.typography.heading,
     fontSize: 16,
     color: colors.text,
   },
-  postBannerArrow: {
-    width: 32,
-    height: 32,
-    backgroundColor: colors.text,
-    alignItems: 'center',
-    justifyContent: 'center',
+  runnerCard: {
+    width: 160,
+    backgroundColor: colors.surface,
+    borderWidth: 3,
+    borderColor: colors.text,
+    shadowColor: colors.text,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
   },
-  runnerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    height: 72,
-    borderBottomWidth: 2,
+  runnerCardHeader: {
+    height: 110,
+    borderBottomWidth: 3,
     borderBottomColor: colors.text,
     backgroundColor: colors.background,
   },
-  runnerAvatarWrap: {
+  runnerImageWrap: {
+    width: '100%',
+    height: '100%',
     position: 'relative',
-    marginRight: DT.spacing.md,
   },
-  runnerAvatar: {
-    width: 44,
-    height: 44,
-    borderWidth: 2,
-    borderColor: colors.text,
+  runnerImageFull: {
+    width: '100%',
+    height: '100%',
   },
   onlineDot: {
     position: 'absolute',
-    bottom: -2,
-    right: -2,
-    width: 12,
-    height: 12,
+    bottom: 6,
+    right: 6,
+    width: 14,
+    height: 14,
     backgroundColor: colors.secondary,
     borderWidth: 2,
-    borderColor: colors.surface,
-    borderRadius: 0,
+    borderColor: colors.text,
   },
-  runnerInfo: {
-    flex: 1,
+  runnerCardBody: {
+    padding: DT.spacing.sm,
   },
-  runnerName: {
+  runnerNameFull: {
     fontFamily: DT.typography.heading,
     fontSize: 15,
     color: colors.text,
-    marginBottom: 2,
+    marginBottom: 6,
   },
-  runnerMeta: {
+  runnerStatsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
+    marginBottom: 6,
   },
-  runnerRating: {
-    fontFamily: DT.typography.body,
-    fontSize: 13,
+  runnerStatItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  runnerStatText: {
+    fontFamily: DT.typography.bodySemiBold,
+    fontSize: 11,
     color: colors.text,
   },
   dot: {
     width: 3,
     height: 3,
     backgroundColor: colors.muted,
-    borderRadius: 0,
   },
-  runnerKm: {
+  jobsCompletedText: {
     fontFamily: DT.typography.body,
-    fontSize: 13,
+    fontSize: 10,
     color: colors.muted,
   },
-  hireBtn: {
-    height: 32,
-    paddingHorizontal: DT.spacing.md,
-    backgroundColor: colors.primary,
-    borderWidth: 2,
-    borderColor: colors.text,
+  runnerCardFooter: {
+    borderTopWidth: 2,
+    borderTopColor: colors.text,
+    backgroundColor: colors.accent,
+    paddingVertical: 8,
     alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: colors.text,
-    shadowOffset: { width: 2, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 3,
   },
-  hireBtnText: {
+  hireBtnTextSmall: {
     fontFamily: DT.typography.heading,
-    fontSize: 13,
-    color: colors.surface,
-  },
-  fabShadow: {
-    position: 'absolute',
-    bottom: 96,
-    right: DT.spacing.lg,
-    shadowColor: colors.text,
-    shadowOffset: { width: 4, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 8,
-  },
-  fab: {
-    width: 64,
-    height: 64,
-    backgroundColor: colors.primary,
-    borderWidth: 2,
-    borderColor: colors.text,
-    alignItems: 'center',
-    justifyContent: 'center',
+    fontSize: 11,
+    color: colors.text,
   },
 });
