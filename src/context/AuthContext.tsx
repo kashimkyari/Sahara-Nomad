@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import * as SecureStore from 'expo-secure-store';
 import { useRouter, useSegments } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
+import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 import API from '../constants/api';
 
 interface User {
@@ -118,7 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (!token && !inAuthGroup) {
       // Redirect to login if NOT authenticated and NOT in auth group
-      router.replace('/auth');
+      router.replace('/onboarding');
     } else if (token && inAuthGroup) {
       // Redirect to home if authenticated and currently in auth group
       router.replace('/(tabs)');

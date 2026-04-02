@@ -19,6 +19,8 @@ import { useTheme } from '../../hooks/use-theme';
 import { useAuth } from '../../context/AuthContext';
 import { DesignTokens as DT } from '../../constants/design';
 import API from '../../constants/api';
+import { BrutalistAlert } from '../../components/ui/BrutalistAlert';
+import { useState } from 'react';
 
 const menuItems = [
   { icon: CreditCard, label: 'Payment Methods', route: '/profile/payment' },
@@ -31,6 +33,33 @@ export default function ProfileScreen() {
   const { colors } = useTheme();
   const { user, token, signOut } = useAuth();
   const router = useRouter();
+
+  // Alert State
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertConfig, setAlertConfig] = useState<{title: string, message: string, buttons: any[]}>({
+    title: '',
+    message: '',
+    buttons: []
+  });
+
+  const showAlert = (title: string, message: string, buttons: any[] = [{ text: 'OK' }]) => {
+    setAlertConfig({ title, message, buttons });
+    setAlertVisible(true);
+  };
+
+  const handleLogout = () => {
+    showAlert('Sign Out', 'Are you sure you want to sign out of Sahara Nomad?', [
+      { text: 'Cancel', style: 'cancel' },
+      { 
+        text: 'Sign Out', 
+        style: 'destructive',
+        onPress: () => {
+          signOut();
+          router.replace('/');
+        } 
+      }
+    ]);
+  };
 
   const styles = getStyles(colors);
 
@@ -159,11 +188,19 @@ export default function ProfileScreen() {
         )}
 
         {/* Logout */}
-        <TouchableOpacity style={styles.logoutButton} onPress={signOut}>
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <LogOut size={20} color={colors.surface} strokeWidth={2.5} />
           <Text style={styles.logoutText}>Sign Out</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      <BrutalistAlert
+        visible={alertVisible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        buttons={alertConfig.buttons}
+        onClose={() => setAlertVisible(false)}
+      />
     </SafeAreaView>
   );
 }

@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Animated, StyleSheet, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { useTheme } from '../../hooks/use-theme';
-import { useAuth } from '../../context/AuthContext';
-import { ChevronLeft, ChevronRight, Bell, MapPin, Moon, Globe, LogOut } from 'lucide-react-native';
+import { Bell, ChevronLeft, ChevronRight, Globe, LogOut, MapPin, Moon } from 'lucide-react-native';
+import React, { useEffect, useState } from 'react';
+import { Animated, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { DesignTokens as DT } from '../../constants/design';
+import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../hooks/use-theme';
 
+import { BrutalistAlert } from '../../components/ui/BrutalistAlert';
 import API from '../../constants/api';
 
 const NeobrutalistToggle = ({ value, onValueChange, activeColor, colors }: any) => {
@@ -27,26 +28,26 @@ const NeobrutalistToggle = ({ value, onValueChange, activeColor, colors }: any) 
   });
 
   return (
-    <TouchableOpacity 
-      activeOpacity={0.8} 
+    <TouchableOpacity
+      activeOpacity={0.8}
       onPress={() => onValueChange(!value)}
       style={[
-        styles_toggle.track, 
-        { 
+        styles_toggle.track,
+        {
           backgroundColor: value ? activeColor : colors.background,
           borderColor: colors.text
         }
       ]}
     >
-      <Animated.View 
+      <Animated.View
         style={[
-          styles_toggle.thumb, 
-          { 
-            backgroundColor: colors.surface, 
+          styles_toggle.thumb,
+          {
+            backgroundColor: colors.surface,
             borderColor: colors.text,
-            transform: [{ translateX }] 
+            transform: [{ translateX }]
           }
-        ]} 
+        ]}
       />
     </TouchableOpacity>
   );
@@ -81,6 +82,19 @@ export default function ProfileSettingsScreen() {
   const [deletionStep, setDeletionStep] = useState(0); // 0: None, 1: Warning, 2: Confirm, 3: Final
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Alert State
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertConfig, setAlertConfig] = useState<{ title: string, message: string, buttons: any[] }>({
+    title: '',
+    message: '',
+    buttons: []
+  });
+
+  const showAlert = (title: string, message: string, buttons: any[] = [{ text: 'OK' }]) => {
+    setAlertConfig({ title, message, buttons });
+    setAlertVisible(true);
+  };
+
   useEffect(() => {
     if (user) {
       setNotifs(user.push_notifications_enabled);
@@ -112,7 +126,7 @@ export default function ProfileSettingsScreen() {
       });
 
       if (!response.ok) throw new Error('Failed to update setting');
-      
+
       await refreshUser();
     } catch (error) {
       // Revert on error
@@ -134,16 +148,36 @@ export default function ProfileSettingsScreen() {
       });
 
       if (!response.ok) throw new Error('Failed to delete account');
-      
-      Alert.alert('Account Deleted', 'Your account has been permanently removed.');
-      signOut();
-      router.replace('/');
+
+      showAlert('Account Deleted', 'Your account has been permanently removed.', [
+        {
+          text: 'OK',
+          onPress: () => {
+            signOut();
+            router.replace('/onboarding');
+          }
+        }
+      ]);
     } catch (error: any) {
-      Alert.alert('Error', error.message);
+      showAlert('Error', error.message);
     } finally {
       setIsDeleting(false);
       setDeletionStep(0);
     }
+  };
+
+  const handleLogout = () => {
+    showAlert('Sign Out', 'Are you sure you want to sign out of Sahara Nomad?', [
+      { text: 'Cancel', style: 'cancel' },
+      { 
+        text: 'Sign Out', 
+        style: 'destructive',
+        onPress: () => {
+          signOut();
+          router.replace('/');
+        } 
+      }
+    ]);
   };
 
   const styles = getStyles(colors);
@@ -166,9 +200,9 @@ export default function ProfileSettingsScreen() {
               <View style={[styles.icon, { backgroundColor: colors.primary }]}><Bell size={18} color={colors.surface} strokeWidth={2.5} /></View>
               <View><Text style={styles.settingTitle}>Push Notifications</Text><Text style={styles.settingSub}>Waka updates & runner messages</Text></View>
             </View>
-            <NeobrutalistToggle 
-              value={notifs} 
-              onValueChange={(val: boolean) => updatePreference('push_notifications_enabled', val)} 
+            <NeobrutalistToggle
+              value={notifs}
+              onValueChange={(val: boolean) => updatePreference('push_notifications_enabled', val)}
               activeColor={colors.primary}
               colors={colors}
             />
@@ -179,9 +213,9 @@ export default function ProfileSettingsScreen() {
               <View style={[styles.icon, { backgroundColor: colors.secondary }]}><MapPin size={18} color={colors.surface} strokeWidth={2.5} /></View>
               <View><Text style={styles.settingTitle}>Location Services</Text><Text style={styles.settingSub}>Used to find runners near you</Text></View>
             </View>
-            <NeobrutalistToggle 
-              value={location} 
-              onValueChange={(val: boolean) => updatePreference('location_services_enabled', val)} 
+            <NeobrutalistToggle
+              value={location}
+              onValueChange={(val: boolean) => updatePreference('location_services_enabled', val)}
               activeColor={colors.secondary}
               colors={colors}
             />
@@ -192,12 +226,12 @@ export default function ProfileSettingsScreen() {
               <View style={[styles.icon, { backgroundColor: colors.text }]}><Moon size={18} color={colors.surface} strokeWidth={2.5} /></View>
               <View><Text style={styles.settingTitle}>Dark Mode</Text><Text style={styles.settingSub}>Neobrutalist dark experience</Text></View>
             </View>
-            <NeobrutalistToggle 
-              value={isDarkMode} 
+            <NeobrutalistToggle
+              value={isDarkMode}
               onValueChange={(val: boolean) => {
                 toggleTheme();
                 updatePreference('is_dark_mode', val);
-              }} 
+              }}
               activeColor={colors.text}
               colors={colors}
             />
@@ -224,10 +258,10 @@ export default function ProfileSettingsScreen() {
 
         <Text style={[styles.sectionLabel, { marginTop: DT.spacing.lg }]}>LANGUAGE & REGION</Text>
         <View style={styles.group}>
-          <TouchableOpacity 
-            style={styles.linkRow} 
+          <TouchableOpacity
+            style={styles.linkRow}
             onPress={() => {
-              Alert.alert('Select Language', 'Choose your preferred language', [
+              showAlert('Select Language', 'Choose your preferred language', [
                 { text: 'English', onPress: () => updatePreference('language', 'en') },
                 { text: 'Hausa', onPress: () => updatePreference('language', 'ha') },
                 { text: 'Yoruba', onPress: () => updatePreference('language', 'yo') },
@@ -243,10 +277,10 @@ export default function ProfileSettingsScreen() {
             <ChevronRight size={18} color={colors.muted} />
           </TouchableOpacity>
           <View style={styles.divider} />
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.linkRow}
             onPress={() => {
-              Alert.alert('Select Region', 'Choose your primary region', [
+              showAlert('Select Region', 'Choose your primary region', [
                 { text: 'Nigeria (NG)', onPress: () => updatePreference('region', 'NG') },
                 { text: 'Ghana (GH)', onPress: () => updatePreference('region', 'GH') },
                 { text: 'Kenya (KE)', onPress: () => updatePreference('region', 'KE') },
@@ -310,8 +344,8 @@ export default function ProfileSettingsScreen() {
                     This is the last step. Click the button below to permanently erase your data from Sahara Nomad.
                   </Text>
                   <View style={{ gap: DT.spacing.sm, marginTop: DT.spacing.md }}>
-                    <TouchableOpacity 
-                      style={[styles.deleteBtnPrimary, { backgroundColor: colors.text, borderColor: colors.text }]} 
+                    <TouchableOpacity
+                      style={[styles.deleteBtnPrimary, { backgroundColor: colors.text, borderColor: colors.text }]}
                       onPress={handleAccountDeletion}
                       disabled={isDeleting}
                     >
@@ -329,13 +363,21 @@ export default function ProfileSettingsScreen() {
           )}
         </View>
 
-        <TouchableOpacity style={styles.logoutButton} onPress={signOut}>
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <LogOut size={20} color={colors.surface} strokeWidth={2.5} />
           <Text style={styles.logoutText}>Sign Out</Text>
         </TouchableOpacity>
 
         <Text style={styles.version}>Sendam v1.0.0 · Built with ❤️ in Lagos</Text>
       </ScrollView>
+
+      <BrutalistAlert
+        visible={alertVisible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        buttons={alertConfig.buttons}
+        onClose={() => setAlertVisible(false)}
+      />
     </SafeAreaView>
   );
 }
