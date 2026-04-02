@@ -189,15 +189,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (isLoading || !rootNavigationState?.key) return;
 
-    // Determine current group (auth/onboarding vs protected)
     const firstSegment = segments[0] as any;
-    const isAuthGroup = firstSegment === 'auth' || firstSegment === 'onboarding' || firstSegment === 'index' || !firstSegment;
+    const isIndexRoute = firstSegment === 'index' || !firstSegment;
+    const isPublicRoute = firstSegment === 'auth' || firstSegment === 'onboarding';
 
-    if (!token && !isAuthGroup) {
-      // Redirect to login if NOT authenticated and NOT in auth group
+    if (!token && (isIndexRoute || !isPublicRoute)) {
+      // Signed-out users should always land on onboarding, never remain on the splash route.
       router.replace('/onboarding');
-    } else if (token && isAuthGroup) {
-      // Redirect to home if authenticated and currently in auth group
+    } else if (token && (isIndexRoute || isPublicRoute)) {
+      // Authenticated users should not stay on splash/auth screens.
       router.replace('/(tabs)');
     }
   }, [token, isLoading, segments, rootNavigationState?.key]);

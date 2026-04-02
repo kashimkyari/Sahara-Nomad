@@ -192,8 +192,7 @@ export default function ProfileSettingsScreen() {
           await new Promise(resolve => setTimeout(resolve, 600));
           setLogoutStatus('SECURELY LOGGING OUT...');
           await new Promise(resolve => setTimeout(resolve, 600));
-          signOut();
-          router.replace('/onboarding');
+          await signOut();
           setIsLoggingOut(false);
           setAlertVisible(false);
         } 
