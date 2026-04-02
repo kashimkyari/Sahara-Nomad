@@ -16,12 +16,6 @@ const cards = [
   { id: '2', label: 'GTBank Mastercard', number: '•••• •••• •••• 9873', type: 'Card', active: false },
 ];
 
-const transactions = [
-  { id: '0', label: 'Waka — Mile 12 Run', amount: '-₦2,500', date: 'Today, 12:45', positive: false },
-  { id: '1', label: 'Wallet Top-up', amount: '+₦10,000', date: 'Yesterday', positive: true },
-  { id: '2', label: 'Waka — Shoprite Lekki', amount: '-₦3,000', date: 'Mon, Apr 31', positive: false },
-];
-
 interface PaymentMethod {
   id: string;
   label: string;
@@ -31,6 +25,15 @@ interface PaymentMethod {
   is_default: boolean;
 }
 
+interface Transaction {
+  id: string;
+  amount: number;
+  type: string;
+  created_at: string;
+  is_completed: boolean;
+  reference: string;
+}
+
 export default function ProfilePaymentScreen() {
   const { colors } = useTheme();
   const { user, token } = useAuth();
@@ -38,6 +41,7 @@ export default function ProfilePaymentScreen() {
 
   const [methods, setMethods] = React.useState<PaymentMethod[]>([]);
   const [balance, setBalance] = React.useState(0);
+  const [transactions, setTransactions] = React.useState<Transaction[]>([]);
   const [loading, setLoading] = React.useState(true);
 
   // Alert State
@@ -56,11 +60,14 @@ export default function ProfilePaymentScreen() {
   const fetchData = async () => {
     if (!user) return;
     try {
-      const [methodsRes, balanceRes] = await Promise.all([
+      const [methodsRes, balanceRes, txnsRes] = await Promise.all([
         fetch(API.PAYMENT_METHODS.LIST, {
           headers: { Authorization: `Bearer ${token}` }
         }),
         fetch(API.WALLET.BALANCE(user.id), {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        fetch(API.WALLET.TRANSACTIONS(user.id), {
           headers: { Authorization: `Bearer ${token}` }
         })
       ]);
@@ -72,6 +79,10 @@ export default function ProfilePaymentScreen() {
       if (balanceRes.ok) {
         const data = await balanceRes.json();
         setBalance(data.balance);
+      }
+      if (txnsRes.ok) {
+        const data = await txnsRes.json();
+        setTransactions(data);
       }
     } catch (e) {
       console.error('Failed to fetch payment data:', e);
@@ -160,19 +171,45 @@ export default function ProfilePaymentScreen() {
           <Text style={styles.addBtnText}>Add Card or Account</Text>
         </TouchableOpacity>
 
-        {/* Transactions */}
-        <Text style={styles.sectionLabel}>RECENT TRANSACTIONS</Text>
-        {transactions.map((tx) => (
-          <TouchableOpacity key={tx.id} style={styles.txRow} onPress={() => router.push(`/profile/transaction/${tx.id}` as any)}>
-            <View style={[styles.txDot, { backgroundColor: tx.positive ? colors.secondary : colors.primary }]} />
-            <View style={styles.txInfo}>
-              <Text style={styles.txLabel}>{tx.label}</Text>
-              <Text style={styles.txDate}>{tx.date}</Text>
-            </View>
-            <Text style={[styles.txAmount, { color: tx.positive ? colors.secondary : colors.text }]}>{tx.amount}</Text>
-            <ChevronRight size={14} color={colors.muted} />
+        {/* Activity */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionLabel}>RECENT ACTIVITY</Text>
+          <TouchableOpacity onPress={() => router.push('/profile/transaction/history' as any)}>
+            <Text style={styles.seeAll}>See All</Text>
           </TouchableOpacity>
-        ))}
+        </View>
+        
+        {loading ? (
+          <ActivityIndicator color={colors.primary} style={{ marginVertical: DT.spacing.xl }} />
+        ) : transactions.length === 0 ? (
+          <View style={styles.emptyBox}>
+              <Text style={styles.emptyText}>No recent activities.</Text>
+          </View>
+        ) : transactions.slice(0, 5).map((tx) => {
+          const isPositive = tx.type.includes('fund') || tx.type.includes('refund');
+          const dateLabel = new Date(tx.created_at).toLocaleDateString('en-NG', { day: 'numeric', month: 'short' });
+          
+          let label = tx.type.replace(/_/g, ' ').toUpperCase();
+          if (tx.type === 'fund_bank') label = 'BANK TOP-UP';
+          if (tx.type === 'fund_card') label = 'CARD TOP-UP';
+          if (tx.type === 'waka_payment') label = 'ERRAND PAYMENT';
+
+          return (
+            <TouchableOpacity 
+              key={tx.id} 
+              style={styles.txRow}
+              onPress={() => router.push(`/profile/transaction/${tx.id}` as any)}
+            >
+              <View style={styles.txMain}>
+                <Text style={styles.txLabel}>{label}</Text>
+                <Text style={styles.txDate}>{dateLabel} · {tx.reference.slice(0, 10)}</Text>
+              </View>
+              <Text style={[styles.txAmount, { color: isPositive ? colors.secondary : colors.text }]}>
+                {isPositive ? '+' : '-'}₦{Number(tx.amount).toLocaleString()}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </ScrollView>
 
       <BrutalistAlert
@@ -210,12 +247,27 @@ const getStyles = (colors: any) => StyleSheet.create({
   deleteBtn: { padding: 6 },
   addBtn: { flexDirection: 'row', alignItems: 'center', gap: DT.spacing.sm, height: 48, borderWidth: 2, borderColor: colors.text, borderStyle: 'dashed', backgroundColor: colors.surface, justifyContent: 'center', marginBottom: DT.spacing.lg },
   addBtnText: { fontFamily: DT.typography.bodySemiBold, fontSize: 14, color: colors.text },
-  txRow: { flexDirection: 'row', alignItems: 'center', gap: DT.spacing.md, paddingVertical: DT.spacing.md, borderBottomWidth: 2, borderBottomColor: colors.text },
-  txDot: { width: 10, height: 10, borderWidth: 2, borderColor: colors.text },
-  txInfo: { flex: 1 },
+  txRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingVertical: DT.spacing.md,
+    borderBottomWidth: 1, borderBottomColor: colors.text + '20',
+  },
+  txMain: { flex: 1 },
   txLabel: { fontFamily: DT.typography.bodySemiBold, fontSize: 14, color: colors.text },
   txDate: { fontFamily: DT.typography.body, fontSize: 12, color: colors.muted },
   txAmount: { fontFamily: DT.typography.heading, fontSize: 15 },
+  sectionHeader: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
+    marginTop: DT.spacing.lg,
+    marginBottom: DT.spacing.sm
+  },
+  seeAll: { 
+    fontFamily: DT.typography.bodySemiBold, 
+    fontSize: 12, 
+    color: colors.primary 
+  },
   emptyBox: { 
     padding: DT.spacing.xl, 
     borderWidth: 2, 

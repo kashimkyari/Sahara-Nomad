@@ -5,21 +5,79 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ChevronLeft, ArrowDownLeft, ArrowUpRight, Share2 } from 'lucide-react-native';
 import { DesignTokens as DT } from '../../../constants/design';
 import { useTheme } from '../../../hooks/use-theme';
+import { useAuth } from '../../../context/AuthContext';
+import API from '../../../constants/api';
+import { ActivityIndicator } from 'react-native';
 
-type TxType = { label: string; amount: string; date: string; time: string; ref: string; positive: boolean; status: string; method: string; description: string };
-
-const txData: Record<string, TxType> = {
-  '0': { label: 'Waka — Mile 12 Run', amount: '₦2,500', date: 'Today', time: '12:45 PM', ref: 'TXN20240401001', positive: false, status: 'Successful', method: 'Sendam Wallet', description: 'Runner fee paid to Chinedu O. for sourcing 2 baskets of tomatoes and pepper at Mile 12 Market.' },
-  '1': { label: 'Wallet Top-up', amount: '₦10,000', date: 'Yesterday', time: '09:12 AM', ref: 'TXN20240331001', positive: true, status: 'Successful', method: 'Kuda Bank Transfer', description: 'Wallet funded via bank transfer from Kuda Bank account ending 4521.' },
-  '2': { label: 'Waka — Shoprite Lekki', amount: '₦3,000', date: 'Mon, Apr 30', time: '3:22 PM', ref: 'TXN20240401002', positive: false, status: 'Successful', method: 'Sendam Wallet', description: 'Runner fee paid to Amina B. for grocery shopping at Shoprite Lekki Phase 1.' },
-};
+interface Transaction {
+  id: string;
+  amount: number;
+  type: string;
+  reference: string;
+  is_completed: boolean;
+  created_at: string;
+  previous_balance: number;
+  new_balance: number;
+}
 
 export default function TransactionDetailScreen() {
   const { colors } = useTheme();
+  const { token } = useAuth();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const tx = txData[id as string] ?? txData['0'];
+  
+  const [txn, setTxn] = React.useState<Transaction | null>(null);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    if (!id) return;
+    const fetchTxn = async () => {
+      try {
+        const res = await fetch(API.WALLET.TRANSACTION_DETAIL(id), {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          setTxn(await res.json());
+        }
+      } catch (e) {
+        console.error('Failed to fetch transaction:', e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTxn();
+  }, [id, token]);
+
   const styles = getStyles(colors);
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!txn) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.center}>
+          <Text style={{ fontFamily: DT.typography.heading, color: colors.text }}>Transaction not found</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const isPositive = txn.type.includes('fund') || txn.type.includes('refund');
+  const dateStr = new Date(txn.created_at).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' });
+  const timeStr = new Date(txn.created_at).toLocaleTimeString('en-NG', { hour: '2-digit', minute: '2-digit' });
+  
+  let label = txn.type.replace(/_/g, ' ').toUpperCase();
+  if (txn.type === 'fund_bank') label = 'BANK TOP-UP';
+  if (txn.type === 'fund_card') label = 'CARD TOP-UP';
+  if (txn.type === 'waka_payment') label = 'ERRAND PAYMENT';
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -35,16 +93,16 @@ export default function TransactionDetailScreen() {
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* Amount hero */}
-        <View style={[styles.amountHero, { backgroundColor: tx.positive ? colors.secondary : colors.primary }]}>
+        <View style={[styles.amountHero, { backgroundColor: isPositive ? colors.secondary : colors.primary }]}>
           <View style={styles.arrowCircle}>
-            {tx.positive
+            {isPositive
               ? <ArrowDownLeft size={28} color={colors.secondary} strokeWidth={2.5} />
               : <ArrowUpRight size={28} color={colors.primary} strokeWidth={2.5} />}
           </View>
-          <Text style={styles.heroAmount}>{tx.positive ? '+' : '-'}{tx.amount}</Text>
-          <Text style={styles.heroLabel}>{tx.label}</Text>
+          <Text style={styles.heroAmount}>{isPositive ? '+' : '-'}₦{Number(txn.amount).toLocaleString()}</Text>
+          <Text style={styles.heroLabel}>{label}</Text>
           <View style={styles.heroBadge}>
-            <Text style={styles.heroBadgeText}>{tx.status}</Text>
+            <Text style={styles.heroBadgeText}>{txn.is_completed ? 'SUCCESSFUL' : 'PENDING'}</Text>
           </View>
         </View>
 
@@ -52,11 +110,11 @@ export default function TransactionDetailScreen() {
         <Text style={styles.sectionLabel}>TRANSACTION DETAILS</Text>
         <View style={styles.detailCard}>
           {[
-            { label: 'Reference', value: tx.ref },
-            { label: 'Date', value: tx.date },
-            { label: 'Time', value: tx.time },
-            { label: 'Method', value: tx.method },
-            { label: 'Status', value: tx.status },
+            { label: 'Reference', value: txn.reference },
+            { label: 'Date', value: dateStr },
+            { label: 'Time', value: timeStr },
+            { label: 'Type', value: label },
+            { label: 'Status', value: txn.is_completed ? 'Completed' : 'Pending' },
           ].map((row, i, arr) => (
             <View key={row.label}>
               <View style={styles.detailRow}>
@@ -71,16 +129,19 @@ export default function TransactionDetailScreen() {
         </View>
 
         {/* Description */}
-        <Text style={styles.sectionLabel}>DESCRIPTION</Text>
+        <Text style={styles.sectionLabel}>AUDIT TRAIL</Text>
         <View style={styles.descCard}>
-          <Text style={styles.descText}>{tx.description}</Text>
+          <Text style={styles.descText}>
+            Previous Balance: ₦{Number(txn.previous_balance).toLocaleString()}{'\n'}
+            New Balance: ₦{Number(txn.new_balance).toLocaleString()}
+          </Text>
         </View>
 
         {/* Actions */}
-        {!tx.positive && (
+        {!isPositive && (
           <TouchableOpacity 
             style={styles.disputeBtn}
-            onPress={() => router.push({ pathname: '/dispute/create', params: { txnId: tx.ref } } as any)}
+            onPress={() => router.push({ pathname: '/dispute/create', params: { txnId: txn.reference } } as any)}
           >
             <Text style={styles.disputeText}>Raise a Dispute</Text>
           </TouchableOpacity>
@@ -92,6 +153,7 @@ export default function TransactionDetailScreen() {
 
 const getStyles = (colors: any) => StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: DT.spacing.lg, paddingVertical: DT.spacing.md,

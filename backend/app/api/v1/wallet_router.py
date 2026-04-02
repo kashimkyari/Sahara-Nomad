@@ -159,3 +159,22 @@ async def fund_wallet(
     await db.commit()
     await db.refresh(new_payment)
     return new_payment
+
+@router.get("/transactions/{transaction_id}", response_model=schemas.Transaction)
+async def get_transaction(
+    transaction_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    result = await db.execute(
+        select(Transaction)
+        .join(Wallet)
+        .where(
+            Transaction.id == transaction_id,
+            Wallet.user_id == current_user.id
+        )
+    )
+    txn = result.scalars().first()
+    if not txn:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+    return txn

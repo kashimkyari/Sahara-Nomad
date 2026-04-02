@@ -17,6 +17,7 @@ export default {
     WALLET: {
         BALANCE: (userId: string) => `${API_URL}/wallet/${userId}/balance`,
         TRANSACTIONS: (userId: string) => `${API_URL}/wallet/${userId}/transactions`,
+        TRANSACTION_DETAIL: (id: string) => `${API_URL}/wallet/transactions/${id}`,
         FUND: `${API_URL}/wallet/fund`,
     },
     PAYMENT_METHODS: {
