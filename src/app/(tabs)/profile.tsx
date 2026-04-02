@@ -87,7 +87,9 @@ export default function ProfileScreen() {
               <Wallet size={16} color={colors.text} />
               <Text style={styles.walletLabel}>NAIRA WALLET</Text>
             </View>
-            <Text style={styles.walletBalance}>₦45,000.00</Text>
+            <Text style={styles.walletBalance}>
+              ₦{(0).toLocaleString()}
+            </Text>
           </View>
           <TouchableOpacity style={styles.addFundsBtn}>
             <Plus size={20} color={colors.surface} strokeWidth={3} />
@@ -97,9 +99,9 @@ export default function ProfileScreen() {
         {/* Individual Chunky Stats */}
         <View style={styles.statsContainer}>
           {[
-            { label: 'ERRANDS', value: '24' },
-            { label: 'SPENT', value: '₦182k' },
-            { label: 'RATING', value: '4.9★' },
+            { label: 'ERRANDS', value: user?.runner_profile?.stats_trips?.toString() || '0' },
+            { label: 'SPENT', value: '₦0' },
+            { label: 'RATING', value: `${user?.runner_profile?.stats_rating || 5.0}★` },
           ].map((stat, i) => (
             <View key={stat.label} style={[
               styles.statBlock,

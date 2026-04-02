@@ -16,12 +16,25 @@ class UserUpdate(BaseModel):
     email: Optional[EmailStr] = None
     push_notifications_enabled: Optional[bool] = None
     location_services_enabled: Optional[bool] = None
+    bio: Optional[str] = None
+    hourly_rate: Optional[float] = None
+
+class RunnerProfileResponse(BaseModel):
+    bio: Optional[str] = None
+    hourly_rate: Optional[float] = None
+    stats_trips: int = 0
+    stats_rating: float = 5.0
+    is_online: bool = False
+
+    class Config:
+        from_attributes = True
 
 class UserResponse(UserBase):
     id: UUID
     is_verified: bool
     loyalty_badge: Optional[str] = None
     created_at: datetime
+    runner_profile: Optional[RunnerProfileResponse] = None
 
     class Config:
         from_attributes = True

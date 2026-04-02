@@ -9,17 +9,51 @@ import { useTheme } from '../../hooks/use-theme';
 import { ChevronLeft, Camera } from 'lucide-react-native';
 import { DesignTokens as DT } from '../../constants/design';
 
+import { useAuth } from '../../context/AuthContext';
+import API from '../../constants/api';
+
 export default function EditProfileScreen() {
   const { colors } = useTheme();
+  const { user, token, refreshUser } = useAuth();
   const router = useRouter();
-  const [name, setName] = useState('Chidi Amaechi');
-  const [email, setEmail] = useState('chidi@example.com');
-  const [bio, setBio] = useState('Busy professional in Lagos. Need things done fast!');
-  const [location, setLocation] = useState('Ikoyi, Lagos');
+  
+  const [name, setName] = useState(user?.full_name || '');
+  const [email, setEmail] = useState(user?.email || '');
+  const [bio, setBio] = useState(user?.runner_profile?.bio || '');
+  const [location, setLocation] = useState('Lagos, Nigeria');
+  const [loading, setLoading] = useState(false);
 
-  const handleSave = () => {
-    Alert.alert('Saved', 'Profile updated successfully!');
-    router.back();
+  const handleSave = async () => {
+    if (!token) return;
+    setLoading(true);
+
+    try {
+      const response = await fetch(`${API.API_URL}/auth/me`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          full_name: name,
+          email: email,
+          bio: bio,
+        }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.detail || 'Update failed');
+      }
+
+      await refreshUser();
+      Alert.alert('Success', 'Profile updated successfully!');
+      router.back();
+    } catch (error: any) {
+      Alert.alert('Error', error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const styles = getStyles(colors);
@@ -104,8 +138,12 @@ export default function EditProfileScreen() {
         </View>
         <Text style={styles.charCount}>{bio.length}/160</Text>
 
-        <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
-          <Text style={styles.saveBtnText}>Save Changes</Text>
+        <TouchableOpacity 
+          style={[styles.saveBtn, loading && { opacity: 0.7 }]} 
+          onPress={handleSave}
+          disabled={loading}
+        >
+          <Text style={styles.saveBtnText}>{loading ? 'Saving...' : 'Save Changes'}</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>

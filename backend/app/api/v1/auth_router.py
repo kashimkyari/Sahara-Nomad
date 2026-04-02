@@ -2,9 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from ...database import get_db
-from ...models.user import User
+from ...models.user import User, RunnerProfile
 from ...models.wallet import Wallet
-from ...schemas.user import UserCreate, UserResponse, Token, UserLogin, OTPVerify
+from ...schemas.user import UserCreate, UserResponse, Token, UserLogin, OTPVerify, UserUpdate
 from ...core.security import get_password_hash, create_access_token, verify_password
 from .deps import get_current_user
 from fastapi.security import OAuth2PasswordRequestForm
@@ -100,4 +100,33 @@ async def verify_otp(verify_in: OTPVerify, db: AsyncSession = Depends(get_db)):
 
 @router.get("/me", response_model=UserResponse)
 async def get_me(current_user: User = Depends(get_current_user)):
+    return current_user
+
+@router.patch("/me", response_model=UserResponse)
+async def update_me(
+    user_update: UserUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    update_data = user_update.dict(exclude_unset=True)
+    
+    # Update User fields
+    for field in ["full_name", "email", "push_notifications_enabled", "location_services_enabled"]:
+        if field in update_data:
+            setattr(current_user, field, update_data[field])
+    
+    # Update RunnerProfile if bio or hourly_rate is provided
+    if "bio" in update_data or "hourly_rate" in update_data:
+        if not current_user.runner_profile:
+            # Create runner profile if it doesn't exist (though it should be created via different flow usually, but for UX we can auto-create)
+            current_user.runner_profile = RunnerProfile(user_id=current_user.id)
+            db.add(current_user.runner_profile)
+        
+        if "bio" in update_data:
+            current_user.runner_profile.bio = update_data["bio"]
+        if "hourly_rate" in update_data:
+            current_user.runner_profile.hourly_rate = update_data["hourly_rate"]
+            
+    await db.commit()
+    await db.refresh(current_user)
     return current_user

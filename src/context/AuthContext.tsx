@@ -10,6 +10,13 @@ interface User {
   email: string | null;
   loyalty_badge: string | null;
   is_verified: boolean;
+  runner_profile?: {
+    bio?: string;
+    hourly_rate?: number;
+    stats_trips: number;
+    stats_rating: number;
+    is_online: boolean;
+  } | null;
 }
 
 interface AuthContextType {
@@ -18,6 +25,7 @@ interface AuthContextType {
   isLoading: boolean;
   signIn: (token: string) => Promise<void>;
   signOut: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -28,6 +36,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const segments = useSegments();
   const router = useRouter();
+
+  const refreshUser = async () => {
+    if (token) {
+      await fetchUserProfile(token);
+    }
+  };
 
   const fetchUserProfile = async (authToken: string) => {
     try {
@@ -94,7 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [token, isLoading, segments]);
 
   return (
-    <AuthContext.Provider value={{ token, user, isLoading, signIn, signOut }}>
+    <AuthContext.Provider value={{ token, user, isLoading, signIn, signOut, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );
