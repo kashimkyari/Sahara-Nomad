@@ -12,7 +12,7 @@ import {
   Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { ChevronLeft, MapPin, CheckCircle } from 'lucide-react-native';
 import { DesignTokens as DT } from '../constants/design';
 import { useTheme } from '../hooks/use-theme';
@@ -29,6 +29,7 @@ export default function NewErrandScreen() {
   const [location, setLocation] = useState('');
   const [price, setPrice] = useState(2500);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [scrollEnabled, setScrollEnabled] = useState(true);
 
   const sliderX = useRef(
     new Animated.Value(((price - MIN_PRICE) / (MAX_PRICE - MIN_PRICE)) * SLIDER_WIDTH)
@@ -40,6 +41,7 @@ export default function NewErrandScreen() {
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
       onPanResponderGrant: () => {
+        setScrollEnabled(false);
         sliderX.extractOffset();
       },
       onPanResponderMove: (_, gestureState) => {
@@ -52,6 +54,7 @@ export default function NewErrandScreen() {
         setPrice(Math.max(MIN_PRICE, Math.min(MAX_PRICE, newPrice)));
       },
       onPanResponderRelease: (_, gestureState) => {
+        setScrollEnabled(true);
         sliderX.flattenOffset();
         let newX = currentX.current + gestureState.dx;
         newX = Math.max(0, Math.min(SLIDER_WIDTH, newX));
@@ -86,6 +89,7 @@ export default function NewErrandScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <Stack.Screen options={{ gestureEnabled: false }} />
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -103,6 +107,7 @@ export default function NewErrandScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        scrollEnabled={scrollEnabled}
       >
         {/* Item Description */}
         <View style={styles.field}>
