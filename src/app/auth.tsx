@@ -141,9 +141,16 @@ export default function AuthScreen() {
             loading={loading}
             disabled={!phone}
           />
-          <Text style={styles.disclaimer}>
-            By continuing you agree to our Terms & Privacy Policy
-          </Text>
+          <View style={styles.disclaimerRow}>
+            <Text style={styles.disclaimerText}>By continuing you agree to our </Text>
+            <TouchableOpacity onPress={() => router.push('/terms' as any)}>
+              <Text style={styles.disclaimerLink}>Terms</Text>
+            </TouchableOpacity>
+            <Text style={styles.disclaimerText}> & </Text>
+            <TouchableOpacity onPress={() => router.push('/privacy' as any)}>
+              <Text style={styles.disclaimerLink}>Privacy Policy</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -272,10 +279,21 @@ const getStyles = (colors: any) => StyleSheet.create({
     backgroundColor: colors.background,
     gap: 10,
   },
-  disclaimer: {
+  disclaimerRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+  },
+  disclaimerText: {
     fontFamily: DT.typography.body,
-    fontSize: 11,
+    fontSize: 12,
     color: colors.muted,
-    textAlign: 'center',
+  },
+  disclaimerLink: {
+    fontFamily: DT.typography.bodySemiBold,
+    fontSize: 12,
+    color: colors.text,
+    textDecorationLine: 'underline',
   },
 });
