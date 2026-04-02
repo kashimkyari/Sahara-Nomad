@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import {
-  View, Text, TouchableOpacity, ScrollView, StyleSheet, Animated, TextInput, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard
+  View, Text, TouchableOpacity, ScrollView, StyleSheet, Animated, TextInput, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, Alert
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, Bike, CheckCircle2, ShieldCheck, MapPin, Zap, Smartphone, Camera } from 'lucide-react-native';
 import { DesignTokens as DT } from '../../constants/design';
 import { useTheme } from '../../hooks/use-theme';
+import { useAuth } from '../../context/AuthContext';
+import API from '../../constants/api';
+import { ActivityIndicator } from 'react-native';
 
 const steps = [
   { icon: ShieldCheck, title: 'BVN Verification', desc: 'We verify your Bank Verification Number to confirm your identity. Takes 2 minutes.' },
@@ -17,6 +20,7 @@ const steps = [
 
 export default function BecomeRunnerScreen() {
   const { colors } = useTheme();
+  const { token, refreshUser } = useAuth();
   const router = useRouter();
   const [started, setStarted] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
@@ -26,6 +30,7 @@ export default function BecomeRunnerScreen() {
   const [bvn, setBvn] = useState('');
   const [address, setAddress] = useState('');
   const [transport, setTransport] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const styles = getStyles(colors);
 
   const transports = ['Motorcycle', 'Keke Napep', 'Car', 'On Foot'];
@@ -226,13 +231,40 @@ export default function BecomeRunnerScreen() {
                   (currentStep === 2 && !transport)
                 ) && styles.nextBtnDisabled
               ]}
-              onPress={() => {
+              onPress={async () => {
                 if (currentStep === 0) {
                   if (bvnPhase === 0) setBvnPhase(1);
                   else if (bvnPhase === 1) setBvnPhase(2);
                   else if (bvnPhase === 2) setCurrentStep(c => c + 1);
-                } else {
+                } else if (currentStep < 2) {
                   setCurrentStep(c => c + 1);
+                } else {
+                  // Final step — submit to backend
+                  setIsSubmitting(true);
+                  try {
+                    const res = await fetch(`${API.API_URL}/runner-applications/apply`, {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${token}`,
+                      },
+                      body: JSON.stringify({
+                        bvn,
+                        home_address: address,
+                        transport_mode: transport,
+                        verification_method: verificationMethod || 'otp',
+                      }),
+                    });
+                    if (!res.ok) {
+                      const err = await res.json().catch(() => ({}));
+                      throw new Error(err.detail || `Error ${res.status}`);
+                    }
+                    setCurrentStep(3); // Show success screen
+                  } catch (e: any) {
+                    Alert.alert('Submission Failed', e.message || 'Please try again.');
+                  } finally {
+                    setIsSubmitting(false);
+                  }
                 }
               }}
               disabled={
@@ -244,7 +276,13 @@ export default function BecomeRunnerScreen() {
               }
             >
               <Text style={styles.nextBtnText}>
-                {currentStep === 2 ? 'Submit Application' : currentStep === 0 && bvnPhase === 2 && verificationMethod === 'liveness' ? 'Start Scan & Verify' : 'Continue'}
+                {isSubmitting
+                  ? <ActivityIndicator color={colors.surface} />
+                  : currentStep === 2
+                    ? 'Submit Application'
+                    : currentStep === 0 && bvnPhase === 2 && verificationMethod === 'liveness'
+                      ? 'Start Scan & Verify'
+                      : 'Continue'}
               </Text>
             </TouchableOpacity>
           </>
