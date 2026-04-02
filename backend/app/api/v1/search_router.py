@@ -103,7 +103,9 @@ async def search_runners(
             distance_km=distance_km,
             is_online=user.is_online,
             image=img,
-            active_waka_count=active_wakas or 0
+            active_waka_count=active_wakas or 0,
+            hourly_rate=float(user.hourly_rate or 0),
+            bio=user.bio
         ))
         
     return SearchResponse(

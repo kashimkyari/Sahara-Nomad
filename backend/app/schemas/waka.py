@@ -17,6 +17,7 @@ class WakaCreate(BaseModel):
     base_fee: float
     flash_incentive: float = 0
     total_price: float
+    target_runner_id: Optional[UUID] = None
 
 class WakaResponse(BaseModel):
     id: UUID

@@ -1,6 +1,6 @@
 import * as Location from 'expo-location';
-import { Stack, useRouter } from 'expo-router';
-import { ChevronLeft, MapPin, Package, ShoppingCart, Utensils, Zap, Clock } from 'lucide-react-native';
+import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
+import { ChevronLeft, MapPin, Package, ShoppingCart, Utensils, Zap, Clock, User as UserIcon } from 'lucide-react-native';
 import React, { useRef, useState, useEffect } from 'react';
 import {
   ActivityIndicator,
@@ -41,6 +41,7 @@ export default function NewErrandScreen() {
   const { colors } = useTheme();
   const { token } = useAuth();
   const router = useRouter();
+  const { runnerId, runnerName } = useLocalSearchParams<{ runnerId?: string; runnerName?: string }>();
   
   const [category, setCategory] = useState('package');
   const [urgency, setUrgency] = useState('standard'); // 'standard' | 'flash'
@@ -174,6 +175,7 @@ export default function NewErrandScreen() {
         base_fee: price,
         flash_incentive: urgency === 'flash' ? incentive : 0,
         total_price: totalPrice,
+        target_runner_id: runnerId,
       };
 
       const res = await fetch(API.WAKA.CREATE, {
@@ -281,6 +283,19 @@ export default function NewErrandScreen() {
         keyboardShouldPersistTaps="handled"
         scrollEnabled={scrollEnabled}
       >
+        {/* Hiring Context Banner */}
+        {runnerName && (
+          <View style={styles.hiringBanner}>
+            <View style={styles.hiringAvatar}>
+              <UserIcon size={18} color={colors.surface} />
+            </View>
+            <View style={styles.hiringTextWrap}>
+              <Text style={styles.hiringLabel}>HIRING SPECIFIC RUNNER</Text>
+              <Text style={styles.hiringName}>{runnerName}</Text>
+            </View>
+          </View>
+        )}
+
         {/* Category Pills */}
         <View style={styles.field}>
           <Text style={styles.fieldLabel}>Errand Type</Text>
@@ -511,7 +526,9 @@ export default function NewErrandScreen() {
             <ActivityIndicator color={colors.surface} />
           ) : (
             <Text style={[styles.broadcastText, !isFormValid && styles.broadcastTextDisabled]}>
-              {isFormValid ? `BROADCAST — ₦${totalPrice.toLocaleString()}` : 'FILL DETAILS TO BROADCAST'}
+              {isFormValid 
+                ? (runnerName ? `HIRE ${runnerName.toUpperCase()} — ₦${totalPrice.toLocaleString()}` : `BROADCAST — ₦${totalPrice.toLocaleString()}`)
+                : 'FILL DETAILS TO BROADCAST'}
             </Text>
           )}
         </TouchableOpacity>
@@ -592,6 +609,43 @@ const getStyles = (colors: any) => StyleSheet.create({
   },
   
   // Categories
+  hiringBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.text,
+    padding: 12,
+    borderWidth: 3,
+    borderColor: colors.text,
+    marginBottom: DT.spacing.lg,
+    shadowColor: colors.text,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+  },
+  hiringAvatar: {
+    width: 40,
+    height: 40,
+    backgroundColor: colors.primary,
+    borderWidth: 2,
+    borderColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  hiringTextWrap: {
+    flex: 1,
+  },
+  hiringLabel: {
+    fontFamily: DT.typography.heading,
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.7)',
+    letterSpacing: 1,
+  },
+  hiringName: {
+    fontFamily: DT.typography.heading,
+    fontSize: 18,
+    color: colors.surface,
+  },
   categoryRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',

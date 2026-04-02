@@ -20,8 +20,12 @@ async def create_waka(
 ):
     employer_id = current_user.id
     
+    status = "assigned" if waka_in.target_runner_id else "finding_runner"
+    runner_id = waka_in.target_runner_id
+    
     db_obj = Waka(
         employer_id=employer_id,
+        runner_id=runner_id,
         category=waka_in.category,
         item_description=waka_in.item_description,
         pickup_address=waka_in.pickup.address,
@@ -30,23 +34,38 @@ async def create_waka(
         runner_fee=waka_in.base_fee,
         flash_incentive=waka_in.flash_incentive,
         total_price=waka_in.total_price,
-        status="finding_runner",
+        status=status,
         step=1
     )
     db.add(db_obj)
     await db.commit()
     await db.refresh(db_obj)
 
-    # Initial Notification
+    # Initial Notification for Employer
     await notify_user(
         db=db,
         user=current_user,
         title="Errand Posted",
-        body=f"Your request for '{db_obj.category}' has been posted and we're finding a runner.",
+        body=f"Your request for '{db_obj.category}' has been posted and we're finding a runner." if not runner_id else f"Your request has been sent to the runner.",
         type="info",
         linked_entity_id=db_obj.id,
         linked_entity_type="waka"
     )
+    
+    # Notification for Runner
+    if runner_id:
+        runner_res = await db.execute(select(User).where(User.id == runner_id))
+        runner = runner_res.scalars().first()
+        if runner:
+            await notify_user(
+                db=db,
+                user=runner,
+                title="New Direct Booking!",
+                body=f"{current_user.full_name} has hired you for a '{db_obj.category}' errand.",
+                type="success",
+                linked_entity_id=db_obj.id,
+                linked_entity_type="waka"
+            )
     await db.commit()
 
     return db_obj

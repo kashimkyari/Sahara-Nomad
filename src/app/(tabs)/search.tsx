@@ -260,7 +260,10 @@ export default function SearchScreen() {
                       {runner.is_online && <View style={styles.onlineDot} />}
                     </View>
                     <View style={styles.runnerHeaderInfo}>
-                      <Text style={styles.runnerName}>{runner.name}</Text>
+                      <View style={styles.runnerTitleRow}>
+                        <Text style={styles.runnerName} numberOfLines={1}>{runner.name}</Text>
+                        <Text style={styles.runnerPrice}>₦{runner.hourly_rate.toLocaleString()}/hr</Text>
+                      </View>
                       <View style={styles.runnerMeta}>
                         <Star size={12} color={colors.accent} fill={colors.accent} />
                         <Text style={styles.runnerRating}>{runner.rating}</Text>
@@ -279,7 +282,13 @@ export default function SearchScreen() {
                       <MapPin size={12} color={colors.surface} />
                       <Text style={styles.distanceText}>{runner.distance_km}km</Text>
                     </View>
-                    <TouchableOpacity style={styles.hireBtn} onPress={() => router.push('/new-errand')}>
+                    <TouchableOpacity 
+                      style={styles.hireBtn} 
+                      onPress={() => router.push({
+                        pathname: '/new-errand',
+                        params: { runnerId: runner.id, runnerName: runner.name }
+                      } as any)}
+                    >
                       <Text style={styles.hireBtnText}>HIRE</Text>
                     </TouchableOpacity>
                   </View>
@@ -523,7 +532,19 @@ const getStyles = (colors: any) => StyleSheet.create({
     fontFamily: DT.typography.heading,
     fontSize: 16,
     color: colors.text,
+    flex: 1,
+    marginRight: 4,
+  },
+  runnerTitleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
     marginBottom: 4,
+  },
+  runnerPrice: {
+    fontFamily: DT.typography.heading,
+    fontSize: 14,
+    color: colors.secondary,
   },
   runnerMeta: {
     flexDirection: 'row',

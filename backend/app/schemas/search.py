@@ -10,6 +10,8 @@ class RunnerSearchResponse(BaseModel):
     is_online: bool
     image: str
     active_waka_count: int
+    hourly_rate: float
+    bio: Optional[str] = None
 
 class SearchRecord(BaseModel):
     query: str
