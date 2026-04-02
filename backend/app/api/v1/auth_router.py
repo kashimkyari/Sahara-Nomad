@@ -266,7 +266,6 @@ async def get_me(current_user: User = Depends(get_current_user), db: AsyncSessio
     result = await db.execute(
         select(User)
         .options(
-            selectinload(User.runner_profile),
             selectinload(User.reviews_received).selectinload(Review.reviewer)
         )
         .where(User.id == current_user.id)
@@ -280,13 +279,12 @@ async def get_runner_profile(runner_id: uuid.UUID, db: AsyncSession = Depends(ge
     result = await db.execute(
         select(User)
         .options(
-            selectinload(User.runner_profile),
             selectinload(User.reviews_received).selectinload(Review.reviewer)
         )
         .where(User.id == runner_id)
     )
     user = result.scalars().first()
-    if not user or not user.runner_profile:
+    if not user or not user.is_runner:
         raise HTTPException(status_code=404, detail="Runner not found")
         
     return await _hydrate_user_response(user, db)
