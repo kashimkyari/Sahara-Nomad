@@ -3,16 +3,20 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from ...database import get_db
 from ...models.waka import Waka
+from ...models.user import User
 from ...schemas.waka import WakaCreate, WakaResponse
+from .deps import get_current_user
 import uuid
 
 router = APIRouter()
 
 @router.post("/", response_model=WakaResponse)
-async def create_waka(waka_in: WakaCreate, db: AsyncSession = Depends(get_db)):
-    # In a real app, employer_id would come from the current user token
-    # For now, using a placeholder if not provided or just demonstrating logic
-    employer_id = uuid.uuid4() # Placeholder
+async def create_waka(
+    waka_in: WakaCreate, 
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    employer_id = current_user.id
     
     db_obj = Waka(
         employer_id=employer_id,
@@ -34,7 +38,11 @@ async def create_waka(waka_in: WakaCreate, db: AsyncSession = Depends(get_db)):
     return db_obj
 
 @router.get("/{waka_id}", response_model=WakaResponse)
-async def get_waka(waka_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
+async def get_waka(
+    waka_id: uuid.UUID, 
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     result = await db.execute(select(Waka).where(Waka.id == waka_id, Waka.is_deleted == False))
     waka = result.scalars().first()
     if not waka:

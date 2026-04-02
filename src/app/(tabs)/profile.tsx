@@ -15,6 +15,7 @@ import { Image, StyleSheet, Text, TouchableOpacity, View, ScrollView } from 'rea
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../hooks/use-theme';
+import { useAuth } from '../../context/AuthContext';
 import { DesignTokens as DT } from '../../constants/design';
 
 const menuItems = [
@@ -26,6 +27,7 @@ const menuItems = [
 
 export default function ProfileScreen() {
   const { colors } = useTheme();
+  const { user, signOut } = useAuth();
   const router = useRouter();
 
   const styles = getStyles(colors);
@@ -48,9 +50,11 @@ export default function ProfileScreen() {
                 />
               </View>
               {/* Loyalty Badge */}
-              <View style={styles.loyaltyBadge}>
-                <Text style={styles.loyaltyText}>🏆 SUPER SENDER</Text>
-              </View>
+              {user?.loyalty_badge && (
+                <View style={styles.loyaltyBadge}>
+                  <Text style={styles.loyaltyText}>🏆 {user.loyalty_badge}</Text>
+                </View>
+              )}
             </View>
 
             <TouchableOpacity 
@@ -64,13 +68,15 @@ export default function ProfileScreen() {
 
           <View style={styles.profileInfo}>
             <View style={styles.nameRow}>
-              <Text style={styles.name}>Chidi Amaechi</Text>
-              <View style={styles.verificationBadge}>
-                <CheckCircle2 size={12} color={colors.surface} strokeWidth={3} />
-                <Text style={styles.verificationText}>Verified</Text>
-              </View>
+              <Text style={styles.name}>{user?.full_name || 'Anonymous User'}</Text>
+              {user?.is_verified && (
+                <View style={styles.verificationBadge}>
+                  <CheckCircle2 size={12} color={colors.surface} strokeWidth={3} />
+                  <Text style={styles.verificationText}>Verified</Text>
+                </View>
+              )}
             </View>
-            <Text style={styles.email}>chidi@example.com</Text>
+            <Text style={styles.email}>{user?.email || user?.phone_number || 'No email'}</Text>
           </View>
         </View>
 
@@ -124,7 +130,7 @@ export default function ProfileScreen() {
         </View>
 
         {/* Logout */}
-        <TouchableOpacity style={styles.logoutButton}>
+        <TouchableOpacity style={styles.logoutButton} onPress={signOut}>
           <LogOut size={20} color={colors.surface} strokeWidth={2.5} />
           <Text style={styles.logoutText}>Sign Out</Text>
         </TouchableOpacity>

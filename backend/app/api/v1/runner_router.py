@@ -3,12 +3,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from ...database import get_db
 from ...models.user import RunnerProfile, User
+from .deps import get_current_user
 import uuid
 
 router = APIRouter()
 
 @router.get("/{runner_id}")
-async def get_runner_profile(runner_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
+async def get_runner_profile(
+    runner_id: uuid.UUID, 
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     stmt = select(RunnerProfile, User).join(User).where(
         RunnerProfile.id == runner_id,
         RunnerProfile.is_deleted == False

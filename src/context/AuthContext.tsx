@@ -1,9 +1,20 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import { useRouter, useSegments } from 'expo-router';
+import API from '../constants/api';
+
+interface User {
+  id: string;
+  full_name: string;
+  phone_number: string;
+  email: string | null;
+  loyalty_badge: string | null;
+  is_verified: boolean;
+}
 
 interface AuthContextType {
   token: string | null;
+  user: User | null;
   isLoading: boolean;
   signIn: (token: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -13,17 +24,37 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const segments = useSegments();
   const router = useRouter();
 
+  const fetchUserProfile = async (authToken: string) => {
+    try {
+      const response = await fetch(`${API.API_URL}/auth/me`, {
+        headers: {
+          'Authorization': `Bearer ${authToken}`
+        }
+      });
+      if (response.ok) {
+        const userData = await response.json();
+        setUser(userData);
+      } else {
+        // Token might be invalid
+        await signOut();
+      }
+    } catch (e) {
+      console.error('Failed to fetch user profile', e);
+    }
+  };
+
   useEffect(() => {
-    // Load token from storage on mount
     const loadToken = async () => {
       try {
         const storedToken = await SecureStore.getItemAsync('userToken');
         if (storedToken) {
           setToken(storedToken);
+          await fetchUserProfile(storedToken);
         }
       } catch (e) {
         console.error('Failed to load token', e);
@@ -38,11 +69,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = async (newToken: string) => {
     await SecureStore.setItemAsync('userToken', newToken);
     setToken(newToken);
+    await fetchUserProfile(newToken);
   };
 
   const signOut = async () => {
     await SecureStore.deleteItemAsync('userToken');
     setToken(null);
+    setUser(null);
   };
 
   // Strictly enforce navigation guards
@@ -61,7 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [token, isLoading, segments]);
 
   return (
-    <AuthContext.Provider value={{ token, isLoading, signIn, signOut }}>
+    <AuthContext.Provider value={{ token, user, isLoading, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );

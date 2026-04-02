@@ -4,6 +4,7 @@ from sqlalchemy import select, func
 from ...database import get_db
 from ...models.user import RunnerProfile, User
 from ...schemas.search import SearchResponse, RunnerSearchResponse
+from .deps import get_current_user
 from typing import List
 
 router = APIRouter()
@@ -13,7 +14,8 @@ async def search_runners(
     q: str = None,
     filter: str = "available_now",
     market: str = None,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     # Base query for runners who are online and NOT deleted
     stmt = select(RunnerProfile, User).join(User).where(

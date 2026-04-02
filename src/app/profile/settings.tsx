@@ -3,11 +3,13 @@ import { View, Text, TouchableOpacity, ScrollView, Switch, StyleSheet } from 're
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../hooks/use-theme';
-import { ChevronLeft, ChevronRight, Bell, MapPin, Moon, Globe } from 'lucide-react-native';
+import { useAuth } from '../../context/AuthContext';
+import { ChevronLeft, ChevronRight, Bell, MapPin, Moon, Globe, LogOut } from 'lucide-react-native';
 import { DesignTokens as DT } from '../../constants/design';
 
 export default function ProfileSettingsScreen() {
   const { isDarkMode, toggleTheme, colors } = useTheme();
+  const { signOut } = useAuth();
   const router = useRouter();
   const [notifs, setNotifs] = useState(true);
   const [location, setLocation] = useState(true);
@@ -87,6 +89,11 @@ export default function ProfileSettingsScreen() {
           </TouchableOpacity>
         </View>
 
+        <TouchableOpacity style={styles.logoutButton} onPress={signOut}>
+          <LogOut size={20} color={colors.surface} strokeWidth={2.5} />
+          <Text style={styles.logoutText}>Sign Out</Text>
+        </TouchableOpacity>
+
         <Text style={styles.version}>Sendam v1.0.0 · Built with ❤️ in Lagos</Text>
       </ScrollView>
     </SafeAreaView>
@@ -111,5 +118,26 @@ const getStyles = (colors: any) => StyleSheet.create({
   linkInfo: { flex: 1 },
   linkTitle: { fontFamily: DT.typography.bodySemiBold, fontSize: 14, color: colors.text },
   linkSub: { fontFamily: DT.typography.body, fontSize: 11, color: colors.muted, marginTop: 1 },
-  version: { fontFamily: DT.typography.body, fontSize: 12, color: colors.muted, textAlign: 'center', marginTop: DT.spacing.xl },
+  version: { fontFamily: DT.typography.body, fontSize: 12, color: colors.muted, textAlign: 'center', marginTop: DT.spacing.lg },
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: DT.spacing.xl,
+    padding: DT.spacing.md,
+    gap: DT.spacing.sm,
+    borderWidth: 3,
+    borderColor: colors.text,
+    backgroundColor: colors.error,
+    shadowColor: colors.text,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
+  },
+  logoutText: {
+    fontFamily: DT.typography.heading,
+    fontSize: 16,
+    color: colors.surface,
+  },
 });
