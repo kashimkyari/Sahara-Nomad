@@ -12,6 +12,7 @@ import API from '../../constants/api';
 import { BrutalistAlert } from '../../components/ui/BrutalistAlert';
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
+import { Image } from 'expo-image';
 
 const steps = [
   { icon: ShieldCheck, title: 'BVN Verification', desc: 'We verify your Bank Verification Number to confirm your identity. Takes 2 minutes.' },
@@ -253,7 +254,7 @@ export default function BecomeRunnerScreen() {
                 <View style={styles.livenessBox}>
                   {selfieUri ? (
                     <View style={styles.livenessOutline}>
-                      <Text style={styles.successEmoji}>🤳</Text>
+                      <Image source={{ uri: selfieUri }} style={styles.selfiePreview} contentFit="cover" />
                       <CheckCircle2 size={32} color={colors.secondary} style={styles.checkIcon} />
                     </View>
                   ) : (
@@ -550,5 +551,10 @@ const getStyles = (colors: any) => StyleSheet.create({
     borderRadius: 100, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface,
   },
   successEmoji: { fontSize: 80 },
-  checkIcon: { position: 'absolute', bottom: -10, right: 20, backgroundColor: colors.surface, borderRadius: 20, borderWidth: 2, borderColor: colors.text },
+  selfiePreview: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 100,
+  },
+  checkIcon: { position: 'absolute', bottom: -10, right: 20, backgroundColor: colors.surface, borderRadius: 20, borderWidth: 2, borderColor: colors.text, zIndex: 10 },
 });
