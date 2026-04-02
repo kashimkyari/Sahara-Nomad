@@ -88,15 +88,25 @@ export default function NotificationDetailScreen() {
         <View style={styles.actions}>
           <TouchableOpacity 
             style={styles.primaryAction}
-            onPress={() => note.title.includes('Runner') ? router.push('/(tabs)') : router.back()}
+            onPress={() => {
+              if (note.title.includes('Runner')) router.push('/(tabs)');
+              else if (note.title.includes('Payment')) router.push('/profile/payment' as any);
+              else if (note.title.includes('Dispute')) router.push('/profile/support' as any);
+              else router.back();
+            }}
           >
             <Text style={styles.primaryActionText}>
-              {note.title.includes('Runner') ? 'View Active Errand' : 'Go Back'}
+              {note.title.includes('Runner') ? 'Track Errand' : 
+               note.title.includes('Payment') ? 'View Wallet' : 
+               note.title.includes('Dispute') ? 'View Support' : 'Go Back'}
             </Text>
             <ArrowRight size={20} color={colors.surface} strokeWidth={2.5} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.secondaryAction}>
+          <TouchableOpacity 
+            style={styles.secondaryAction}
+            onPress={() => router.push('/profile/support' as any)}
+          >
             <ExternalLink size={18} color={colors.text} strokeWidth={2.5} />
             <Text style={styles.secondaryActionText}>Contact Support</Text>
           </TouchableOpacity>
