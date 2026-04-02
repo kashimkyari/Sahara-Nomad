@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Switch, StyleSheet, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Animated, StyleSheet, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../hooks/use-theme';
@@ -8,6 +8,66 @@ import { ChevronLeft, ChevronRight, Bell, MapPin, Moon, Globe, LogOut } from 'lu
 import { DesignTokens as DT } from '../../constants/design';
 
 import API from '../../constants/api';
+
+const NeobrutalistToggle = ({ value, onValueChange, activeColor, colors }: any) => {
+  const thumbAnim = React.useRef(new Animated.Value(value ? 1 : 0)).current;
+
+  useEffect(() => {
+    Animated.spring(thumbAnim, {
+      toValue: value ? 1 : 0,
+      friction: 8,
+      tension: 50,
+      useNativeDriver: false,
+    }).start();
+  }, [value]);
+
+  const translateX = thumbAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [2, 22],
+  });
+
+  return (
+    <TouchableOpacity 
+      activeOpacity={0.8} 
+      onPress={() => onValueChange(!value)}
+      style={[
+        styles_toggle.track, 
+        { 
+          backgroundColor: value ? activeColor : colors.background,
+          borderColor: colors.text
+        }
+      ]}
+    >
+      <Animated.View 
+        style={[
+          styles_toggle.thumb, 
+          { 
+            backgroundColor: colors.surface, 
+            borderColor: colors.text,
+            transform: [{ translateX }] 
+          }
+        ]} 
+      />
+    </TouchableOpacity>
+  );
+};
+
+const styles_toggle = StyleSheet.create({
+  track: {
+    width: 50,
+    height: 28,
+    borderWidth: 2,
+    borderRadius: 0,
+    justifyContent: 'center',
+    paddingHorizontal: 2,
+  },
+  thumb: {
+    width: 22,
+    height: 20,
+    borderWidth: 2,
+    borderRadius: 0,
+  },
+});
 
 export default function ProfileSettingsScreen() {
   const { isDarkMode, toggleTheme, colors } = useTheme();
@@ -80,11 +140,11 @@ export default function ProfileSettingsScreen() {
               <View style={[styles.icon, { backgroundColor: colors.primary }]}><Bell size={18} color={colors.surface} strokeWidth={2.5} /></View>
               <View><Text style={styles.settingTitle}>Push Notifications</Text><Text style={styles.settingSub}>Waka updates & runner messages</Text></View>
             </View>
-            <Switch 
+            <NeobrutalistToggle 
               value={notifs} 
-              onValueChange={(val) => updatePreference('push_notifications_enabled', val)} 
-              trackColor={{ false: colors.muted, true: colors.primary }} 
-              thumbColor={colors.surface} 
+              onValueChange={(val: boolean) => updatePreference('push_notifications_enabled', val)} 
+              activeColor={colors.primary}
+              colors={colors}
             />
           </View>
           <View style={styles.divider} />
@@ -93,11 +153,11 @@ export default function ProfileSettingsScreen() {
               <View style={[styles.icon, { backgroundColor: colors.secondary }]}><MapPin size={18} color={colors.surface} strokeWidth={2.5} /></View>
               <View><Text style={styles.settingTitle}>Location Services</Text><Text style={styles.settingSub}>Used to find runners near you</Text></View>
             </View>
-            <Switch 
+            <NeobrutalistToggle 
               value={location} 
-              onValueChange={(val) => updatePreference('location_services_enabled', val)} 
-              trackColor={{ false: colors.muted, true: colors.secondary }} 
-              thumbColor={colors.surface} 
+              onValueChange={(val: boolean) => updatePreference('location_services_enabled', val)} 
+              activeColor={colors.secondary}
+              colors={colors}
             />
           </View>
           <View style={styles.divider} />
@@ -106,14 +166,14 @@ export default function ProfileSettingsScreen() {
               <View style={[styles.icon, { backgroundColor: colors.text }]}><Moon size={18} color={colors.surface} strokeWidth={2.5} /></View>
               <View><Text style={styles.settingTitle}>Dark Mode</Text><Text style={styles.settingSub}>Neobrutalist dark experience</Text></View>
             </View>
-            <Switch 
+            <NeobrutalistToggle 
               value={isDarkMode} 
-              onValueChange={(val) => {
+              onValueChange={(val: boolean) => {
                 toggleTheme();
                 updatePreference('is_dark_mode', val);
               }} 
-              trackColor={{ false: colors.muted, true: colors.text }} 
-              thumbColor={colors.surface} 
+              activeColor={colors.text}
+              colors={colors}
             />
           </View>
         </View>
