@@ -37,6 +37,23 @@ async def create_waka(
     await db.refresh(db_obj)
     return db_obj
 
+@router.get("/active", response_model=List[WakaResponse])
+async def get_active_wakas(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Return non-completed wakas created by the current user."""
+    result = await db.execute(
+        select(Waka)
+        .where(
+            Waka.employer_id == current_user.id, 
+            Waka.is_completed == False,
+            Waka.is_deleted == False
+        )
+        .order_by(Waka.created_at.desc())
+    )
+    return result.scalars().all()
+
 @router.get("/mine", response_model=List[WakaResponse])
 async def get_my_wakas(
     db: AsyncSession = Depends(get_db),

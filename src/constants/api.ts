@@ -10,5 +10,6 @@ export default {
         CREATE: `${API_URL}/waka/`,
         GET: (id: string) => `${API_URL}/waka/${id}`,
         MY_WAKAS: `${API_URL}/waka/mine`,
+        ACTIVE: `${API_URL}/waka/active`,
     },
 };

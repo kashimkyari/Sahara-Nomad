@@ -35,10 +35,7 @@ const runners = [
   { id: '4', name: 'Ngozi A.', rating: 4.7, km: '3.0km', img: 'https://i.pravatar.cc/150?u=ngozi', online: true, jobs: 45 },
 ];
 
-const activeWakas = [
-  { id: 'w1', title: 'Sourcing Tomatoes at Mile 12', status: 'Runner en-route' },
-  { id: 'w2', title: 'Groceries from Shoprite Lekki', status: 'Waiting for runner' },
-];
+// Moved static data to state inside HomeScreen
 
 export default function HomeScreen() {
   const { colors } = useTheme();
@@ -48,9 +45,46 @@ export default function HomeScreen() {
   const styles = getStyles(colors);
 
   const [greeting, setGreeting] = useState('');
+  const [activeWakas, setActiveWakas] = useState<any[]>([]);
+  const [isLoadingWakas, setIsLoadingWakas] = useState(false);
+
+  const getStatusText = (step: number, status: string) => {
+    if (status === 'finding_runner') return 'Finding Runner...';
+    switch (step) {
+      case 1: return 'Finding Runner';
+      case 2: return 'Runner en-route';
+      case 3: return 'Sourcing Items';
+      case 4: return 'Delivering';
+      default: return status;
+    }
+  };
+
+  const fetchActiveWakas = async () => {
+    if (!token) return;
+    try {
+      setIsLoadingWakas(true);
+      const res = await fetch(API.WAKA.ACTIVE, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setActiveWakas(data);
+      }
+    } catch (e) {
+      console.error('Fetch active wakas failed:', e);
+    } finally {
+      setIsLoadingWakas(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchActiveWakas();
+  }, [token]);
 
   const { refreshControl, refreshBanner, scrollY } = useBrutalistRefresh({
-    onRefresh: async () => { await refreshUser(); },
+    onRefresh: async () => { 
+      await Promise.all([refreshUser(), fetchActiveWakas()]);
+    },
   });
 
   // 1. Gesture/Back Handler Prevention
@@ -136,15 +170,18 @@ export default function HomeScreen() {
                 <TouchableOpacity
                   key={waka.id}
                   style={styles.wakaCardWrapper}
-                  onPress={() => router.push(`/waka/${waka.id}` as any)}
+                  onPress={() => router.push({
+                    pathname: `/waka/${waka.id}`,
+                    params: { initialStatus: getStatusText(waka.step, waka.status) }
+                  } as any)}
                 >
                   <View style={styles.wakaCard}>
                     <View style={styles.wakaLive}>
                       <Text style={styles.wakaLiveText}>LIVE</Text>
                     </View>
-                    <Text style={styles.wakaTitle} numberOfLines={2}>{waka.title}</Text>
+                    <Text style={styles.wakaTitle} numberOfLines={2}>{waka.item_description}</Text>
                     <View style={styles.wakaFooter}>
-                      <Text style={styles.wakaStatus}>{waka.status}</Text>
+                      <Text style={styles.wakaStatus}>{getStatusText(waka.step, waka.status)}</Text>
                       <ArrowRight size={16} color={colors.surface} />
                     </View>
                   </View>

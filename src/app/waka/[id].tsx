@@ -13,38 +13,11 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ChevronLeft, MapPin, Phone, MessageCircle, CheckCircle2, Truck, Clock } from 'lucide-react-native';
 import { DesignTokens as DT } from '../../constants/design';
 import { useTheme } from '../../hooks/use-theme';
+import { useAuth } from '../../context/AuthContext';
+import API from '../../constants/api';
+import { ActivityIndicator, Alert } from 'react-native';
 
-const wakaData: Record<string, {
-  title: string;
-  market: string;
-  delivery: string;
-  status: string;
-  step: number;
-  fee: string;
-  runner: { name: string; phone: string; img: string; rating: number };
-  items: string;
-}> = {
-  w1: {
-    title: 'Sourcing Tomatoes at Mile 12',
-    market: 'Mile 12 Market, Lagos',
-    delivery: '15 Awolowo Road, Ikoyi',
-    status: 'Runner en-route to market',
-    step: 2,
-    fee: '₦2,500',
-    runner: { name: 'Chinedu O.', phone: '+234 812 000 0001', img: 'https://i.pravatar.cc/150?u=chinedu', rating: 4.9 },
-    items: '2 baskets of fresh tomatoes, 1 bag of pepper',
-  },
-  w2: {
-    title: 'Groceries from Shoprite Lekki',
-    market: 'Shoprite, Lekki',
-    delivery: '4 Admiralty Way, Lekki Phase 1',
-    status: 'Waiting for runner to accept',
-    step: 1,
-    fee: '₦3,000',
-    runner: { name: 'Unassigned', phone: '', img: '', rating: 0 },
-    items: 'Full grocery list - rice, oil, tomatoes, onions',
-  },
-};
+// Mock data removed in favor of real API calls
 
 const STEPS = [
   { icon: CheckCircle2, label: 'Broadcast' },
@@ -55,11 +28,47 @@ const STEPS = [
 
 export default function WakaStatusScreen() {
   const { colors } = useTheme();
+  const { token } = useAuth();
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const waka = wakaData[id as string] ?? wakaData.w1;
-  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const { id, initialStatus } = useLocalSearchParams<{ id: string, initialStatus: string }>();
+  
+  const [waka, setWaka] = React.useState<any>(null);
+  const [loading, setLoading] = React.useState(true);
+  const pulseAnim = React.useRef(new Animated.Value(1)).current;
   const styles = getStyles(colors);
+
+  const getStatusText = (step: number, status: string) => {
+    if (status === 'finding_runner') return 'Finding Runner...';
+    switch (step) {
+      case 1: return 'Finding Runner';
+      case 2: return 'Runner en-route';
+      case 3: return 'Sourcing Items';
+      case 4: return 'Delivering';
+      default: return status;
+    }
+  };
+
+  const fetchWakaDetails = async () => {
+    if (!id || !token) return;
+    try {
+      setLoading(true);
+      const res = await fetch(API.WAKA.GET(id), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('Waka not found');
+      const data = await res.json();
+      setWaka(data);
+    } catch (e: any) {
+      Alert.alert('Error', e.message);
+      router.back();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchWakaDetails();
+  }, [id, token]);
 
   useEffect(() => {
     const pulse = Animated.loop(
@@ -70,7 +79,23 @@ export default function WakaStatusScreen() {
     );
     pulse.start();
     return () => pulse.stop();
-  }, []);
+  }, [pulseAnim]);
+
+  if (loading || !waka) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+            <ChevronLeft size={24} color={colors.text} strokeWidth={2.5} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>{initialStatus || 'Loading Status...'}</Text>
+        </View>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -87,25 +112,27 @@ export default function WakaStatusScreen() {
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
 
-        {/* Waka Info Card (Moves above Stepper for context) */}
+        {/* Waka Info Card */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>{waka.title}</Text>
+          <Text style={styles.cardTitle}>{waka.item_description}</Text>
           <View style={styles.infoRow}>
             <MapPin size={14} color={colors.primary} />
-            <Text style={styles.infoText}>{waka.market}</Text>
+            <Text style={styles.infoText}>{waka.pickup_address}</Text>
           </View>
           <View style={styles.infoRow}>
             <MapPin size={14} color={colors.secondary} />
-            <Text style={styles.infoText}>{waka.delivery}</Text>
+            <Text style={styles.infoText}>{waka.dropoff_address}</Text>
           </View>
           <View style={styles.divider} />
-          <Text style={styles.itemsLabel}>Items</Text>
-          <Text style={styles.itemsText}>{waka.items}</Text>
+          <Text style={styles.itemsLabel}>Category</Text>
+          <Text style={[styles.itemsText, { textTransform: 'uppercase', fontFamily: DT.typography.heading }]}>
+            {waka.category} Errand
+          </Text>
           <View style={styles.divider} />
           <View style={styles.feeRow}>
             <Text style={styles.feeLabel}>Runner's Fee</Text>
             <View style={styles.feeTag}>
-              <Text style={styles.feeTagText}>{waka.fee}</Text>
+              <Text style={styles.feeTagText}>₦{waka.total_price.toLocaleString()}</Text>
             </View>
           </View>
         </View>
@@ -113,7 +140,7 @@ export default function WakaStatusScreen() {
         {/* Status Banner */}
         <View style={styles.statusBanner}>
           <Clock size={18} color={colors.text} strokeWidth={2.5} />
-          <Text style={styles.statusText}>{waka.status}</Text>
+          <Text style={styles.statusText}>{getStatusText(waka.step, waka.status)}</Text>
         </View>
 
         {/* Progress Stepper */}
@@ -136,13 +163,16 @@ export default function WakaStatusScreen() {
         </View>
 
         {/* Runner Card */}
-        {waka.runner.img ? (
+        {waka.runner_id ? (
           <View style={styles.runnerCard}>
             <View style={styles.runnerHeaderRow}>
-              <Image source={{ uri: waka.runner.img }} style={styles.runnerAvatar} />
+              <Image 
+                source={{ uri: `https://i.pravatar.cc/150?u=${waka.runner_id}` }} 
+                style={styles.runnerAvatar} 
+              />
               <View style={styles.runnerInfo}>
-                <Text style={styles.runnerName}>{waka.runner.name}</Text>
-                <Text style={styles.runnerRating}>★ {waka.runner.rating} · Your runner</Text>
+                <Text style={styles.runnerName}>Runner #{waka.runner_id.slice(0, 8)}</Text>
+                <Text style={styles.runnerRating}>★ 4.9 · Your runner</Text>
               </View>
             </View>
             <View style={styles.runnerActions}>
