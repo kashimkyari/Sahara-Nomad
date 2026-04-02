@@ -14,14 +14,14 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { DesignTokens as DT } from '../constants/design';
 import { useTheme } from '../hooks/use-theme';
-
-import * as SecureStore from 'expo-secure-store';
+import { useAuth } from '../context/AuthContext';
 import API from '../constants/api';
 
 type Tab = 'login' | 'signup';
 
 export default function AuthScreen() {
   const { colors } = useTheme();
+  const { signIn } = useAuth();
   const router = useRouter();
   const [tab, setTab] = useState<Tab>('login');
   const [phone, setPhone] = useState('');
@@ -30,6 +30,8 @@ export default function AuthScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [phoneError, setPhoneError] = useState('');
+  const [isOtpView, setIsOtpView] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
 
   const handleSubmit = async () => {
     if (phone.length < 10) {
@@ -72,15 +74,46 @@ export default function AuthScreen() {
         }),
       });
 
-      if (!loginResponse.ok) {
-        const err = await loginResponse.json();
-        throw new Error(err.detail || 'Login failed');
+        if (!loginResponse.ok) {
+          const err = await loginResponse.json();
+          throw new Error(err.detail || 'Login failed');
+        }
+        
+        const res = await loginResponse.json();
+        if (res.status === 'otp_sent') {
+          setIsOtpView(true);
+        } else if (res.access_token) {
+          await signIn(res.access_token);
+        }
+    } catch (error: any) {
+      setPhoneError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    setLoading(true);
+    setPhoneError('');
+    const fullPhone = `+234${phone.replace(/^0+/, '')}`;
+
+    try {
+      const response = await fetch(`${API.API_URL}/auth/verify-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone_number: fullPhone,
+          otp_code: otpCode,
+        }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.detail || 'OTP verification failed');
       }
 
-      const { access_token } = await loginResponse.json();
-      await SecureStore.setItemAsync('userToken', access_token);
-      
-      router.replace('/(tabs)');
+      const { access_token } = await response.json();
+      await signIn(access_token);
     } catch (error: any) {
       setPhoneError(error.message);
     } finally {
@@ -132,61 +165,86 @@ export default function AuthScreen() {
 
           {/* Form */}
           <View style={styles.form}>
-            {tab === 'signup' && (
-              <Input
-                label="Full Name"
-                placeholder="e.g. Chidi Amaechi"
-                value={name}
-                onChangeText={setName}
-                autoCapitalize="words"
-              />
-            )}
-
-            {/* Phone Field with +234 prefix */}
-            <Text style={styles.inputLabel}>Phone Number</Text>
-            <View style={styles.phoneRow}>
-              <View style={styles.prefix}>
-                <Text style={styles.prefixText}>+234</Text>
-              </View>
-              <View style={styles.phoneInputWrapper}>
+            {isOtpView ? (
+              <View>
+                <Text style={styles.otpMessage}>
+                  Enter the 6-digit code sent to {phone}
+                </Text>
                 <Input
-                  placeholder="000 000 0000"
-                  keyboardType="phone-pad"
-                  value={phone}
-                  onChangeText={(t) => {
-                    setPhone(t);
-                    if (phoneError) setPhoneError('');
-                  }}
+                  label="OTP Code"
+                  placeholder="123456"
+                  keyboardType="number-pad"
+                  maxLength={6}
+                  value={otpCode}
+                  onChangeText={setOtpCode}
                   error={phoneError}
-                  containerStyle={styles.phoneInputContainer}
-                  style={styles.phoneInput}
                 />
-              </View>
-            </View>
-
-            {/* Password */}
-            <Input
-              label="Password"
-              placeholder="••••••••"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={!showPassword}
-              rightElement={
-                <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                  <Text style={styles.showToggle}>{showPassword ? 'Hide' : 'Show'}</Text>
+                <TouchableOpacity 
+                  onPress={() => setIsOtpView(false)}
+                  style={styles.backToAuth}
+                >
+                  <Text style={styles.backToAuthText}>Wrong number? Go back</Text>
                 </TouchableOpacity>
-              }
-            />
+              </View>
+            ) : (
+              <>
+                {tab === 'signup' && (
+                  <Input
+                    label="Full Name"
+                    placeholder="e.g. Chidi Amaechi"
+                    value={name}
+                    onChangeText={setName}
+                    autoCapitalize="words"
+                  />
+                )}
+
+                {/* Phone Field with +234 prefix */}
+                <Text style={styles.inputLabel}>Phone Number</Text>
+                <View style={styles.phoneRow}>
+                  <View style={styles.prefix}>
+                    <Text style={styles.prefixText}>+234</Text>
+                  </View>
+                  <View style={styles.phoneInputWrapper}>
+                    <Input
+                      placeholder="000 000 0000"
+                      keyboardType="phone-pad"
+                      value={phone}
+                      onChangeText={(t) => {
+                        setPhone(t);
+                        if (phoneError) setPhoneError('');
+                      }}
+                      error={phoneError}
+                      containerStyle={styles.phoneInputContainer}
+                      style={styles.phoneInput}
+                    />
+                  </View>
+                </View>
+
+                {/* Password */}
+                <Input
+                  label="Password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                  rightElement={
+                    <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                      <Text style={styles.showToggle}>{showPassword ? 'Hide' : 'Show'}</Text>
+                    </TouchableOpacity>
+                  }
+                />
+              </>
+            )}
           </View>
         </ScrollView>
 
         {/* Sticky Submit */}
         <View style={styles.footer}>
           <Button
-            title="Enter Market"
-            onPress={handleSubmit}
+            title={isOtpView ? "Verify OTP" : "Enter Market"}
+            onPress={isOtpView ? handleVerifyOtp : handleSubmit}
             loading={loading}
-            disabled={!phone}
+            disabled={isOtpView ? otpCode.length < 6 : !phone}
           />
           <View style={styles.disclaimerRow}>
             <Text style={styles.disclaimerText}>By continuing you agree to our </Text>
@@ -341,6 +399,23 @@ const getStyles = (colors: any) => StyleSheet.create({
     fontFamily: DT.typography.bodySemiBold,
     fontSize: 12,
     color: colors.text,
+    textDecorationLine: 'underline',
+  },
+  otpMessage: {
+    fontFamily: DT.typography.body,
+    fontSize: 14,
+    color: colors.text,
+    marginBottom: DT.spacing.lg,
+    lineHeight: 20,
+  },
+  backToAuth: {
+    marginTop: DT.spacing.md,
+    alignItems: 'center',
+  },
+  backToAuthText: {
+    fontFamily: DT.typography.bodySemiBold,
+    fontSize: 14,
+    color: colors.muted,
     textDecorationLine: 'underline',
   },
 });

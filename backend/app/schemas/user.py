@@ -36,3 +36,7 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     user_id: Optional[UUID] = None
+
+class OTPVerify(BaseModel):
+    phone_number: str
+    otp_code: str

@@ -3,6 +3,7 @@ from sqlalchemy import String, Boolean, Numeric, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from geoalchemy2 import Geography
 import uuid
+from datetime import datetime
 from typing import Optional
 from .base import AuditableBase
 
@@ -21,6 +22,9 @@ class User(AuditableBase):
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
     government_id_nin: Mapped[Optional[str]] = mapped_column(String(11), unique=True, nullable=True)
     loyalty_badge: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+
+    otp_code: Mapped[Optional[str]] = mapped_column(String(6), nullable=True)
+    otp_expires_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
 
     # Relationships
     runner_profile: Mapped[Optional["RunnerProfile"]] = relationship("RunnerProfile", back_populates="user", uselist=False)
