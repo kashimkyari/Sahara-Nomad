@@ -78,7 +78,10 @@ export default function TransactionDetailScreen() {
 
         {/* Actions */}
         {!tx.positive && (
-          <TouchableOpacity style={styles.disputeBtn}>
+          <TouchableOpacity 
+            style={styles.disputeBtn}
+            onPress={() => router.push({ pathname: '/dispute/create', params: { txnId: tx.ref } } as any)}
+          >
             <Text style={styles.disputeText}>Raise a Dispute</Text>
           </TouchableOpacity>
         )}
