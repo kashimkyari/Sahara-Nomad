@@ -308,6 +308,7 @@ const getStyles = (colors: any) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingHorizontal: DT.spacing.lg,
     paddingTop: DT.spacing.md,
     paddingBottom: DT.spacing.lg,
   },
