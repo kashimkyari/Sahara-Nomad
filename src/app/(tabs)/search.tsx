@@ -5,6 +5,8 @@ import { Search, MapPin, Star, History, ArrowRight } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { DesignTokens as DT } from '../../constants/design';
 import { useTheme } from '../../hooks/use-theme';
+import { useBrutalistRefresh } from '../../components/ui/BrutalistRefreshControl';
+import { MotiView } from 'moti';
 
 const markets = ['Mile 12', 'Balogun', 'Yaba', 'Ikeja', 'Oshodi', 'Tejuosho'];
 const filters = ['Available Now', 'Under 2km', '5★ Rated', 'Vehicles'];
@@ -25,13 +27,34 @@ export default function SearchScreen() {
   const [activeFilter, setActiveFilter] = useState('Available Now');
   const styles = getStyles(colors);
 
+  const { refreshControl, refreshBanner, onScroll, refreshing } = useBrutalistRefresh({
+    onRefresh: async () => {
+      // Mock refresh delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
+    },
+  });
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.title}>Find Runners</Text>
-        </View>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.title}>Find Runners</Text>
+      </View>
+
+      <View style={styles.flex1}>
+        {refreshBanner}
+        <MotiView
+          animate={{ translateY: refreshing ? 75 : 0 }}
+          transition={{ type: 'spring', damping: 20, stiffness: 150 }}
+          style={styles.flex1}
+        >
+          <ScrollView 
+            showsVerticalScrollIndicator={false} 
+            contentContainerStyle={styles.scrollContent}
+            refreshControl={refreshControl}
+            onScroll={onScroll}
+            scrollEventThrottle={16}
+          >
 
         {/* Search Bar */}
         <View style={styles.searchContainer}>
@@ -161,6 +184,8 @@ export default function SearchScreen() {
         </View>
 
       </ScrollView>
+      </MotiView>
+      </View>
     </SafeAreaView>
   );
 }
@@ -169,6 +194,13 @@ const getStyles = (colors: any) => StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  flex1: {
+    flex: 1,
+    paddingTop: 10,
+  },
+  scrollContent: {
+    paddingBottom: 100,
   },
   header: {
     paddingHorizontal: DT.spacing.lg,
