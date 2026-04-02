@@ -15,6 +15,9 @@ import { Input } from '../components/ui/Input';
 import { DesignTokens as DT } from '../constants/design';
 import { useTheme } from '../hooks/use-theme';
 
+import * as SecureStore from 'expo-secure-store';
+import API from '../constants/api';
+
 type Tab = 'login' | 'signup';
 
 export default function AuthScreen() {
@@ -28,17 +31,61 @@ export default function AuthScreen() {
   const [loading, setLoading] = useState(false);
   const [phoneError, setPhoneError] = useState('');
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (phone.length < 10) {
       setPhoneError('Ah ah, check that number again.');
       return;
     }
     setPhoneError('');
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+
+    const fullPhone = `+234${phone.replace(/^0+/, '')}`;
+
+    try {
+      if (tab === 'signup') {
+        const response = await fetch(API.AUTH.SIGNUP, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            full_name: name,
+            phone_number: fullPhone,
+            password: password,
+          }),
+        });
+        
+        if (!response.ok) {
+          const err = await response.json();
+          throw new Error(err.detail || 'Signup failed');
+        }
+
+        // After signup, auto-login or prompt for login? Usually auto-login is better.
+        // For simplicity, we'll login right after signup or just switch to login tab.
+      }
+
+      // Login/Token call
+      const loginResponse = await fetch(API.AUTH.LOGIN, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone_number: fullPhone,
+          password: password,
+        }),
+      });
+
+      if (!loginResponse.ok) {
+        const err = await loginResponse.json();
+        throw new Error(err.detail || 'Login failed');
+      }
+
+      const { access_token } = await loginResponse.json();
+      await SecureStore.setItemAsync('userToken', access_token);
+      
       router.replace('/(tabs)');
-    }, 1500);
+    } catch (error: any) {
+      setPhoneError(error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const styles = getStyles(colors);

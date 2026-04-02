@@ -4,7 +4,7 @@ from sqlalchemy import select
 from ...database import get_db
 from ...models.user import User
 from ...models.wallet import Wallet
-from ...schemas.user import UserCreate, UserResponse, Token
+from ...schemas.user import UserCreate, UserResponse, Token, UserLogin
 from ...core.security import get_password_hash, create_access_token, verify_password
 from fastapi.security import OAuth2PasswordRequestForm
 
@@ -43,6 +43,21 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSessi
     result = await db.execute(select(User).where(User.phone_number == form_data.username))
     user = result.scalars().first()
     if not user or not verify_password(form_data.password, user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect phone number or password",
+        )
+    
+    return {
+        "access_token": create_access_token(user.id),
+        "token_type": "bearer",
+    }
+
+@router.post("/token", response_model=Token)
+async def login_json(user_in: UserLogin, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(User).where(User.phone_number == user_in.phone_number))
+    user = result.scalars().first()
+    if not user or not verify_password(user_in.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect phone number or password",

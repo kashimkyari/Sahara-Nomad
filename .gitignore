@@ -41,3 +41,10 @@ app-example
 # generated native folders
 /ios
 /android
+backend/.venv
+backend/.env
+backend/app/__pycache__/
+backend/app/__pycache__
+backend/alembic/__pycache__/env.cpython-310.pyc
+backend/app/models/__pycache__/*
+*.pyc

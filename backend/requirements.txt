@@ -12,3 +12,4 @@ exponent-server-sdk
 aioredis
 httpx
 python-dotenv
+pydantic-settings
