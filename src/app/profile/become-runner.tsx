@@ -264,9 +264,10 @@ export default function BecomeRunnerScreen() {
                 </View>
               )}
 
-              {currentStep === 0 && bvnPhase === 2 && verificationMethod === 'liveness' && (
-                <View style={styles.livenessBox}>
-                  {selfieUri ? (
+                  {currentStep === 0 && bvnPhase === 2 && verificationMethod === 'liveness' && (
+                    <View style={styles.livenessBox}>
+                      <Text style={styles.livenessInstruction}>Position your face within the frame</Text>
+                      {selfieUri ? (
                     <View style={styles.livenessOutline}>
                       <Image source={{ uri: selfieUri }} style={styles.selfiePreview} contentFit="cover" />
                       <CheckCircle2 size={32} color={colors.secondary} style={styles.checkIcon} />
@@ -285,7 +286,8 @@ export default function BecomeRunnerScreen() {
                             facing="front"
                           />
                           <View style={styles.captureOverlay}>
-                            <Camera size={32} color={colors.surface} />
+                            <Camera size={28} color={colors.surface} />
+                            <Text style={styles.captureBtnText}>TAP TO SCAN</Text>
                           </View>
                         </TouchableOpacity>
                       ) : (
@@ -579,7 +581,14 @@ const getStyles = (colors: any) => StyleSheet.create({
   },
   methodTitle: { fontFamily: DT.typography.heading, fontSize: 16, color: colors.text },
   methodTitleActive: { color: colors.surface },
-  livenessBox: { alignItems: 'center', gap: DT.spacing.md, marginTop: DT.spacing.md },
+  livenessBox: { alignItems: 'center', gap: DT.spacing.md, marginTop: DT.spacing.sm },
+  livenessInstruction: {
+    fontFamily: DT.typography.heading,
+    fontSize: 14,
+    color: colors.primary,
+    textAlign: 'center',
+    marginBottom: 4,
+  },
   livenessOutline: {
     width: 220, height: 280, borderWidth: 4, borderColor: colors.text, borderStyle: 'dotted',
     borderRadius: 110, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface,
@@ -605,14 +614,21 @@ const getStyles = (colors: any) => StyleSheet.create({
     position: 'absolute',
     bottom: 20,
     alignSelf: 'center',
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 30,
+    backgroundColor: 'rgba(0,0,0,0.6)',
     borderWidth: 2,
     borderColor: colors.surface,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: 8,
+  },
+  captureBtnText: {
+    fontFamily: DT.typography.heading,
+    fontSize: 12,
+    color: colors.surface,
+    letterSpacing: 1,
   },
   cameraPlaceholder: {
     alignItems: 'center',
