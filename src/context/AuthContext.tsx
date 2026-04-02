@@ -65,10 +65,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const segments = useSegments();
   const router = useRouter();
 
-  const refreshUser = async () => {
-    if (token) {
-      await fetchUserProfile(token);
+  const signOut = async () => {
+    try {
+      await Promise.all([
+        SecureStore.deleteItemAsync('userToken'),
+        SecureStore.deleteItemAsync('refreshToken'),
+        AsyncStorage.removeItem('userData')
+      ]);
+    } catch (e) {
+      console.error('Error during secure storage cleanup:', e);
     }
+    setToken(null);
+    setRefreshTokenState(null);
+    setUser(null);
+    router.replace('/onboarding');
+  };
+
+  const refreshAccessToken = async (currentRefreshToken: string) => {
+    try {
+      const response = await fetch(`${API.API_URL}/auth/refresh-token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: currentRefreshToken })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        await Promise.all([
+          SecureStore.setItemAsync('userToken', data.access_token),
+          SecureStore.setItemAsync('refreshToken', data.refresh_token)
+        ]);
+        setToken(data.access_token);
+        setRefreshTokenState(data.refresh_token);
+        return data;
+      }
+    } catch (e) {
+      console.error('Failed to refresh access token', e);
+    }
+    return null;
   };
 
   const fetchUserProfile = async (authToken: string) => {
@@ -94,36 +128,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             return;
           }
         }
+        // If we reach here, either no refresh token or refresh failed
+        await signOut();
       }
-      // For other errors, we keep the existing (possibly cached) user state.
-      // This follows the "never expire" policy.
     } catch (e) {
       console.error('Failed to fetch user profile', e);
     }
   };
 
-  const refreshAccessToken = async (currentRefreshToken: string) => {
-    try {
-      const response = await fetch(`${API.API_URL}/auth/refresh-token`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refresh_token: currentRefreshToken })
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        await Promise.all([
-          SecureStore.setItemAsync('userToken', data.access_token),
-          SecureStore.setItemAsync('refreshToken', data.refresh_token)
-        ]);
-        setToken(data.access_token);
-        setRefreshTokenState(data.refresh_token);
-        return data;
-      }
-    } catch (e) {
-      console.error('Failed to refresh access token', e);
+  const refreshUser = async () => {
+    if (token) {
+      await fetchUserProfile(token);
     }
-    return null;
   };
 
   useEffect(() => {
@@ -166,17 +182,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(accessToken);
     setRefreshTokenState(newRefreshToken);
     await fetchUserProfile(accessToken);
-  };
-
-  const signOut = async () => {
-    await Promise.all([
-      SecureStore.deleteItemAsync('userToken'),
-      SecureStore.deleteItemAsync('refreshToken'),
-      AsyncStorage.removeItem('userData')
-    ]);
-    setToken(null);
-    setRefreshTokenState(null);
-    setUser(null);
   };
 
   // Strictly enforce navigation guards
