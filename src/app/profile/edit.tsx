@@ -94,7 +94,15 @@ export default function EditProfileScreen() {
 
       if (!response.ok) {
         const err = await response.json();
-        throw new Error(err.detail || 'Update failed');
+        let message = 'Update failed';
+        if (err.detail) {
+          if (Array.isArray(err.detail)) {
+            message = err.detail[0].msg || message;
+          } else if (typeof err.detail === 'string') {
+            message = err.detail;
+          }
+        }
+        throw new Error(message);
       }
 
       await refreshUser();

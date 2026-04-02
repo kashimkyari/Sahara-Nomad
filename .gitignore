@@ -48,3 +48,4 @@ backend/app/__pycache__
 backend/alembic/__pycache__/env.cpython-310.pyc
 backend/app/models/__pycache__/*
 *.pyc
+backend/uploads/*
