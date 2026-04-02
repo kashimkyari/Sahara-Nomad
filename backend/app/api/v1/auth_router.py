@@ -26,6 +26,8 @@ UPLOAD_DIR = "uploads/avatars"
 if not os.path.exists(UPLOAD_DIR):
     os.makedirs(UPLOAD_DIR)
 
+from ...services.market_service import MarketService
+
 router = APIRouter()
 
 @router.post("/signup")
@@ -322,7 +324,7 @@ async def update_me(
     update_data = user_update.dict(exclude_unset=True)
     
     # Update User fields
-    for field in ["full_name", "email", "push_notifications_enabled", "location_services_enabled", "is_dark_mode", "language", "region", "expo_push_token"]:
+    for field in ["full_name", "email", "push_notifications_enabled", "location_services_enabled", "is_dark_mode", "language", "region", "city", "expo_push_token"]:
         if field in update_data:
             setattr(current_user, field, update_data[field])
             

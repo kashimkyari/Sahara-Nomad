@@ -40,5 +40,14 @@ export default {
     RUNNER: {
         ACTIVE_COUNT: (lat?: number, lng?: number) => 
             `${API_URL}/runners/active-count${lat && lng ? `?lat=${lat}&lng=${lng}` : ''}`,
+    },
+    SEARCH: {
+        RUNNERS: (q?: string, filter?: string, market?: string) => {
+            let url = `${API_URL}/search/runners?`;
+            if (q) url += `q=${encodeURIComponent(q)}&`;
+            if (filter) url += `filter=${filter}&`;
+            if (market) url += `market=${encodeURIComponent(market)}&`;
+            return url.slice(0, -1);
+        }
     }
 };

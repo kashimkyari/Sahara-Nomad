@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Image } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Image, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Search, MapPin, Star, History, ArrowRight } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
@@ -7,30 +7,72 @@ import { DesignTokens as DT } from '../../constants/design';
 import { useTheme } from '../../hooks/use-theme';
 import { useBrutalistRefresh } from '../../components/ui/BrutalistRefreshControl';
 import { MotiView } from 'moti';
+import { useAuth } from '../../context/AuthContext';
+import API from '../../constants/api';
 
-const markets = ['Mile 12', 'Balogun', 'Yaba', 'Ikeja', 'Oshodi', 'Tejuosho'];
 const filters = ['Available Now', 'Under 2km', '5★ Rated', 'Vehicles'];
 const recentSearches = ['Fresh Tomatoes', 'Macbook repair', 'Plumber in Yaba', 'Groceries'];
 
-const mockRunners = [
-  { id: '1', name: 'Chinedu O.', rating: 4.9, km: '0.8km', img: 'https://i.pravatar.cc/150?u=chinedu', active: true },
-  { id: '2', name: 'Amina B.', rating: 4.8, km: '1.2km', img: 'https://i.pravatar.cc/150?u=amina', active: true },
-  { id: '3', name: 'Tunde S.', rating: 5.0, km: '2.1km', img: 'https://i.pravatar.cc/150?u=tunde', active: false },
-  { id: '4', name: 'Ngozi A.', rating: 4.7, km: '3.0km', img: 'https://i.pravatar.cc/150?u=ngozi', active: true },
-];
-
 export default function SearchScreen() {
   const { colors } = useTheme();
+  const { user, token } = useAuth();
   const router = useRouter();
   const [query, setQuery] = useState('');
-  const [selectedMarket, setSelectedMarket] = useState('Mile 12');
+  const [markets, setMarkets] = useState<string[]>([]);
+  const [runners, setRunners] = useState<any[]>([]);
+  const [selectedMarket, setSelectedMarket] = useState('');
   const [activeFilter, setActiveFilter] = useState('Available Now');
+  const [loading, setLoading] = useState(false);
   const styles = getStyles(colors);
+
+  const fetchSearchData = async (mkt?: string, flt?: string) => {
+    if (!token) return;
+    setLoading(true);
+    try {
+      const selectedMkt = mkt !== undefined ? mkt : selectedMarket;
+      const activeFlt = flt !== undefined ? flt : activeFilter;
+      
+      // Map display filters to backend filter strings
+      const filterMap: any = {
+        'Available Now': 'available_now',
+        '5★ Rated': '5_star',
+        'Under 2km': 'nearby',
+        'Vehicles': 'vehicles'
+      };
+
+      const res = await fetch(API.SEARCH.RUNNERS(query, filterMap[activeFlt] || 'available_now', selectedMkt), {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      setRunners(data.runners || []);
+      
+      if (data.markets && data.markets.length > 0) {
+        setMarkets(data.markets);
+        if (!selectedMkt || !data.markets.includes(selectedMkt)) {
+          setSelectedMarket(data.markets[0]);
+        }
+      }
+    } catch (e) {
+      console.error('Search failed:', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSearchData();
+  }, [user?.city]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+        if (query.length > 2) fetchSearchData();
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [query]);
 
   const { refreshControl, refreshBanner, onScroll, refreshing } = useBrutalistRefresh({
     onRefresh: async () => {
-      // Mock refresh delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await fetchSearchData();
     },
   });
 
@@ -87,7 +129,10 @@ export default function SearchScreen() {
                   styles.filterChip, 
                   isActive && { backgroundColor: colors.primary, borderColor: colors.text }
                 ]}
-                onPress={() => setActiveFilter(f)}
+                onPress={() => {
+                  setActiveFilter(f);
+                  fetchSearchData(selectedMarket, f);
+                }}
               >
                 <Text style={[
                   styles.filterChipText, 
@@ -113,7 +158,10 @@ export default function SearchScreen() {
                     styles.marketTag,
                     isSelected && { backgroundColor: colors.accent }
                   ]}
-                  onPress={() => setSelectedMarket(m)}
+                  onPress={() => {
+                    setSelectedMarket(m);
+                    fetchSearchData(m, activeFilter);
+                  }}
                 >
                   <Text style={[
                     styles.marketTagText,
@@ -127,7 +175,7 @@ export default function SearchScreen() {
         {/* Active Runners Feed */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionLabel}>RUNNERS NEAR {selectedMarket.toUpperCase()}</Text>
+            <Text style={styles.sectionLabel}>RUNNERS IN {user?.city?.toUpperCase() || 'YOUR AREA'} · NEAR {selectedMarket.toUpperCase()}</Text>
           </View>
           
           <ScrollView 
@@ -135,37 +183,48 @@ export default function SearchScreen() {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.runnerScroll}
           >
-            {mockRunners.map(runner => (
-              <TouchableOpacity 
-                key={runner.id} 
-                style={styles.runnerCard}
-                onPress={() => router.push(`/runner/${runner.id}` as any)}
-              >
-                <View style={styles.runnerHeader}>
-                  <View style={styles.runnerAvatarWrap}>
-                    <Image source={{ uri: runner.img }} style={styles.runnerAvatar} />
-                    {runner.active && <View style={styles.onlineDot} />}
-                  </View>
-                  <View style={styles.runnerHeaderInfo}>
-                    <Text style={styles.runnerName}>{runner.name}</Text>
-                    <View style={styles.runnerMeta}>
-                      <Star size={12} color={colors.accent} fill={colors.accent} />
-                      <Text style={styles.runnerRating}>{runner.rating}</Text>
+            {loading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={colors.primary} />
+                <Text style={styles.loadingText}>Fetching nearby runners...</Text>
+              </View>
+            ) : runners.length > 0 ? (
+              runners.map(runner => (
+                <TouchableOpacity 
+                  key={runner.id} 
+                  style={styles.runnerCard}
+                  onPress={() => router.push(`/runner/${runner.id}` as any)}
+                >
+                  <View style={styles.runnerHeader}>
+                    <View style={styles.runnerAvatarWrap}>
+                      <Image source={{ uri: runner.image }} style={styles.runnerAvatar} />
+                      {runner.is_online && <View style={styles.onlineDot} />}
+                    </View>
+                    <View style={styles.runnerHeaderInfo}>
+                      <Text style={styles.runnerName}>{runner.name}</Text>
+                      <View style={styles.runnerMeta}>
+                        <Star size={12} color={colors.accent} fill={colors.accent} />
+                        <Text style={styles.runnerRating}>{runner.rating}</Text>
+                      </View>
                     </View>
                   </View>
-                </View>
 
-                <View style={styles.runnerFooter}>
-                  <View style={styles.distanceBadge}>
-                    <MapPin size={12} color={colors.surface} />
-                    <Text style={styles.distanceText}>{runner.km}</Text>
+                  <View style={styles.runnerFooter}>
+                    <View style={styles.distanceBadge}>
+                      <MapPin size={12} color={colors.surface} />
+                      <Text style={styles.distanceText}>{runner.distance_km}km</Text>
+                    </View>
+                    <TouchableOpacity style={styles.hireBtn} onPress={() => router.push('/new-errand')}>
+                      <Text style={styles.hireBtnText}>HIRE</Text>
+                    </TouchableOpacity>
                   </View>
-                  <TouchableOpacity style={styles.hireBtn} onPress={() => router.push('/new-errand')}>
-                    <Text style={styles.hireBtnText}>HIRE</Text>
-                  </TouchableOpacity>
+                </TouchableOpacity>
+              ))
+            ) : (
+                <View style={styles.emptyContainer}>
+                    <Text style={styles.emptyText}>No runners found near {selectedMarket}.</Text>
                 </View>
-              </TouchableOpacity>
-            ))}
+            )}
           </ScrollView>
         </View>
 
@@ -417,4 +476,35 @@ const getStyles = (colors: any) => StyleSheet.create({
     color: colors.text,
     marginLeft: DT.spacing.md,
   },
+  loadingContainer: {
+    width: 220,
+    height: 140,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderWidth: 2,
+    borderColor: colors.text,
+  },
+  loadingText: {
+    fontFamily: DT.typography.body,
+    fontSize: 10,
+    color: colors.muted,
+    marginTop: 8,
+  },
+  emptyContainer: {
+    width: 220,
+    height: 140,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderWidth: 2,
+    borderColor: colors.text,
+    padding: 20,
+  },
+  emptyText: {
+      fontFamily: DT.typography.body,
+      fontSize: 12,
+      color: colors.muted,
+      textAlign: 'center',
+  }
 });

@@ -28,6 +28,7 @@ class UserUpdate(BaseModel):
     is_dark_mode: Optional[bool] = None
     language: Optional[str] = None
     region: Optional[str] = None
+    city: Optional[str] = None
     bio: Optional[str] = None
     hourly_rate: Optional[float] = None
     expo_push_token: Optional[str] = None
@@ -58,6 +59,7 @@ class UserResponse(UserBase):
     is_dark_mode: bool
     language: str
     region: str
+    city: Optional[str] = None
     spent_total: float = 0.0
     errands_count: int = 0
     wallet_balance: float = 0.0

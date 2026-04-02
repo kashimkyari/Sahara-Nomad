@@ -7,6 +7,8 @@ from ...schemas.search import SearchResponse, RunnerSearchResponse
 from .deps import get_current_user
 from typing import List
 
+from ...services.market_service import MarketService
+
 router = APIRouter()
 
 @router.get("/runners", response_model=SearchResponse)
@@ -27,6 +29,10 @@ async def search_runners(
         stmt = stmt.where(RunnerProfile.is_online == True)
     elif filter == "5_star":
         stmt = stmt.where(RunnerProfile.stats_rating >= 4.8)
+        
+    # Get dynamic markets for user's city
+    city = current_user.city
+    markets = MarketService.get_popular_markets(city)
     
     # In a real PostGIS app, we would use ST_Distance or ST_DWithin here
     # Example: .where(func.ST_DWithin(RunnerProfile.current_location, user_location, 5000))
@@ -48,5 +54,6 @@ async def search_runners(
         
     return SearchResponse(
         runners=runners,
-        trending_searches=["Fresh Tomatoes", "Macbook charger", "Market Run"]
+        trending_searches=["Fresh Tomatoes", "Macbook charger", "Market Run"],
+        markets=markets
     )

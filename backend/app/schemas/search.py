@@ -14,3 +14,4 @@ class RunnerSearchResponse(BaseModel):
 class SearchResponse(BaseModel):
     runners: List[RunnerSearchResponse]
     trending_searches: List[str]
+    markets: List[str] = []

@@ -23,6 +23,9 @@ interface User {
   is_dark_mode: boolean;
   language: string;
   region: string;
+  city: string | null;
+  latitude: number | null;
+  longitude: number | null;
   spent_total: number;
   errands_count: number;
   wallet_balance: number;
@@ -255,6 +258,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const loc = await ExpoLocation.getCurrentPositionAsync({
               accuracy: ExpoLocation.Accuracy.Balanced,
             });
+            const [address] = await ExpoLocation.reverseGeocodeAsync({
+              latitude: loc.coords.latitude,
+              longitude: loc.coords.longitude
+            });
+            const city = address?.city || address?.subregion || address?.district;
+
             await fetch(`${API.API_URL}/auth/me`, {
               method: 'PATCH',
               headers: {
@@ -263,7 +272,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               },
               body: JSON.stringify({ 
                 latitude: loc.coords.latitude, 
-                longitude: loc.coords.longitude 
+                longitude: loc.coords.longitude,
+                city: city
               })
             });
             console.log('Location Synced:', loc.coords.latitude, loc.coords.longitude);
