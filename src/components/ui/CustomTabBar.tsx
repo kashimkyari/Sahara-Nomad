@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import * as Haptics from 'expo-haptics';
 import { MotiView } from 'moti';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import {
   Platform,
   Pressable,
@@ -13,6 +13,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DesignTokens as DT } from '../../constants/design';
 import { useTheme } from '../../hooks/use-theme';
+import { useAuth } from '../../context/AuthContext';
+import API from '../../constants/api';
 
 const BRUTAL_SPRING = { type: 'spring', stiffness: 600, damping: 18, mass: 0.6 } as const;
 const SETTLE_SPRING = { type: 'spring', stiffness: 280, damping: 26 } as const;
@@ -110,6 +112,28 @@ function TabItem({ route, index, isFocused, isLast, options, colors, onPress, on
           }}
         >
           <Ionicons name={iconName} size={22} color={contentColor} />
+          
+          {/* Unread Badge */}
+          {options.badge > 0 && (
+            <MotiView 
+              from={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              style={[
+                styles.badge,
+                { 
+                  backgroundColor: isFocused ? colors.surface : colors.primary,
+                  borderColor: isFocused ? colors.primary : colors.text
+                }
+              ]}
+            >
+              <Text style={[
+                styles.badgeText,
+                { color: isFocused ? colors.primary : colors.surface }
+              ]}>
+                {options.badge > 9 ? '9+' : options.badge}
+              </Text>
+            </MotiView>
+          )}
         </MotiView>
 
         {/* ⑤ Label: slides + fades, collapses when not focused */}
@@ -149,6 +173,39 @@ function TabItem({ route, index, isFocused, isLast, options, colors, onPress, on
 export function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
+  const { token } = useAuth();
+  
+  const [unreadMessages, setUnreadMessages] = useState(0);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
+
+  const fetchUnreadCounts = async () => {
+    if (!token) return;
+    try {
+      // Parallel fetch
+      const [msgRes, notifRes] = await Promise.all([
+        fetch(API.MESSAGES.UNREAD_COUNT, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(API.NOTIFICATIONS.UNREAD_COUNT, { headers: { Authorization: `Bearer ${token}` } })
+      ]);
+
+      if (msgRes.ok) {
+        const msgData = await msgRes.json();
+        setUnreadMessages(msgData.unread_count);
+      }
+      if (notifRes.ok) {
+        const notifData = await notifRes.json();
+        setUnreadNotifications(notifData.unread_count);
+      }
+    } catch (e) {
+      console.error('Failed to fetch unread counts in TabBar:', e);
+    }
+  };
+
+  useEffect(() => {
+    fetchUnreadCounts();
+    // Poll every 30s or use a trigger
+    const interval = setInterval(fetchUnreadCounts, 30000);
+    return () => clearInterval(interval);
+  }, [token]);
 
   const handlePress = useCallback(
     (route: any, isFocused: boolean) => {
@@ -200,7 +257,10 @@ export function CustomTabBar({ state, descriptors, navigation }: BottomTabBarPro
               index={index}
               isFocused={isFocused}
               isLast={index === state.routes.length - 1}
-              options={options}
+              options={{
+                ...options,
+                badge: route.name === 'messages' ? unreadMessages : (route.name === 'index' ? unreadNotifications : 0)
+              }}
               colors={colors}
               onPress={() => handlePress(route, isFocused)}
               onLongPress={() => handleLongPress(route)}
@@ -241,5 +301,22 @@ const styles = StyleSheet.create({
     fontSize: 10,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+  },
+  badge: {
+    position: 'absolute',
+    top: -6,
+    right: -10,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    paddingHorizontal: 2,
+  },
+  badgeText: {
+    fontFamily: DT.typography.heading,
+    fontSize: 9,
+    fontWeight: '900',
   },
 });

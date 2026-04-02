@@ -30,6 +30,7 @@ export default {
         HISTORY: (id: string) => `${API_URL}/chat/${id}/history`,
         SEND: `${API_URL}/chat/messages`,
         WS: (id: string, token: string) => `ws://172.20.10.9:8000/api/v1/chat/ws/${id}?token=${token}`,
+        UNREAD_COUNT: `${API_URL}/chat/unread-count`,
     },
     NOTIFICATIONS: {
         LIST: `${API_URL}/notifications/`,

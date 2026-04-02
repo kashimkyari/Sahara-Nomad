@@ -15,6 +15,27 @@ import json
 
 router = APIRouter()
 
+@router.get("/unread-count")
+async def get_unread_count(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Return total number of unread messages for the current user."""
+    unread_stmt = (
+        select(func.count(Message.id))
+        .join(Conversation, Message.conversation_id == Conversation.id)
+        .where(
+            and_(
+                or_(Conversation.employer_id == current_user.id, Conversation.runner_id == current_user.id),
+                Message.sender_id != current_user.id,
+                Message.is_read == False
+            )
+        )
+    )
+    result = await db.execute(unread_stmt)
+    count = result.scalar() or 0
+    return {"unread_count": count}
+
 @router.get("/conversations", response_model=list[ConversationRead])
 async def list_conversations(
     db: AsyncSession = Depends(get_db),
