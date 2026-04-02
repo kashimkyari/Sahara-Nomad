@@ -14,3 +14,4 @@ httpx
 python-dotenv
 pydantic-settings
 arrow
+shapely==2.1.2

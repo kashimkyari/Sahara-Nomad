@@ -40,6 +40,7 @@ export default {
     RUNNER: {
         ACTIVE_COUNT: (lat?: number, lng?: number) => 
             `${API_URL}/runners/active-count${lat && lng ? `?lat=${lat}&lng=${lng}` : ''}`,
+        GET: (id: string) => `${API_URL}/runners/${id}`,
     },
     SEARCH: {
         RUNNERS: (q?: string, filter?: string, market?: string) => {

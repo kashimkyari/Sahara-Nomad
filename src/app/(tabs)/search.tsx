@@ -197,7 +197,13 @@ export default function SearchScreen() {
                 >
                   <View style={styles.runnerHeader}>
                     <View style={styles.runnerAvatarWrap}>
-                      <Image source={{ uri: runner.image }} style={styles.runnerAvatar} />
+                      <Image 
+                        source={runner.image.startsWith('http') 
+                          ? { uri: runner.image } 
+                          : { uri: `${API.API_URL}${runner.image}`, headers: { Authorization: `Bearer ${token}` } }
+                        } 
+                        style={styles.runnerAvatar} 
+                      />
                       {runner.is_online && <View style={styles.onlineDot} />}
                     </View>
                     <View style={styles.runnerHeaderInfo}>
@@ -205,6 +211,12 @@ export default function SearchScreen() {
                       <View style={styles.runnerMeta}>
                         <Star size={12} color={colors.accent} fill={colors.accent} />
                         <Text style={styles.runnerRating}>{runner.rating}</Text>
+                        {runner.active_waka_count > 0 && (
+                          <>
+                            <Text style={styles.metaDot}>•</Text>
+                            <Text style={styles.wakaCountText}>{runner.active_waka_count} Active</Text>
+                          </>
+                        )}
                       </View>
                     </View>
                   </View>
@@ -452,6 +464,17 @@ const getStyles = (colors: any) => StyleSheet.create({
     fontFamily: DT.typography.heading,
     fontSize: 12,
     color: colors.surface,
+  },
+  metaDot: {
+    fontFamily: DT.typography.body,
+    fontSize: 12,
+    color: colors.muted,
+    marginHorizontal: 4,
+  },
+  wakaCountText: {
+    fontFamily: DT.typography.bodySemiBold,
+    fontSize: 11,
+    color: colors.secondary,
   },
   recentList: {
     backgroundColor: colors.surface,

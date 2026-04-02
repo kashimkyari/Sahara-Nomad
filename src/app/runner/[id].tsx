@@ -24,7 +24,9 @@ export default function RunnerProfileScreen() {
   useEffect(() => {
     const fetchRunner = async () => {
       try {
-        const response = await fetch(`${API.API_URL}/auth/runners/${id}`);
+        const response = await fetch(API.RUNNER.GET(id as string), {
+          headers: { Authorization: `Bearer ${token}` }
+        });
         const data = await response.json();
         setRunner(data);
       } catch (error) {
@@ -92,8 +94,9 @@ export default function RunnerProfileScreen() {
         {/* Stats Row */}
         <View style={styles.statsContainer}>
           {[
-            { value: runner.runner_profile?.stats_trips || '0', label: 'Trips' },
-            { value: runner.runner_profile?.stats_rating || '5.0', label: 'Rating' },
+            { value: (runner.runner_profile?.stats_trips || 0).toString(), label: 'Trips' },
+            { value: (runner.runner_profile?.stats_rating || 5.0).toString(), label: 'Rating' },
+            { value: (runner.runner_profile?.active_wakas || 0).toString(), label: 'Active' },
             { value: new Date(runner.created_at).getFullYear().toString(), label: 'Since' },
           ].map((s) => (
             <View key={s.label} style={styles.statItem}>
@@ -142,7 +145,7 @@ export default function RunnerProfileScreen() {
       {/* Sticky Hire Button */}
       <View style={styles.footer}>
         <Button
-          title={`Hire ${runner.full_name.split(' ')[0]} – ₦${(runner.runner_profile?.hourly_rate || 0).toLocaleString()}/hr`}
+          title={`Hire ${runner.full_name?.split(' ')[0] || 'Runner'} – ₦${(runner.runner_profile?.hourly_rate || 0).toLocaleString()}/hr`}
           onPress={() => router.push('/new-errand')}
         />
       </View>

@@ -4,6 +4,7 @@ from sqlalchemy import select, func
 from geoalchemy2 import Geography
 from ...database import get_db
 from ...models.user import RunnerProfile, User
+from ...models.review import Review
 from .deps import get_current_user
 import uuid
 
@@ -58,15 +59,42 @@ async def get_runner_profile(
         
     runner_profile, user = row
     
+    # Fetch active wakas for THIS runner
+    active_stmt = select(func.count(Waka.id)).where(
+        Waka.runner_id == user.id,
+        Waka.is_completed == False
+    )
+    active_res = await db.execute(active_stmt)
+    active_count = active_res.scalar() or 0
+
+    # Fetch last 5 reviews
+    reviews_stmt = select(Review, User).join(User, Review.reviewer_id == User.id).where(
+        Review.target_user_id == user.id
+    ).order_by(Review.created_at.desc()).limit(5)
+    reviews_result = await db.execute(reviews_stmt)
+    reviews_rows = reviews_result.all()
+
     # Molded response matching runner/[id].tsx expectations
     return {
         "id": str(runner_profile.id),
-        "name": user.full_name,
-        "rating": float(runner_profile.stats_rating),
-        "trips_completed": runner_profile.stats_trips,
-        "joined_year": user.created_at.year,
-        "bio": runner_profile.bio,
-        "hourly_rate": float(runner_profile.hourly_rate) if runner_profile.hourly_rate else 0,
-        "is_nin_verified": user.is_verified,
-        "recent_reviews": [] # Add relationship fetch if needed
+        "full_name": user.full_name,
+        "avatar_url": user.avatar_url,
+        "created_at": user.created_at.isoformat(),
+        "runner_profile": {
+            "id": str(runner_profile.id),
+            "bio": runner_profile.bio,
+            "hourly_rate": float(runner_profile.hourly_rate) if runner_profile.hourly_rate else 0,
+            "stats_rating": float(runner_profile.stats_rating),
+            "stats_trips": runner_profile.stats_trips,
+            "active_wakas": active_count,
+            "reviews": [
+                {
+                    "id": str(r.id),
+                    "reviewer_name": u.full_name,
+                    "comment": r.comment,
+                    "rating": r.rating,
+                    "created_at": r.created_at.isoformat()
+                } for r, u in reviews_rows
+            ]
+        }
     }
