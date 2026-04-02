@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional
 
 class Settings(BaseSettings):
-    PROJECT_NAME: str = "Sahara Nomad API"
+    PROJECT_NAME: str = "SendAm API"
     API_V1_STR: str = "/api/v1"
     
     JWT_SECRET: str = "your-secret-key-change-this-in-prod"

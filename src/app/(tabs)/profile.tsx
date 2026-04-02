@@ -1,7 +1,6 @@
 import { 
   CreditCard, 
   HelpCircle, 
-  LogOut, 
   Settings, 
   Shield, 
   ChevronRight, 
@@ -19,8 +18,6 @@ import { useTheme } from '../../hooks/use-theme';
 import { useAuth } from '../../context/AuthContext';
 import { DesignTokens as DT } from '../../constants/design';
 import API from '../../constants/api';
-import { BrutalistAlert } from '../../components/ui/BrutalistAlert';
-import { useState } from 'react';
 
 const menuItems = [
   { icon: CreditCard, label: 'Payment Methods', route: '/profile/payment' },
@@ -31,50 +28,8 @@ const menuItems = [
 
 export default function ProfileScreen() {
   const { colors } = useTheme();
-  const { user, token, signOut } = useAuth();
+  const { user, token } = useAuth();
   const router = useRouter();
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
-
-  // Alert State
-  const [alertVisible, setAlertVisible] = useState(false);
-  const [alertConfig, setAlertConfig] = useState<{title: string, message: string, buttons: any[]}>({
-    title: '',
-    message: '',
-    buttons: []
-  });
-
-  const showAlert = (title: string, message: string, buttons: any[] = [{ text: 'OK' }]) => {
-    setAlertConfig({ title, message, buttons });
-    setAlertVisible(true);
-  };
-
-  const handleLogout = () => {
-    showAlert('Sign Out', 'Are you sure you want to sign out of Sahara Nomad?', [
-      { text: 'Cancel', style: 'cancel' },
-      { 
-        text: 'Sign Out', 
-        style: 'destructive',
-        loading: isLoggingOut,
-        loadingText: 'Signing Out...',
-        onPress: async () => {
-          setIsLoggingOut(true);
-          try {
-            await fetch(`${API.API_URL}/auth/logout`, {
-              method: 'POST',
-              headers: { Authorization: `Bearer ${token}` }
-            });
-          } catch (e) {
-            console.log('Logout error', e);
-          }
-          await new Promise(resolve => setTimeout(resolve, 800));
-          signOut();
-          router.replace('/onboarding');
-          setIsLoggingOut(false);
-          setAlertVisible(false);
-        } 
-      }
-    ]);
-  };
 
   const styles = getStyles(colors);
 
@@ -201,21 +156,7 @@ export default function ProfileScreen() {
             ))}
           </View>
         )}
-
-        {/* Logout */}
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <LogOut size={20} color={colors.surface} strokeWidth={2.5} />
-          <Text style={styles.logoutText}>Sign Out</Text>
-        </TouchableOpacity>
       </ScrollView>
-
-      <BrutalistAlert
-        visible={alertVisible}
-        title={alertConfig.title}
-        message={alertConfig.message}
-        buttons={alertConfig.buttons}
-        onClose={() => setAlertVisible(false)}
-      />
     </SafeAreaView>
   );
 }
@@ -442,28 +383,6 @@ const getStyles = (colors: any) => StyleSheet.create({
     fontSize: 15,
     color: colors.text,
     flex: 1,
-  },
-  logoutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginHorizontal: DT.spacing.lg,
-    padding: DT.spacing.md,
-    gap: DT.spacing.sm,
-    borderWidth: 3,
-    borderColor: colors.text,
-    backgroundColor: colors.error,
-    marginBottom: DT.spacing.xl,
-    shadowColor: colors.text,
-    shadowOffset: { width: 4, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 4,
-  },
-  logoutText: {
-    fontFamily: DT.typography.heading,
-    fontSize: 16,
-    color: colors.surface,
   },
   reviewsSection: {
     marginHorizontal: DT.spacing.lg,

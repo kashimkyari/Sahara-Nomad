@@ -7,7 +7,7 @@ DB_PASS="password"
 DB_HOST="localhost"
 DB_PORT="5432"
 
-echo "🐘 Initializing Database Setup for Sahara Nomad..."
+echo "🐘 Initializing Database Setup for SendAm..."
 
 # Create database and user if they don't exist
 # We use sudo -u postgres to ensure we have permission to create roles/dbs

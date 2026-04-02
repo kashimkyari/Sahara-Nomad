@@ -90,6 +90,7 @@ export default function ProfileSettingsScreen() {
     message: '',
     buttons: []
   });
+  const [logoutStatus, setLogoutStatus] = useState('Signing Out...');
 
   const showAlert = (title: string, message: string, buttons: any[] = [{ text: 'OK' }]) => {
     setAlertConfig({ title, message, buttons });
@@ -168,15 +169,16 @@ export default function ProfileSettingsScreen() {
   };
 
   const handleLogout = () => {
-    showAlert('Sign Out', 'Are you sure you want to sign out of Sahara Nomad?', [
+    showAlert('Sign Out', 'Are you sure you want to sign out of SendAm?', [
       { text: 'Cancel', style: 'cancel' },
       { 
         text: 'Sign Out', 
         style: 'destructive',
         loading: isLoggingOut,
-        loadingText: 'Signing Out...',
+        loadingText: logoutStatus,
         onPress: async () => {
           setIsLoggingOut(true);
+          setLogoutStatus('REVOKING TOKENS...');
           try {
             await fetch(`${API.API_URL}/auth/logout`, {
               method: 'POST',
@@ -185,8 +187,11 @@ export default function ProfileSettingsScreen() {
           } catch (e) {
             console.log('Logout error', e);
           }
-          // Wait a bit for the effect
-          await new Promise(resolve => setTimeout(resolve, 800));
+          await new Promise(resolve => setTimeout(resolve, 600));
+          setLogoutStatus('CLEARING CACHE...');
+          await new Promise(resolve => setTimeout(resolve, 600));
+          setLogoutStatus('SECURELY LOGGING OUT...');
+          await new Promise(resolve => setTimeout(resolve, 600));
           signOut();
           router.replace('/onboarding');
           setIsLoggingOut(false);
@@ -357,7 +362,7 @@ export default function ProfileSettingsScreen() {
                 <View>
                   <Text style={[styles.linkTitle, { color: colors.error, fontSize: 16 }]}>Irreversible Action</Text>
                   <Text style={[styles.linkSub, { marginTop: 4, fontSize: 13 }]}>
-                    This is the last step. Click the button below to permanently erase your data from Sahara Nomad.
+                    This is the last step. Click the button below to permanently erase your data from SendAm.
                   </Text>
                   <View style={{ gap: DT.spacing.sm, marginTop: DT.spacing.md }}>
                     <TouchableOpacity

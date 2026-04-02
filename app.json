@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "sahara-nomad",
-    "slug": "sahara-nomad",
+    "name": "SendAm",
+    "slug": "sendam",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "saharanomad",
+    "scheme": "sendam",
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon"
