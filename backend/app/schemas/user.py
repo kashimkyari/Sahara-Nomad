@@ -16,6 +16,9 @@ class UserUpdate(BaseModel):
     email: Optional[EmailStr] = None
     push_notifications_enabled: Optional[bool] = None
     location_services_enabled: Optional[bool] = None
+    is_dark_mode: Optional[bool] = None
+    language: Optional[str] = None
+    region: Optional[str] = None
     bio: Optional[str] = None
     hourly_rate: Optional[float] = None
 
@@ -35,6 +38,11 @@ class UserResponse(UserBase):
     loyalty_badge: Optional[str] = None
     created_at: datetime
     avatar_url: Optional[str] = None
+    push_notifications_enabled: bool
+    location_services_enabled: bool
+    is_dark_mode: bool
+    language: str
+    region: str
     runner_profile: Optional[RunnerProfileResponse] = None
 
     class Config:

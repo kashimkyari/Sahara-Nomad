@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Switch, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, Switch, StyleSheet, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../hooks/use-theme';
@@ -7,12 +7,58 @@ import { useAuth } from '../../context/AuthContext';
 import { ChevronLeft, ChevronRight, Bell, MapPin, Moon, Globe, LogOut } from 'lucide-react-native';
 import { DesignTokens as DT } from '../../constants/design';
 
+import API from '../../constants/api';
+
 export default function ProfileSettingsScreen() {
   const { isDarkMode, toggleTheme, colors } = useTheme();
-  const { signOut } = useAuth();
+  const { user, token, signOut, refreshUser } = useAuth();
   const router = useRouter();
-  const [notifs, setNotifs] = useState(true);
-  const [location, setLocation] = useState(true);
+
+  const [notifs, setNotifs] = useState(user?.push_notifications_enabled ?? true);
+  const [location, setLocation] = useState(user?.location_services_enabled ?? true);
+  const [language, setLanguage] = useState(user?.language ?? 'en');
+  const [region, setRegion] = useState(user?.region ?? 'NG');
+
+  useEffect(() => {
+    if (user) {
+      setNotifs(user.push_notifications_enabled);
+      setLocation(user.location_services_enabled);
+      setLanguage(user.language);
+      setRegion(user.region);
+    }
+  }, [user]);
+
+  const updatePreference = async (key: string, value: any) => {
+    if (!token) return;
+
+    // Optimistic update
+    if (key === 'push_notifications_enabled') setNotifs(value);
+    if (key === 'location_services_enabled') setLocation(value);
+    if (key === 'language') setLanguage(value);
+    if (key === 'region') setRegion(value);
+
+    try {
+      const response = await fetch(`${API.API_URL}/auth/me`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          [key]: value
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to update setting');
+      
+      await refreshUser();
+    } catch (error) {
+      // Revert on error
+      if (key === 'push_notifications_enabled') setNotifs(!value);
+      if (key === 'location_services_enabled') setLocation(!value);
+      console.error(error);
+    }
+  };
 
   const styles = getStyles(colors);
 
@@ -34,7 +80,12 @@ export default function ProfileSettingsScreen() {
               <View style={[styles.icon, { backgroundColor: colors.primary }]}><Bell size={18} color={colors.surface} strokeWidth={2.5} /></View>
               <View><Text style={styles.settingTitle}>Push Notifications</Text><Text style={styles.settingSub}>Waka updates & runner messages</Text></View>
             </View>
-            <Switch value={notifs} onValueChange={setNotifs} trackColor={{ false: colors.muted, true: colors.primary }} thumbColor={colors.surface} />
+            <Switch 
+              value={notifs} 
+              onValueChange={(val) => updatePreference('push_notifications_enabled', val)} 
+              trackColor={{ false: colors.muted, true: colors.primary }} 
+              thumbColor={colors.surface} 
+            />
           </View>
           <View style={styles.divider} />
           <View style={styles.settingRow}>
@@ -42,7 +93,12 @@ export default function ProfileSettingsScreen() {
               <View style={[styles.icon, { backgroundColor: colors.secondary }]}><MapPin size={18} color={colors.surface} strokeWidth={2.5} /></View>
               <View><Text style={styles.settingTitle}>Location Services</Text><Text style={styles.settingSub}>Used to find runners near you</Text></View>
             </View>
-            <Switch value={location} onValueChange={setLocation} trackColor={{ false: colors.muted, true: colors.secondary }} thumbColor={colors.surface} />
+            <Switch 
+              value={location} 
+              onValueChange={(val) => updatePreference('location_services_enabled', val)} 
+              trackColor={{ false: colors.muted, true: colors.secondary }} 
+              thumbColor={colors.surface} 
+            />
           </View>
           <View style={styles.divider} />
           <View style={styles.settingRow}>
@@ -50,7 +106,15 @@ export default function ProfileSettingsScreen() {
               <View style={[styles.icon, { backgroundColor: colors.text }]}><Moon size={18} color={colors.surface} strokeWidth={2.5} /></View>
               <View><Text style={styles.settingTitle}>Dark Mode</Text><Text style={styles.settingSub}>Neobrutalist dark experience</Text></View>
             </View>
-            <Switch value={isDarkMode} onValueChange={toggleTheme} trackColor={{ false: colors.muted, true: colors.text }} thumbColor={colors.surface} />
+            <Switch 
+              value={isDarkMode} 
+              onValueChange={(val) => {
+                toggleTheme();
+                updatePreference('is_dark_mode', val);
+              }} 
+              trackColor={{ false: colors.muted, true: colors.text }} 
+              thumbColor={colors.surface} 
+            />
           </View>
         </View>
 
@@ -74,9 +138,37 @@ export default function ProfileSettingsScreen() {
 
         <Text style={[styles.sectionLabel, { marginTop: DT.spacing.lg }]}>LANGUAGE & REGION</Text>
         <View style={styles.group}>
-          <TouchableOpacity style={styles.linkRow} onPress={() => router.push('/profile/language' as any)}>
+          <TouchableOpacity 
+            style={styles.linkRow} 
+            onPress={() => {
+              Alert.alert('Select Language', 'Choose your preferred language', [
+                { text: 'English', onPress: () => updatePreference('language', 'en') },
+                { text: 'Hausa', onPress: () => updatePreference('language', 'ha') },
+                { text: 'Yoruba', onPress: () => updatePreference('language', 'yo') },
+                { text: 'Igbo', onPress: () => updatePreference('language', 'ig') },
+                { text: 'Cancel', style: 'cancel' }
+              ]);
+            }}
+          >
             <View style={[styles.icon, { backgroundColor: colors.accent, marginRight: DT.spacing.md }]}><Globe size={18} color={colors.text} strokeWidth={2.5} /></View>
-            <View style={styles.linkInfo}><Text style={styles.linkTitle}>Language</Text><Text style={styles.linkSub}>English (Nigeria)</Text></View>
+            <View style={styles.linkInfo}><Text style={styles.linkTitle}>Language</Text><Text style={styles.linkSub}>
+              {language === 'en' ? 'English' : language === 'ha' ? 'Hausa' : language === 'yo' ? 'Yoruba' : 'Igbo'} (Nigeria)
+            </Text></View>
+            <ChevronRight size={18} color={colors.muted} />
+          </TouchableOpacity>
+          <View style={styles.divider} />
+          <TouchableOpacity 
+            style={styles.linkRow}
+            onPress={() => {
+              Alert.alert('Select Region', 'Choose your primary region', [
+                { text: 'Nigeria (NG)', onPress: () => updatePreference('region', 'NG') },
+                { text: 'Ghana (GH)', onPress: () => updatePreference('region', 'GH') },
+                { text: 'Kenya (KE)', onPress: () => updatePreference('region', 'KE') },
+                { text: 'Cancel', style: 'cancel' }
+              ]);
+            }}
+          >
+            <View style={styles.linkInfo}><Text style={styles.linkTitle}>Region</Text><Text style={styles.linkSub}>{region === 'NG' ? 'Nigeria' : region === 'GH' ? 'Ghana' : 'Kenya'}</Text></View>
             <ChevronRight size={18} color={colors.muted} />
           </TouchableOpacity>
         </View>

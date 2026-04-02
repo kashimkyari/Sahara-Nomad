@@ -119,7 +119,7 @@ async def update_me(
     update_data = user_update.dict(exclude_unset=True)
     
     # Update User fields
-    for field in ["full_name", "email", "push_notifications_enabled", "location_services_enabled"]:
+    for field in ["full_name", "email", "push_notifications_enabled", "location_services_enabled", "is_dark_mode", "language", "region"]:
         if field in update_data:
             setattr(current_user, field, update_data[field])
     

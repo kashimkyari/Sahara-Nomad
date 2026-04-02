@@ -2,7 +2,17 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { DesignTokens } from '../constants/design';
 
 type Theme = 'light' | 'dark';
-type Colors = typeof DesignTokens.light;
+interface Colors {
+  primary: string;
+  secondary: string;
+  background: string;
+  surface: string;
+  text: string;
+  muted: string;
+  accent: string;
+  error: string;
+  border: string;
+}
 
 interface ThemeContextType {
   theme: Theme;
@@ -13,8 +23,17 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
+import { useAuth } from './AuthContext';
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
   const [theme, setTheme] = useState<Theme>('light');
+
+  useEffect(() => {
+    if (user?.is_dark_mode !== undefined) {
+      setTheme(user.is_dark_mode ? 'dark' : 'light');
+    }
+  }, [user?.is_dark_mode]);
 
   const toggleTheme = () => {
     setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));

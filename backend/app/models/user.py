@@ -18,6 +18,9 @@ class User(AuditableBase):
     
     push_notifications_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     location_services_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    is_dark_mode: Mapped[bool] = mapped_column(Boolean, default=False)
+    language: Mapped[str] = mapped_column(String(10), default="en")
+    region: Mapped[str] = mapped_column(String(10), default="NG")
     
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
     government_id_nin: Mapped[Optional[str]] = mapped_column(String(11), unique=True, nullable=True)

@@ -11,6 +11,11 @@ interface User {
   loyalty_badge: string | null;
   is_verified: boolean;
   avatar_url: string | null;
+  push_notifications_enabled: boolean;
+  location_services_enabled: boolean;
+  is_dark_mode: boolean;
+  language: string;
+  region: string;
   runner_profile?: {
     bio?: string;
     hourly_rate?: number;
