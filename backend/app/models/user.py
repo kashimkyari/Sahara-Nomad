@@ -22,6 +22,7 @@ class User(AuditableBase):
     language: Mapped[str] = mapped_column(String(10), default="en")
     region: Mapped[str] = mapped_column(String(10), default="NG")
     
+    is_otp_verified: Mapped[bool] = mapped_column(Boolean, default=False)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
     government_id_nin: Mapped[Optional[str]] = mapped_column(String(11), unique=True, nullable=True)
     loyalty_badge: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)

@@ -36,6 +36,7 @@ class RunnerProfileResponse(BaseModel):
 
 class UserResponse(UserBase):
     id: UUID
+    is_otp_verified: bool
     is_verified: bool
     loyalty_badge: Optional[str] = None
     created_at: datetime

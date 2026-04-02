@@ -43,6 +43,7 @@ async def signup(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
         phone_number=user_in.phone_number,
         password_hash=get_password_hash(user_in.password),
         email=user_in.email,
+        is_otp_verified=False,
         is_verified=False,
         otp_code="123456",
         otp_expires_at=datetime.utcnow() + timedelta(minutes=10)
@@ -68,6 +69,12 @@ async def login_json(user_in: UserLogin, db: AsyncSession = Depends(get_db)):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect phone number or password",
         )
+    
+    if user.is_otp_verified:
+        return {
+            "access_token": create_access_token(user.id),
+            "token_type": "bearer",
+        }
     
     # Trigger OTP
     user.otp_code = "123456"
@@ -103,7 +110,7 @@ async def verify_otp(verify_in: OTPVerify, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=400, detail="OTP code expired")
     
     # Success
-    user.is_verified = True
+    user.is_otp_verified = True
     user.otp_code = None
     user.otp_expires_at = None
     await db.commit()
@@ -114,14 +121,20 @@ async def verify_otp(verify_in: OTPVerify, db: AsyncSession = Depends(get_db)):
     }
 
 async def _hydrate_user_response(user: User, db: AsyncSession) -> UserResponse:
-    # Calculate spent_total
-    spent_result = await db.execute(
-        select(func.sum(Transaction.amount))
-        .where(Transaction.wallet_id == user.wallet.id)
-        .where(Transaction.type == "waka_payment")
-        .where(Transaction.is_completed == True)
-    )
-    spent_total = spent_result.scalar() or 0.0
+    # Explicitly fetch wallet to avoid MissingGreenlet lazy load error
+    wallet_result = await db.execute(select(Wallet).where(Wallet.user_id == user.id))
+    wallet = wallet_result.scalars().first()
+    
+    spent_total = 0.0
+    if wallet:
+        # Calculate spent_total
+        spent_result = await db.execute(
+            select(func.sum(Transaction.amount))
+            .where(Transaction.wallet_id == wallet.id)
+            .where(Transaction.type == "waka_payment")
+            .where(Transaction.is_completed == True)
+        )
+        spent_total = spent_result.scalar() or 0.0
     
     # Calculate errands_count
     errands_result = await db.execute(
@@ -134,7 +147,7 @@ async def _hydrate_user_response(user: User, db: AsyncSession) -> UserResponse:
     resp = UserResponse.from_orm(user)
     resp.spent_total = float(spent_total)
     resp.errands_count = errands_count
-    resp.wallet_balance = float(user.wallet.balance)
+    resp.wallet_balance = float(wallet.balance) if wallet else 0.0
     
     # Populate reviewer names for runner reviews if they exist
     if user.runner_profile and user.runner_profile.reviews:

@@ -9,6 +9,7 @@ interface User {
   phone_number: string;
   email: string | null;
   loyalty_badge: string | null;
+  is_otp_verified: boolean;
   is_verified: boolean;
   avatar_url: string | null;
   push_notifications_enabled: boolean;

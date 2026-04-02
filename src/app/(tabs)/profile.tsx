@@ -111,7 +111,7 @@ export default function ProfileScreen() {
           {[
             { label: 'ERRANDS', value: user?.errands_count?.toString() || '0' },
             { label: 'SPENT', value: `₦${(user?.spent_total || 0).toLocaleString()}` },
-            { label: 'RATING', value: `${user?.runner_profile?.stats_rating || 5.0}★` },
+            { label: 'RATING', value: `${Number(user?.runner_profile?.stats_rating ?? 5.0).toFixed(1)}★` },
           ].map((stat, i) => (
             <View key={stat.label} style={[
               styles.statBlock,
