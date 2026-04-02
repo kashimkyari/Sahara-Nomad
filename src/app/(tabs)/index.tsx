@@ -158,7 +158,7 @@ export default function HomeScreen() {
       </ScrollView>
 
       {/* ── FAB ── */}
-      <Animated.View
+      {/* <Animated.View
         style={[
           styles.fabShadow,
           { transform: [{ scale: fabScale }] },
@@ -173,7 +173,7 @@ export default function HomeScreen() {
         >
           <Plus size={30} color={colors.surface} strokeWidth={3} />
         </TouchableOpacity>
-      </Animated.View>
+      </Animated.View> */}
     </SafeAreaView>
   );
 }

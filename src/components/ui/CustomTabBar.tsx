@@ -15,7 +15,7 @@ export function CustomTabBar({ state, descriptors, navigation }: BottomTabBarPro
       styles.outerContainer,
       {
         shadowColor: colors.text,
-        bottom: Math.max(insets.bottom, 16),
+        bottom: insets.bottom > 0 ? insets.bottom - 4 : 12,
       }
     ]}>
       <View style={[
