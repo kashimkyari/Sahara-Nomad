@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import {
-  View, Text, TouchableOpacity, ScrollView, StyleSheet, Animated,
+  View, Text, TouchableOpacity, ScrollView, StyleSheet, Animated, TextInput, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { ChevronLeft, Bike, CheckCircle2, ShieldCheck, MapPin, Zap } from 'lucide-react-native';
+import { ChevronLeft, Bike, CheckCircle2, ShieldCheck, MapPin, Zap, Smartphone, Camera } from 'lucide-react-native';
 import { DesignTokens as DT } from '../../constants/design';
 import { useTheme } from '../../hooks/use-theme';
 
@@ -20,6 +20,11 @@ export default function BecomeRunnerScreen() {
   const router = useRouter();
   const [started, setStarted] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
+  const [bvnPhase, setBvnPhase] = useState(0);
+  const [verificationMethod, setVerificationMethod] = useState<'otp' | 'liveness' | ''>('');
+  const [otp, setOtp] = useState('');
+  const [bvn, setBvn] = useState('');
+  const [address, setAddress] = useState('');
   const [transport, setTransport] = useState('');
   const styles = getStyles(colors);
 
@@ -85,13 +90,20 @@ export default function BecomeRunnerScreen() {
   // Application flow
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => currentStep > 0 ? setCurrentStep(c => c - 1) : setStarted(false)}>
-          <ChevronLeft size={24} color={colors.text} strokeWidth={2.5} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Step {currentStep + 1} of {steps.length}</Text>
-        <View style={{ width: 40 }} />
-      </View>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={{ flex: 1 }}>
+            <View style={styles.header}>
+              <TouchableOpacity style={styles.backBtn} onPress={() => {
+                if (currentStep === 0 && bvnPhase > 0) setBvnPhase(p => p - 1);
+                else if (currentStep > 0) setCurrentStep(c => c - 1);
+                else setStarted(false);
+              }}>
+                <ChevronLeft size={24} color={colors.text} strokeWidth={2.5} />
+              </TouchableOpacity>
+              <Text style={styles.headerTitle}>Step {currentStep + 1} of {steps.length}</Text>
+              <View style={{ width: 40 }} />
+            </View>
 
       {/* Progress bar */}
       <View style={styles.progressTrack}>
@@ -106,6 +118,88 @@ export default function BecomeRunnerScreen() {
             </View>
             <Text style={styles.bigStepTitle}>{steps[currentStep].title}</Text>
             <Text style={styles.bigStepDesc}>{steps[currentStep].desc}</Text>
+
+            {currentStep === 0 && bvnPhase === 0 && (
+              <View style={styles.inputWrapper}>
+                <Text style={styles.inputLabel}>ENTER 11-DIGIT BVN</Text>
+                <TextInput
+                  style={[styles.bvnInput, { color: colors.text }]}
+                  keyboardType="number-pad"
+                  maxLength={11}
+                  placeholder="00000000000"
+                  placeholderTextColor={colors.muted}
+                  value={bvn}
+                  onChangeText={setBvn}
+                  secureTextEntry
+                />
+                <View style={styles.bvnInfoBox}>
+                  <ShieldCheck size={16} color={colors.text} />
+                  <Text style={styles.bvnInfoText}>Encrypted & matched via NIBSS.</Text>
+                </View>
+              </View>
+            )}
+
+            {currentStep === 0 && bvnPhase === 1 && (
+              <View style={styles.inputWrapper}>
+                <Text style={styles.inputLabel}>VERIFICATION METHOD</Text>
+                <TouchableOpacity 
+                  style={[styles.methodCard, verificationMethod === 'otp' && styles.methodCardActive]}
+                  onPress={() => setVerificationMethod('otp')}
+                >
+                  <Smartphone size={24} color={colors.text} />
+                  <Text style={[styles.methodTitle, verificationMethod === 'otp' && styles.methodTitleActive]}>OTP to linked phone</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={[styles.methodCard, verificationMethod === 'liveness' && styles.methodCardActive]}
+                  onPress={() => setVerificationMethod('liveness')}
+                >
+                  <Camera size={24} color={colors.text} />
+                  <Text style={[styles.methodTitle, verificationMethod === 'liveness' && styles.methodTitleActive]}>Liveness Check (Selfie)</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {currentStep === 0 && bvnPhase === 2 && verificationMethod === 'otp' && (
+              <View style={styles.inputWrapper}>
+                <Text style={styles.inputLabel}>ENTER 6-DIGIT OTP</Text>
+                <TextInput
+                  style={[styles.bvnInput, { color: colors.text }]}
+                  keyboardType="number-pad"
+                  maxLength={6}
+                  placeholder="000000"
+                  placeholderTextColor={colors.muted}
+                  value={otp}
+                  onChangeText={setOtp}
+                />
+              </View>
+            )}
+
+            {currentStep === 0 && bvnPhase === 2 && verificationMethod === 'liveness' && (
+              <View style={styles.livenessBox}>
+                <View style={styles.livenessOutline}>
+                  <Camera size={48} color={colors.text} opacity={0.5} />
+                </View>
+                <Text style={styles.bvnInfoText}>Center your face in the frame.</Text>
+              </View>
+            )}
+
+            {currentStep === 1 && (
+              <View style={styles.inputWrapper}>
+                <Text style={styles.inputLabel}>YOUR PRIMARY AREA</Text>
+                <TextInput
+                  style={[styles.bvnInput, { color: colors.text, fontSize: 18, letterSpacing: 1 }]}
+                  placeholder="e.g. 15 Awolowo Road, Ikoyi"
+                  placeholderTextColor={colors.muted}
+                  value={address}
+                  onChangeText={setAddress}
+                />
+                <TouchableOpacity style={styles.gpsBtn}>
+                  <MapPin size={20} color={colors.surface} />
+                  <Text style={styles.gpsBtnText}>Use Current Location</Text>
+                </TouchableOpacity>
+              </View>
+            )}
 
             {currentStep === 2 && (
               <View style={styles.transportGrid}>
@@ -122,12 +216,35 @@ export default function BecomeRunnerScreen() {
             )}
 
             <TouchableOpacity
-              style={[styles.nextBtn, currentStep === 2 && !transport && styles.nextBtnDisabled]}
-              onPress={() => setCurrentStep(c => c + 1)}
-              disabled={currentStep === 2 && !transport}
+              style={[
+                styles.nextBtn, 
+                (
+                  (currentStep === 0 && bvnPhase === 0 && bvn.length !== 11) || 
+                  (currentStep === 0 && bvnPhase === 1 && !verificationMethod) || 
+                  (currentStep === 0 && bvnPhase === 2 && verificationMethod === 'otp' && otp.length !== 6) || 
+                  (currentStep === 1 && address.length < 5) ||
+                  (currentStep === 2 && !transport)
+                ) && styles.nextBtnDisabled
+              ]}
+              onPress={() => {
+                if (currentStep === 0) {
+                  if (bvnPhase === 0) setBvnPhase(1);
+                  else if (bvnPhase === 1) setBvnPhase(2);
+                  else if (bvnPhase === 2) setCurrentStep(c => c + 1);
+                } else {
+                  setCurrentStep(c => c + 1);
+                }
+              }}
+              disabled={
+                (currentStep === 0 && bvnPhase === 0 && bvn.length !== 11) || 
+                (currentStep === 0 && bvnPhase === 1 && !verificationMethod) || 
+                (currentStep === 0 && bvnPhase === 2 && verificationMethod === 'otp' && otp.length !== 6) || 
+                (currentStep === 1 && address.length < 5) ||
+                (currentStep === 2 && !transport)
+              }
             >
               <Text style={styles.nextBtnText}>
-                {currentStep === 2 ? 'Submit Application' : 'Continue'}
+                {currentStep === 2 ? 'Submit Application' : currentStep === 0 && bvnPhase === 2 && verificationMethod === 'liveness' ? 'Start Scan & Verify' : 'Continue'}
               </Text>
             </TouchableOpacity>
           </>
@@ -144,6 +261,9 @@ export default function BecomeRunnerScreen() {
           </View>
         )}
       </View>
+          </View>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -208,9 +328,32 @@ const getStyles = (colors: any) => StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     shadowColor: colors.text, shadowOffset: { width: 4, height: 4 }, shadowOpacity: 1, shadowRadius: 0, elevation: 5,
   },
-  bigStepTitle: { fontFamily: DT.typography.heading, fontSize: 28, color: colors.text },
+  bigStepTitle: { fontFamily: DT.typography.heading, fontSize: 24, color: colors.text },
   bigStepDesc: { fontFamily: DT.typography.body, fontSize: 15, color: colors.muted, lineHeight: 24 },
-  transportGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: DT.spacing.sm },
+  
+  inputWrapper: { marginTop: DT.spacing.md },
+  inputLabel: { fontFamily: DT.typography.heading, fontSize: 13, color: colors.text, marginBottom: 8, letterSpacing: 1 },
+  bvnInput: {
+    height: 64, borderWidth: 3, borderColor: colors.text, backgroundColor: colors.surface,
+    paddingHorizontal: DT.spacing.md, fontFamily: DT.typography.heading, fontSize: 24, letterSpacing: 4,
+    shadowColor: colors.text, shadowOffset: { width: 4, height: 4 }, shadowOpacity: 1, shadowRadius: 0, elevation: 4,
+  },
+  bvnInfoBox: {
+    flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: colors.background,
+    borderWidth: 2, borderColor: colors.text, borderStyle: 'dashed', padding: DT.spacing.sm, marginTop: DT.spacing.md,
+  },
+  bvnInfoText: { fontFamily: DT.typography.bodySemiBold, fontSize: 12, color: colors.text },
+  gpsBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: colors.primary, paddingVertical: DT.spacing.md,
+    borderWidth: 2, borderColor: colors.text, marginTop: DT.spacing.md,
+    shadowColor: colors.text, shadowOffset: { width: 3, height: 3 }, shadowOpacity: 1, shadowRadius: 0, elevation: 3,
+  },
+  gpsBtnText: {
+    fontFamily: DT.typography.heading, fontSize: 16, color: colors.surface,
+  },
+
+  transportGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: DT.spacing.sm, marginTop: 12 },
   transportChip: {
     paddingHorizontal: DT.spacing.md, paddingVertical: DT.spacing.sm,
     borderWidth: 2, borderColor: colors.text, backgroundColor: colors.surface,
@@ -228,4 +371,20 @@ const getStyles = (colors: any) => StyleSheet.create({
   successBox: { alignItems: 'center', gap: DT.spacing.md, paddingTop: DT.spacing.xl },
   successTitle: { fontFamily: DT.typography.heading, fontSize: 26, color: colors.text },
   successSub: { fontFamily: DT.typography.body, fontSize: 15, color: colors.muted, textAlign: 'center', lineHeight: 22 },
+  methodCard: {
+    flexDirection: 'row', alignItems: 'center', gap: DT.spacing.md,
+    backgroundColor: colors.surface, padding: DT.spacing.lg,
+    borderWidth: 3, borderColor: colors.text, marginBottom: DT.spacing.sm,
+    shadowColor: colors.text, shadowOffset: { width: 4, height: 4 }, shadowOpacity: 1, shadowRadius: 0, elevation: 4,
+  },
+  methodCardActive: {
+    backgroundColor: colors.primary, shadowOffset: { width: 0, height: 0 }, elevation: 0, transform: [{ translateX: 4 }, { translateY: 4 }],
+  },
+  methodTitle: { fontFamily: DT.typography.heading, fontSize: 16, color: colors.text },
+  methodTitleActive: { color: colors.surface },
+  livenessBox: { alignItems: 'center', gap: DT.spacing.md, marginTop: DT.spacing.md },
+  livenessOutline: {
+    width: 200, height: 260, borderWidth: 4, borderColor: colors.text, borderStyle: 'dashed',
+    borderRadius: 100, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface,
+  },
 });
