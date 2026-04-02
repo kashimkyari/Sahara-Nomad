@@ -29,6 +29,6 @@ class Waka(AuditableBase):
     total_price: Mapped[float] = mapped_column(Numeric(12, 2))
     
     step: Mapped[int] = mapped_column(Integer, default=1) # 1:Finding, 2:EnRoute, 3:Sourcing, 4:Delivered
-    status: Mapped[str] = mapped_column(String(50), default="finding_runner")
+    status: Mapped[Optional[str]] = mapped_column(String(50), default="finding_runner", nullable=True)
     
     is_completed: Mapped[bool] = mapped_column(Boolean, default=False)

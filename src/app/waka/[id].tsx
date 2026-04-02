@@ -34,10 +34,13 @@ export default function WakaStatusScreen() {
   
   const [waka, setWaka] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
+  const [isCancelling, setIsCancelling] = React.useState(false);
   const pulseAnim = React.useRef(new Animated.Value(1)).current;
   const styles = getStyles(colors);
 
   const getStatusText = (step: number, status: string) => {
+    if (status === 'cancelled') return 'CANCELLED';
+    if (status === 'completed') return 'COMPLETED';
     if (status === 'finding_runner') return 'Finding Runner...';
     switch (step) {
       case 1: return 'Finding Runner';
@@ -64,6 +67,44 @@ export default function WakaStatusScreen() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCancel = async () => {
+    if (!id || !token) return;
+
+    Alert.alert(
+      'Cancel Waka?',
+      'Are you sure you want to cancel this errand?',
+      [
+        { text: 'No', style: 'cancel' },
+        {
+          text: 'Yes, Cancel',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setIsCancelling(true);
+              const res = await fetch(API.WAKA.CANCEL(id), {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${token}` },
+              });
+
+              if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.detail || 'Failed to cancel');
+              }
+
+              const updatedWaka = await res.json();
+              setWaka(updatedWaka);
+              Alert.alert('Cancelled', 'Errand has been cancelled.');
+            } catch (e: any) {
+              Alert.alert('Error', e.message);
+            } finally {
+              setIsCancelling(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   useEffect(() => {
@@ -138,29 +179,33 @@ export default function WakaStatusScreen() {
         </View>
 
         {/* Status Banner */}
-        <View style={styles.statusBanner}>
-          <Clock size={18} color={colors.text} strokeWidth={2.5} />
-          <Text style={styles.statusText}>{getStatusText(waka.step, waka.status)}</Text>
+        <View style={[styles.statusBanner, waka.status === 'cancelled' && { backgroundColor: '#FFDEDE' }]}>
+          <Clock size={18} color={waka.status === 'cancelled' ? colors.error : colors.text} strokeWidth={2.5} />
+          <Text style={[styles.statusText, waka.status === 'cancelled' && { color: colors.error }]}>
+            {getStatusText(waka.step, waka.status)}
+          </Text>
         </View>
 
-        {/* Progress Stepper */}
-        <View style={styles.stepperRow}>
-          {STEPS.map((s, i) => {
-            const active = i < waka.step;
-            const current = i === waka.step - 1;
-            return (
-              <View key={s.label} style={styles.stepItem}>
-                <View style={[styles.stepCircle, active && styles.stepCircleActive, current && styles.stepCircleCurrent]}>
-                  <s.icon size={16} color={active ? colors.surface : colors.muted} strokeWidth={3} />
+        {/* Progress Stepper - Hide if cancelled */}
+        {waka.status !== 'cancelled' && (
+          <View style={styles.stepperRow}>
+            {STEPS.map((s, i) => {
+              const active = i < waka.step;
+              const current = i === waka.step - 1;
+              return (
+                <View key={s.label} style={styles.stepItem}>
+                  <View style={[styles.stepCircle, active && styles.stepCircleActive, current && styles.stepCircleCurrent]}>
+                    <s.icon size={16} color={active ? colors.surface : colors.muted} strokeWidth={3} />
+                  </View>
+                  <Text style={[styles.stepLabel, active && styles.stepLabelActive]}>{s.label}</Text>
+                  {i < STEPS.length - 1 && (
+                    <View style={[styles.stepLine, active && styles.stepLineActive]} />
+                  )}
                 </View>
-                <Text style={[styles.stepLabel, active && styles.stepLabelActive]}>{s.label}</Text>
-                {i < STEPS.length - 1 && (
-                  <View style={[styles.stepLine, active && styles.stepLineActive]} />
-                )}
-              </View>
-            );
-          })}
-        </View>
+              );
+            })}
+          </View>
+        )}
 
         {/* Runner Card */}
         {waka.runner_id ? (
@@ -201,9 +246,32 @@ export default function WakaStatusScreen() {
         )}
 
         {/* Cancel */}
-        <TouchableOpacity style={styles.cancelBtn} onPress={() => router.back()}>
-          <Text style={styles.cancelText}>Cancel Waka</Text>
-        </TouchableOpacity>
+        {waka.status !== 'cancelled' && !waka.is_completed && (
+          <TouchableOpacity 
+            style={[styles.cancelBtn, isCancelling && { opacity: 0.5 }]} 
+            onPress={handleCancel}
+            disabled={isCancelling}
+          >
+            {isCancelling ? (
+              <ActivityIndicator color={colors.error} />
+            ) : (
+              <Text style={styles.cancelText}>Cancel Waka</Text>
+            )}
+          </TouchableOpacity>
+        )}
+
+        {waka.status === 'cancelled' && (
+          <View style={[styles.card, { borderColor: colors.error, borderStyle: 'dashed' }]}>
+            <Text style={[styles.cardTitle, { color: colors.error }]}>This waka was cancelled</Text>
+            <Text style={styles.infoText}>You can broadcast a new errand from the home screen.</Text>
+            <TouchableOpacity 
+              style={[styles.actionBtn, { marginTop: DT.spacing.md, backgroundColor: colors.text }]}
+              onPress={() => router.replace('/(tabs)')}
+            >
+              <Text style={{ color: colors.surface, fontFamily: DT.typography.heading }}>BACK HOME</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );

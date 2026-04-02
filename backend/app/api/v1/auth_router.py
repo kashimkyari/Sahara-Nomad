@@ -121,7 +121,18 @@ async def verify_otp(verify_in: OTPVerify, db: AsyncSession = Depends(get_db)):
     }
 
 async def _hydrate_user_response(user: User, db: AsyncSession) -> UserResponse:
-    # Explicitly fetch wallet to avoid MissingGreenlet lazy load error
+    # Ensure relationships are loaded to avoid MissingGreenlet errors in Pydantic from_orm
+    result = await db.execute(
+        select(User)
+        .options(
+            selectinload(User.runner_profile),
+            selectinload(User.reviews_received).selectinload(Review.reviewer)
+        )
+        .where(User.id == user.id)
+    )
+    user = result.scalars().first()
+    
+    # Explicitly fetch wallet
     wallet_result = await db.execute(select(Wallet).where(Wallet.user_id == user.id))
     wallet = wallet_result.scalars().first()
     
@@ -143,7 +154,7 @@ async def _hydrate_user_response(user: User, db: AsyncSession) -> UserResponse:
     )
     errands_count = errands_result.scalar() or 0
     
-    # Pre-populate some fields in the response dictionary
+    # Now that everything is loaded, safe to call from_orm
     resp = UserResponse.from_orm(user)
     resp.spent_total = float(spent_total)
     resp.errands_count = errands_count
