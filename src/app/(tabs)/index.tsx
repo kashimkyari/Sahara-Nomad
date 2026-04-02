@@ -19,6 +19,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import * as ExpoLocation from 'expo-location';
 import { Image } from 'expo-image';
 import { useAuth } from '../../context/AuthContext';
 import API from '../../constants/api';
@@ -48,6 +49,7 @@ export default function HomeScreen() {
   const [activeWakas, setActiveWakas] = useState<any[]>([]);
   const [isLoadingWakas, setIsLoadingWakas] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [activeRunnersCount, setActiveRunnersCount] = useState<number | null>(null);
 
   const getStatusText = (step: number, status: string) => {
     if (status === 'finding_runner') return 'Finding Runner...';
@@ -93,14 +95,42 @@ export default function HomeScreen() {
     }
   };
 
+  const fetchActiveRunnersCount = async () => {
+    try {
+      let lat, lng;
+      const { status } = await ExpoLocation.requestForegroundPermissionsAsync();
+      if (status === 'granted') {
+        const loc = await ExpoLocation.getCurrentPositionAsync({});
+        lat = loc.coords.latitude;
+        lng = loc.coords.longitude;
+      }
+      
+      const res = await fetch(API.RUNNER.ACTIVE_COUNT(lat, lng), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setActiveRunnersCount(data.count);
+      }
+    } catch (e) {
+      console.error('Fetch active runners count failed:', e);
+    }
+  };
+
   useEffect(() => {
     fetchActiveWakas();
     fetchUnreadCount();
+    fetchActiveRunnersCount();
   }, [token]);
 
   const { refreshControl, refreshBanner, onScroll, refreshing } = useBrutalistRefresh({
     onRefresh: async () => { 
-      await Promise.all([refreshUser(), fetchActiveWakas(), fetchUnreadCount()]);
+      await Promise.all([
+        refreshUser(), 
+        fetchActiveWakas(), 
+        fetchUnreadCount(),
+        fetchActiveRunnersCount()
+      ]);
     },
   });
 
@@ -140,7 +170,9 @@ export default function HomeScreen() {
           </Text>
           <View style={styles.marketStatusRow}>
             <View style={styles.marketDot} />
-            <Text style={styles.marketStats}>124 Runners Active</Text>
+            <Text style={styles.marketStats}>
+              {activeRunnersCount === null ? '--' : activeRunnersCount} Runners Active
+            </Text>
           </View>
         </View>
         <View style={styles.headerRight}>

@@ -31,6 +31,8 @@ class UserUpdate(BaseModel):
     bio: Optional[str] = None
     hourly_rate: Optional[float] = None
     expo_push_token: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
 
 class RunnerProfileResponse(BaseModel):
     bio: Optional[str] = None
@@ -59,6 +61,8 @@ class UserResponse(UserBase):
     spent_total: float = 0.0
     errands_count: int = 0
     wallet_balance: float = 0.0
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
     runner_profile: Optional[RunnerProfileResponse] = None
     reviews_received: List[ReviewResponse] = []
 

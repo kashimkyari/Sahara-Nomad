@@ -12,6 +12,7 @@ from ...schemas.review import ReviewBase, ReviewCreate, ReviewResponse
 from ...core.security import get_password_hash, create_access_token, create_refresh_token, verify_password
 from .deps import get_current_user
 from fastapi.security import OAuth2PasswordRequestForm
+from geoalchemy2 import Geometry
 
 from datetime import datetime, timedelta
 import random
@@ -148,16 +149,24 @@ async def verify_otp(verify_in: OTPVerify, db: AsyncSession = Depends(get_db)):
     }
 
 async def _hydrate_user_response(user: User, db: AsyncSession) -> UserResponse:
-    # Ensure relationships are loaded to avoid MissingGreenlet errors in Pydantic from_orm
+    # Ensure relationships are loaded and fetch lat/lng
     result = await db.execute(
-        select(User)
+        select(
+            User,
+            func.ST_Y(func.cast(User.last_location, Geometry)).label("lat"),
+            func.ST_X(func.cast(User.last_location, Geometry)).label("lng")
+        )
         .options(
             selectinload(User.runner_profile),
             selectinload(User.reviews_received).selectinload(Review.reviewer)
         )
         .where(User.id == user.id)
     )
-    user = result.scalars().first()
+    row = result.first()
+    if not row:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    user, lat, lng = row
     
     # Explicitly fetch wallet
     wallet_result = await db.execute(select(Wallet).where(Wallet.user_id == user.id))
@@ -186,6 +195,8 @@ async def _hydrate_user_response(user: User, db: AsyncSession) -> UserResponse:
     resp.spent_total = float(spent_total)
     resp.errands_count = errands_count
     resp.wallet_balance = float(wallet.balance) if wallet else 0.0
+    resp.latitude = lat
+    resp.longitude = lng
     
     # Populate reviewer names for user reviews if they exist
     if user.reviews_received:
@@ -314,6 +325,18 @@ async def update_me(
     for field in ["full_name", "email", "push_notifications_enabled", "location_services_enabled", "is_dark_mode", "language", "region", "expo_push_token"]:
         if field in update_data:
             setattr(current_user, field, update_data[field])
+            
+    # Handle Location Updates
+    if "latitude" in update_data and "longitude" in update_data:
+        lat = update_data["latitude"]
+        lng = update_data["longitude"]
+        if lat is not None and lng is not None:
+            # ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)
+            point = func.ST_SetSRID(func.ST_MakePoint(lng, lat), 4326)
+            current_user.last_location = point
+            # Also update current_location if it's a runner
+            if current_user.runner_profile:
+                current_user.runner_profile.current_location = point
     
     # Update RunnerProfile if bio or hourly_rate is provided
     if "bio" in update_data or "hourly_rate" in update_data:

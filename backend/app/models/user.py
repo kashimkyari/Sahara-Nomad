@@ -22,6 +22,7 @@ class User(AuditableBase):
     language: Mapped[str] = mapped_column(String(10), default="en")
     region: Mapped[str] = mapped_column(String(10), default="NG")
     expo_push_token: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    last_location: Mapped[Optional[Geography]] = mapped_column(Geography(geometry_type='POINT', srid=4326), nullable=True)
     
     is_otp_verified: Mapped[bool] = mapped_column(Boolean, default=False)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)

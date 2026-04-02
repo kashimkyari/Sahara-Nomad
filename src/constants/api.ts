@@ -36,5 +36,9 @@ export default {
         READ: (id: string) => `${API_URL}/notifications/${id}/read`,
         CLEAR_ALL: `${API_URL}/notifications/clear-all`,
         UNREAD_COUNT: `${API_URL}/notifications/unread-count`,
+    },
+    RUNNER: {
+        ACTIVE_COUNT: (lat?: number, lng?: number) => 
+            `${API_URL}/runners/active-count${lat && lng ? `?lat=${lat}&lng=${lng}` : ''}`,
     }
 };

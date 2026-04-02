@@ -5,6 +5,7 @@ import React, { createContext, ReactNode, useContext, useEffect, useState } from
 import API from '../constants/api';
 import { registerForPushNotificationsAsync } from '../utils/notifications';
 import * as Notifications from 'expo-notifications';
+import * as ExpoLocation from 'expo-location';
 import { Platform } from 'react-native';
 
 interface User {
@@ -243,6 +244,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       };
     }
   }, [token]);
+
+  // Sync Location every 4 minutes if enabled
+  useEffect(() => {
+    if (token && user?.location_services_enabled) {
+      const syncLocation = async () => {
+        try {
+          const { status } = await ExpoLocation.requestForegroundPermissionsAsync();
+          if (status === 'granted') {
+            const loc = await ExpoLocation.getCurrentPositionAsync({
+              accuracy: ExpoLocation.Accuracy.Balanced,
+            });
+            await fetch(`${API.API_URL}/auth/me`, {
+              method: 'PATCH',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify({ 
+                latitude: loc.coords.latitude, 
+                longitude: loc.coords.longitude 
+              })
+            });
+            console.log('Location Synced:', loc.coords.latitude, loc.coords.longitude);
+          }
+        } catch (e) {
+          console.error('Location Sync Error:', e);
+        }
+      };
+
+      // Initial sync
+      syncLocation();
+
+      // Set interval for 4 minutes
+      const intervalId = setInterval(syncLocation, 4 * 60 * 1000);
+
+      return () => clearInterval(intervalId);
+    }
+  }, [token, user?.location_services_enabled]);
 
   return (
     <AuthContext.Provider value={{ token, refreshToken, user, isLoading, signIn, signOut, refreshUser }}>
