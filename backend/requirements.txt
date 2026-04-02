@@ -1,0 +1,14 @@
+fastapi
+uvicorn[standard]
+sqlalchemy[asyncio]
+asyncpg
+alembic
+geoalchemy2
+pydantic[email]
+python-jose[cryptography]
+passlib[bcrypt]
+python-multipart
+exponent-server-sdk
+aioredis
+httpx
+python-dotenv
