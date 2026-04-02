@@ -137,6 +137,7 @@ export default function ProfileSettingsScreen() {
       
       Alert.alert('Account Deleted', 'Your account has been permanently removed.');
       signOut();
+      router.replace('/');
     } catch (error: any) {
       Alert.alert('Error', error.message);
     } finally {
