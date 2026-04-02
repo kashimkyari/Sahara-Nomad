@@ -41,19 +41,7 @@ export default function RootLayout() {
       <Stack.Screen name="waka/[id]" />
       <Stack.Screen name="runner/[id]" />
       <Stack.Screen name="conversation/[id]" />
-      <Stack.Screen name="settings/index" />
-      <Stack.Screen name="settings/payment" />
-      <Stack.Screen name="settings/safety" />
-      <Stack.Screen name="settings/support" />
-      <Stack.Screen name="settings/edit-profile" />
-      <Stack.Screen name="settings/change-phone" />
-      <Stack.Screen name="settings/change-password" />
-      <Stack.Screen name="settings/become-runner" />
-      <Stack.Screen name="settings/language" />
-      <Stack.Screen name="payment/fund-wallet" />
-      <Stack.Screen name="payment/add-method" />
-      <Stack.Screen name="payment/card/[id]" />
-      <Stack.Screen name="payment/transaction/[id]" />
+      <Stack.Screen name="profile" />
     </Stack>
   );
 }

@@ -6,10 +6,10 @@ import { useRouter } from 'expo-router';
 import { DesignTokens as DT } from '../../constants/design';
 
 const menuItems = [
-  { icon: CreditCard, label: 'Payment Methods', route: '/settings/payment' },
-  { icon: Shield, label: 'Trust & Safety', route: '/settings/safety' },
-  { icon: HelpCircle, label: 'Support', route: '/settings/support' },
-  { icon: Settings, label: 'Settings', route: '/settings/index' },
+  { icon: CreditCard, label: 'Payment Methods', route: '/profile/payment' },
+  { icon: Shield, label: 'Trust & Safety', route: '/profile/safety' },
+  { icon: HelpCircle, label: 'Support', route: '/profile/support' },
+  { icon: Settings, label: 'Settings', route: '/profile/settings' },
 ];
 
 export default function ProfileScreen() {
