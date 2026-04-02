@@ -17,7 +17,8 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
+  Animated,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useAuth } from '../../context/AuthContext';
@@ -25,6 +26,7 @@ import API from '../../constants/api';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DesignTokens as DT } from '../../constants/design';
 import { useTheme } from '../../hooks/use-theme';
+import { useBrutalistRefresh } from '../../components/ui/BrutalistRefreshControl';
 
 const runners = [
   { id: '1', name: 'Chinedu O.', rating: 4.9, km: '0.8km', img: 'https://i.pravatar.cc/150?u=chinedu', online: true, jobs: 142 },
@@ -40,12 +42,16 @@ const activeWakas = [
 
 export default function HomeScreen() {
   const { colors } = useTheme();
-  const { user, token } = useAuth();
+  const { user, token, refreshUser } = useAuth();
   const router = useRouter();
   const navigation = useNavigation();
   const styles = getStyles(colors);
 
   const [greeting, setGreeting] = useState('');
+
+  const { refreshControl, refreshBanner, scrollY } = useBrutalistRefresh({
+    onRefresh: async () => { await refreshUser(); },
+  });
 
   // 1. Gesture/Back Handler Prevention
   useEffect(() => {
@@ -75,9 +81,16 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <ScrollView
+      {refreshBanner}
+      <Animated.ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        refreshControl={refreshControl}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: true }
+        )}
+        scrollEventThrottle={16}
       >
         {/* ── Dynamic Header ── */}
         <View style={styles.header}>
@@ -221,7 +234,7 @@ export default function HomeScreen() {
           </ScrollView>
         </View>
 
-      </ScrollView>
+      </Animated.ScrollView>
     </SafeAreaView>
   );
 }
