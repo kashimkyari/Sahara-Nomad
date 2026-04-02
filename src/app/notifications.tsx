@@ -48,7 +48,11 @@ export default function NotificationsScreen() {
           </View>
         ) : (
           notifications.map((note) => (
-            <TouchableOpacity key={note.id} style={[styles.noteRow, note.unread && styles.noteRowUnread]}>
+            <TouchableOpacity 
+              key={note.id} 
+              style={[styles.noteRow, note.unread && styles.noteRowUnread]}
+              onPress={() => router.push(`/notification/${note.id}` as any)}
+            >
               <View style={[styles.iconBox, { backgroundColor: note.unread ? colors.primary : colors.surface }]}>
                 {getTypeIcon(note.type, note.unread ? colors.surface : colors.text)}
               </View>
