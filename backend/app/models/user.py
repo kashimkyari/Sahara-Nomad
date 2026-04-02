@@ -26,6 +26,7 @@ class User(AuditableBase):
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
     government_id_nin: Mapped[Optional[str]] = mapped_column(String(11), unique=True, nullable=True)
     loyalty_badge: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    stats_rating: Mapped[float] = mapped_column(Numeric(3, 2), default=5.0)
     avatar_url: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
 
     otp_code: Mapped[Optional[str]] = mapped_column(String(6), nullable=True)

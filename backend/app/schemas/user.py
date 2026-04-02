@@ -39,6 +39,7 @@ class UserResponse(UserBase):
     is_otp_verified: bool
     is_verified: bool
     loyalty_badge: Optional[str] = None
+    stats_rating: float = 5.0
     created_at: datetime
     avatar_url: Optional[str] = None
     push_notifications_enabled: bool
