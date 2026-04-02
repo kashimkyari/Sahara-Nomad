@@ -49,6 +49,7 @@ export default {
             if (filter) url += `filter=${filter}&`;
             if (market) url += `market=${encodeURIComponent(market)}&`;
             return url.slice(0, -1);
-        }
+        },
+        RECORD: `${API_URL}/search/record`
     }
 };
