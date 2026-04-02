@@ -108,18 +108,23 @@ export default function ProfileScreen() {
         {/* Individual Chunky Stats */}
         <View style={styles.statsContainer}>
           {[
-            { label: 'ERRANDS', value: user?.errands_count?.toString() || '0' },
+            { label: 'ERRANDS', value: user?.errands_count?.toString() || '0', route: '/waka/history' },
             { label: 'SPENT', value: `₦${(user?.spent_total || 0).toLocaleString()}` },
             { label: 'RATING', value: `${Number(user?.stats_rating ?? 2.5).toFixed(1)}★` },
           ].map((stat, i) => (
-            <View key={stat.label} style={[
-              styles.statBlock,
-              i === 1 && { backgroundColor: colors.accent },
-              i === 2 && { backgroundColor: colors.secondary }
-            ]}>
+            <TouchableOpacity 
+              key={stat.label} 
+              style={[
+                styles.statBlock,
+                i === 1 && { backgroundColor: colors.accent },
+                i === 2 && { backgroundColor: colors.secondary }
+              ]}
+              onPress={() => stat.route && router.push(stat.route as any)}
+              disabled={!stat.route}
+            >
               <Text style={[styles.statValue, (i === 1 || i === 2) && { color: i === 1 ? colors.text : colors.surface }]}>{stat.value}</Text>
               <Text style={[styles.statLabel, (i === 1 || i === 2) && { color: i === 1 ? colors.text : colors.surface }]}>{stat.label}</Text>
-            </View>
+            </TouchableOpacity>
           ))}
         </View>
 

@@ -162,9 +162,19 @@ export default function WakaStatusScreen() {
           <ChevronLeft size={24} color={colors.text} strokeWidth={2.5} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Waka Status</Text>
-        <Animated.View style={[styles.livePill, { transform: [{ scale: pulseAnim }] }]}>
-          <Text style={styles.liveText}>LIVE</Text>
-        </Animated.View>
+        {waka.status === 'completed' ? (
+          <View style={[styles.livePill, { backgroundColor: colors.secondary }]}>
+            <Text style={styles.liveText}>COMPLETED</Text>
+          </View>
+        ) : waka.status === 'cancelled' ? (
+          <View style={[styles.livePill, { backgroundColor: colors.error || '#FF4B4B' }]}>
+            <Text style={styles.liveText}>CANCELLED</Text>
+          </View>
+        ) : (
+          <Animated.View style={[styles.livePill, { transform: [{ scale: pulseAnim }] }]}>
+            <Text style={styles.liveText}>{waka.status === 'finding_runner' ? 'BROADCAST' : 'LIVE'}</Text>
+          </Animated.View>
+        )}
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -247,7 +257,7 @@ export default function WakaStatusScreen() {
               </TouchableOpacity>
             </View>
           </View>
-        ) : (
+        ) : waka.status !== 'cancelled' && (
           <View style={styles.runnerCard}>
             <View style={styles.runnerHeaderRow}>
               <View style={styles.noRunnerBox}>
