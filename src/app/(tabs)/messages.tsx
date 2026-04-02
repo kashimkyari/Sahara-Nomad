@@ -9,6 +9,7 @@ import { useAuth } from '../../context/AuthContext';
 import API from '../../constants/api';
 import { ActivityIndicator } from 'react-native';
 import { useBrutalistRefresh } from '../../components/ui/BrutalistRefreshControl';
+import { MotiView } from 'moti';
 
 const filters = ['All Chats', 'Unread', 'Active Errands', 'Archived'];
 
@@ -55,7 +56,7 @@ export default function MessagesScreen() {
 
   const totalUnread = conversations.reduce((acc, conv) => acc + (conv.unread_count || 0), 0);
 
-  const { refreshControl, refreshBanner, onScroll } = useBrutalistRefresh({
+  const { refreshControl, refreshBanner, onScroll, refreshing } = useBrutalistRefresh({
     onRefresh: fetchConversations,
   });
 
@@ -75,14 +76,19 @@ export default function MessagesScreen() {
 
       <View style={styles.flex1}>
         {refreshBanner}
-        <ScrollView 
-        style={styles.flex1} 
-        showsVerticalScrollIndicator={false} 
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={refreshControl}
-        onScroll={onScroll}
-        scrollEventThrottle={16}
-      >
+        <MotiView
+          animate={{ translateY: refreshing ? 75 : 0 }}
+          transition={{ type: 'spring', damping: 20, stiffness: 150 }}
+          style={styles.flex1}
+        >
+          <ScrollView 
+            style={styles.flex1} 
+            showsVerticalScrollIndicator={false} 
+            contentContainerStyle={styles.scrollContent}
+            refreshControl={refreshControl}
+            onScroll={onScroll}
+            scrollEventThrottle={16}
+          >
         
         {/* Search Bar */}
         <View style={styles.searchContainer}>
@@ -204,6 +210,7 @@ export default function MessagesScreen() {
         </View>
 
       </ScrollView>
+      </MotiView>
       </View>
     </SafeAreaView>
   );
@@ -216,6 +223,7 @@ const getStyles = (colors: any) => StyleSheet.create({
   },
   flex1: {
     flex: 1,
+    paddingTop: 10,
   },
   scrollContent: {
     paddingBottom: 100,

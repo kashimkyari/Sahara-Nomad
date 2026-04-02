@@ -26,6 +26,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { DesignTokens as DT } from '../../constants/design';
 import { useTheme } from '../../hooks/use-theme';
 import { useBrutalistRefresh } from '../../components/ui/BrutalistRefreshControl';
+import { MotiView } from 'moti';
 
 const runners = [
   { id: '1', name: 'Chinedu O.', rating: 4.9, km: '0.8km', img: 'https://i.pravatar.cc/150?u=chinedu', online: true, jobs: 142 },
@@ -114,44 +115,60 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      {refreshBanner}
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={refreshControl}
-        onScroll={onScroll}
-        scrollEventThrottle={16}
-      >
-        {/* ── Dynamic Header ── */}
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.greeting}>{greeting}, {user?.full_name?.split(' ')[0] || 'Nomad'}</Text>
-            <View style={styles.marketStatusRow}>
-              <View style={styles.marketDot} />
-              <Text style={styles.marketStats}>124 Runners Active</Text>
-            </View>
-          </View>
-          <View style={styles.headerRight}>
-            <TouchableOpacity style={styles.bellWrapper} onPress={() => router.push('/notifications' as any)}>
-              <Bell size={22} color={colors.text} strokeWidth={2.5} />
-              <View style={styles.bellDot} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.avatarBox} onPress={() => router.push('/profile' as any)}>
-              <Image
-                source={user?.avatar_url 
-                  ? { 
-                      uri: `${API.API_URL}${user.avatar_url}`,
-                      headers: { Authorization: `Bearer ${token}` }
-                    } 
-                  : { uri: 'https://i.pravatar.cc/150?u=chidi' }
-                }
-                style={styles.avatar}
-                contentFit="cover"
-                transition={200}
-              />
-            </TouchableOpacity>
+      {/* ── Dynamic Header ── */}
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.greeting}>
+            {greeting}, {user?.full_name?.split(' ')[0] || 'Nomad'}
+          </Text>
+          <View style={styles.marketStatusRow}>
+            <View style={styles.marketDot} />
+            <Text style={styles.marketStats}>124 Runners Active</Text>
           </View>
         </View>
+        <View style={styles.headerRight}>
+          <TouchableOpacity
+            style={styles.bellWrapper}
+            onPress={() => router.push('/notifications' as any)}
+          >
+            <Bell size={22} color={colors.text} strokeWidth={2.5} />
+            <View style={styles.bellDot} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.avatarBox}
+            onPress={() => router.push('/profile' as any)}
+          >
+            <Image
+              source={
+                user?.avatar_url
+                  ? {
+                      uri: `${API.API_URL}${user.avatar_url}`,
+                      headers: { Authorization: `Bearer ${token}` },
+                    }
+                  : { uri: 'https://i.pravatar.cc/150?u=chidi' }
+              }
+              style={styles.avatar}
+              contentFit="cover"
+              transition={200}
+            />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <View style={styles.flex1}>
+        {refreshBanner}
+        <MotiView
+          animate={{ translateY: refreshing ? 75 : 0 }}
+          transition={{ type: 'spring', damping: 20, stiffness: 150 }}
+          style={styles.flex1}
+        >
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scrollContent}
+            refreshControl={refreshControl}
+            onScroll={onScroll}
+            scrollEventThrottle={16}
+          >
 
         {/* ── Active Wakas ── */}
         {activeWakas.length > 0 && (
@@ -268,6 +285,8 @@ export default function HomeScreen() {
         </View>
 
       </ScrollView>
+    </MotiView>
+    </View>
     </SafeAreaView>
   );
 }
@@ -276,6 +295,10 @@ const getStyles = (colors: any) => StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  flex1: {
+    flex: 1,
+    paddingTop: 10,
   },
   scrollContent: {
     paddingHorizontal: DT.spacing.lg,

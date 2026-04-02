@@ -75,7 +75,7 @@ export function useBrutalistRefresh({
     }
   }, [onRefresh]);
 
-  const translateY = refreshing ? -20 : -(80 * (1 - pullDepth));
+  const translateY = refreshing ? 0 : -(80 * (1 - pullDepth));
   const scale = refreshing ? 1 : 0.4 + 0.65 * pullDepth + (pastThreshold ? 0.05 : 0);
   const rotateDeg = refreshing ? '0deg' : `${-3 + 3 * pullDepth}deg`;
   const bgColor = refreshing ? colors.primary : colors.accent;
