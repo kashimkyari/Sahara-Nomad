@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select, func, update
 from sqlalchemy.orm import selectinload
 from ...database import get_db
 from ...models.user import User, RunnerProfile
@@ -278,9 +278,17 @@ async def delete_me(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Permanently delete user account (soft delete)."""
+    """Permanently delete user account (soft delete) and cancel active wakas."""
     current_user.is_user_deleted = True
     current_user.soft_delete() # sets is_deleted=True and deleted_at
+    
+    # Cancel all active wakas for this user
+    await db.execute(
+        update(Waka)
+        .where(Waka.employer_id == current_user.id, Waka.is_completed == False)
+        .values(status="cancelled", updated_at=func.now())
+    )
+    
     await db.commit()
     return {"status": "account_deleted"}
 
