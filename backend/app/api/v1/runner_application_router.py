@@ -9,6 +9,7 @@ from ...schemas.runner_application import (
     RunnerApplicationAdminUpdate,
 )
 from .deps import get_current_user
+from ...services.notification_service import notify_user
 import uuid
 from typing import List
 
@@ -47,6 +48,18 @@ async def apply_to_become_runner(
     db.add(application)
     await db.commit()
     await db.refresh(application)
+
+    # Notify User
+    await notify_user(
+        db=db,
+        user=current_user,
+        title="Application Received",
+        body="We've received your runner application and will review it soon.",
+        type="info",
+        linked_entity_id=application.id,
+        linked_entity_type="runner_application"
+    )
+    await db.commit()
     return application
 
 
@@ -104,6 +117,22 @@ async def review_application(
             )
             if not profile_result.scalars().first():
                 db.add(RunnerProfile(user_id=user.id))
+
+        # Notify User of Status Update
+        title = "Application Approved! 🎉" if update.status == "approved" else "Application Update"
+        body = "Congratulations! You are now a SendAm runner." if update.status == "approved" else f"Your application status is now: {update.status}."
+        if update.admin_note:
+            body += f" Note: {update.admin_note}"
+            
+        await notify_user(
+            db=db,
+            user=user,
+            title=title,
+            body=body,
+            type="success" if update.status == "approved" else "warning",
+            linked_entity_id=application.id,
+            linked_entity_type="runner_application"
+        )
 
     await db.commit()
     await db.refresh(application)

@@ -30,6 +30,7 @@ class UserUpdate(BaseModel):
     region: Optional[str] = None
     bio: Optional[str] = None
     hourly_rate: Optional[float] = None
+    expo_push_token: Optional[str] = None
 
 class RunnerProfileResponse(BaseModel):
     bio: Optional[str] = None

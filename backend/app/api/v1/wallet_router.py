@@ -6,7 +6,7 @@ from ...models.user import User
 from ...models.wallet import Wallet, Transaction, Payment, PaymentMethod
 from ...schemas import wallet as schemas
 from .deps import get_current_user
-from ...services.notification_service import create_in_app_notification
+from ...services.notification_service import notify_user
 from uuid import UUID
 import uuid
 
@@ -160,10 +160,10 @@ async def fund_wallet(
     await db.commit()
     await db.refresh(new_payment)
 
-    # Trigger In-App Notification
-    await create_in_app_notification(
+    # Trigger Unified Notification
+    await notify_user(
         db=db,
-        user_id=current_user.id,
+        user=current_user,
         title="Payment Confirmed",
         body=f"₦{new_payment.amount:,.2f} has been successfully added to your wallet.",
         type="info",

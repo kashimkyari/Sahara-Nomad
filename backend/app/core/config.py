@@ -11,8 +11,8 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 90 # 90 days
     
     POSTGRES_SERVER: str = "localhost"
-    POSTGRES_USER: str = "postgres"
-    POSTGRES_PASSWORD: str = "postgres"
+    POSTGRES_USER: str = "kashim"
+    POSTGRES_PASSWORD: str = "password"
     POSTGRES_DB: str = "sendam"
     SQLALCHEMY_DATABASE_URI: Optional[str] = None
     DATABASE_URL: Optional[str] = None

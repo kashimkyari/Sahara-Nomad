@@ -58,6 +58,19 @@ async def signup(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
     db.add(wallet)
     
     await db.commit()
+    await db.refresh(db_obj)
+
+    # Welcome Notification
+    from ..services.notification_service import notify_user
+    await notify_user(
+        db=db,
+        user=db_obj,
+        title="Welcome to SendAm!",
+        body="Your account is ready. Start posting errands or apply to be a runner!",
+        type="info"
+    )
+    await db.commit()
+    
     return {"status": "otp_sent", "phone_number": user_in.phone_number}
 
 @router.post("/token", response_model=dict)
@@ -298,7 +311,7 @@ async def update_me(
     update_data = user_update.dict(exclude_unset=True)
     
     # Update User fields
-    for field in ["full_name", "email", "push_notifications_enabled", "location_services_enabled", "is_dark_mode", "language", "region"]:
+    for field in ["full_name", "email", "push_notifications_enabled", "location_services_enabled", "is_dark_mode", "language", "region", "expo_push_token"]:
         if field in update_data:
             setattr(current_user, field, update_data[field])
     

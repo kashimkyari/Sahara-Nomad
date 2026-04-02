@@ -23,6 +23,8 @@ def broadcast_to_runners(tokens: List[str], title: str, body: str, waka_id: str)
     for token in tokens:
         send_push_notification(token, title, body, {"waka_id": waka_id})
 
+from ..models.user import User
+
 async def create_in_app_notification(
     db: AsyncSession,
     user_id: uuid.UUID,
@@ -43,3 +45,32 @@ async def create_in_app_notification(
     db.add(note)
     await db.flush()
     return note
+
+async def notify_user(
+    db: AsyncSession,
+    user: User,
+    title: str,
+    body: str,
+    type: str = "info",
+    linked_entity_id: uuid.UUID = None,
+    linked_entity_type: str = None,
+    send_push: bool = True
+):
+    """Unified notification dispatcher. Creates in-app record and optionally sends push."""
+    # 1. Always create in-app notification
+    await create_in_app_notification(
+        db, user.id, title, body, type, linked_entity_id, linked_entity_type
+    )
+    
+    # 2. Conditional Push Notification
+    if send_push and user.push_notifications_enabled and user.expo_push_token:
+        send_push_notification(
+            user.expo_push_token,
+            title,
+            body,
+            {
+                "type": type,
+                "linked_entity_id": str(linked_entity_id) if linked_entity_id else None,
+                "linked_entity_type": linked_entity_type
+            }
+        )

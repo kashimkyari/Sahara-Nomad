@@ -6,7 +6,7 @@ from ...models.waka import Waka
 from ...models.user import User
 from ...schemas.waka import WakaCreate, WakaResponse
 from .deps import get_current_user
-from ...services.notification_service import create_in_app_notification
+from ...services.notification_service import notify_user
 import uuid
 from typing import List
 
@@ -38,9 +38,9 @@ async def create_waka(
     await db.refresh(db_obj)
 
     # Initial Notification
-    await create_in_app_notification(
+    await notify_user(
         db=db,
-        user_id=employer_id,
+        user=current_user,
         title="Errand Posted",
         body=f"Your request for '{db_obj.category}' has been posted and we're finding a runner.",
         type="info",
@@ -91,9 +91,9 @@ async def cancel_waka(
     await db.refresh(waka)
 
     # Cancellation Notification
-    await create_in_app_notification(
+    await notify_user(
         db=db,
-        user_id=current_user.id,
+        user=current_user,
         title="Errand Cancelled",
         body=f"Your errand for '{waka.category}' has been successfully cancelled.",
         type="warning",
@@ -125,11 +125,11 @@ async def complete_waka(
     await db.refresh(waka)
 
     # Completion Notification
-    await create_in_app_notification(
+    await notify_user(
         db=db,
-        user_id=current_user.id,
+        user=current_user,
         title="Errand Completed",
-        body=f"Your errand for '{waka.category}' is finished. Thanks for using Sahara Nomad!",
+        body=f"Your errand for '{waka.category}' is finished. Thanks for using SendAm!",
         type="success",
         linked_entity_id=waka.id,
         linked_entity_type="waka"

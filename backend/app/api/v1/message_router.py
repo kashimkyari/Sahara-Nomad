@@ -8,6 +8,8 @@ from ...models.waka import Waka
 from ...schemas.message import ConversationRead, ConversationCreate, MessageRead, MessageCreate, ConversationHistory
 from ...schemas.user import UserInfo
 from .deps import get_current_user
+from ...services.notification_service import notify_user
+import json
 import uuid
 import json
 
@@ -195,9 +197,24 @@ async def send_message_http(
     await db.commit()
     await db.refresh(new_msg)
     
-    # Broadcast via WebSocket (simplified broadcast to all subscribers of this convo)
+    # Broadcast via WebSocket
     msg_data = MessageRead.model_validate(new_msg).model_dump_json()
     await manager.broadcast(msg_data, str(msg_in.conversation_id))
+    
+    # Notify recipient
+    recipient_id = conv.runner_id if current_user.id == conv.employer_id else conv.employer_id
+    recipient = await db.get(User, recipient_id)
+    if recipient:
+        await notify_user(
+            db=db,
+            user=recipient,
+            title=f"New Message from {current_user.full_name}",
+            body=msg_in.content_text or "Sent an attachment",
+            type="info",
+            linked_entity_id=conv.id,
+            linked_entity_type="conversation"
+        )
+        await db.commit()
     
     return new_msg
 
@@ -282,6 +299,21 @@ async def websocket_endpoint(
             # Broadcast
             msg_data = MessageRead.model_validate(new_msg).model_dump_json()
             await manager.broadcast(msg_data, convo_id)
+            
+            # Notify recipient
+            recipient_id = conv.runner_id if sender_id == conv.employer_id else conv.employer_id
+            recipient = await db.get(User, recipient_id)
+            if recipient:
+                await notify_user(
+                    db=db,
+                    user=recipient,
+                    title=f"New Message from {current_user.full_name}",
+                    body=content_text or "Sent a message",
+                    type="info",
+                    linked_entity_id=conv.id,
+                    linked_entity_type="conversation"
+                )
+                await db.commit()
             
     except WebSocketDisconnect:
         manager.disconnect(websocket, convo_id)

@@ -3,6 +3,9 @@ import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 import API from '../constants/api';
+import { registerForPushNotificationsAsync } from '../utils/notifications';
+import * as Notifications from 'expo-notifications';
+import { Platform } from 'react-native';
 
 interface User {
   id: string;
@@ -186,6 +189,60 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       router.replace('/(tabs)');
     }
   }, [token, isLoading, segments]);
+
+  // Sync Push Token when authenticated
+  useEffect(() => {
+    if (token) {
+      const syncPushToken = async () => {
+        try {
+          const expoPushToken = await registerForPushNotificationsAsync();
+          if (expoPushToken) {
+            await fetch(`${API.API_URL}/auth/me`, {
+              method: 'PATCH',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify({ expo_push_token: expoPushToken })
+            });
+            // Update local user state too if needed
+            if (user) {
+              setUser({ ...user, expo_push_token: expoPushToken } as any);
+            }
+          }
+        } catch (e) {
+          console.error('Push Token Sync Error:', e);
+        }
+      };
+
+      // Slight delay to ensure environment is ready
+      const timer = setTimeout(syncPushToken, 1000);
+      
+      // Also register notification listeners if needed
+      const notificationListener = Notifications.addNotificationReceivedListener(notification => {
+        console.log('Notification Received:', notification);
+      });
+
+      const responseListener = Notifications.addNotificationResponseReceivedListener(response => {
+        console.log('Notification Response:', response);
+        const data = response.notification.request.content.data;
+        if (data?.linked_entity_id && data?.linked_entity_type) {
+          // Handle navigation based on entity type
+          if (data.linked_entity_type === 'conversation') {
+            router.push(`/conversation/${data.linked_entity_id}` as any);
+          } else if (data.linked_entity_type === 'waka') {
+            router.push(`/waka/${data.linked_entity_id}` as any);
+          }
+        }
+      });
+
+      return () => {
+        clearTimeout(timer);
+        notificationListener.remove();
+        responseListener.remove();
+      };
+    }
+  }, [token]);
 
   return (
     <AuthContext.Provider value={{ token, refreshToken, user, isLoading, signIn, signOut, refreshUser }}>

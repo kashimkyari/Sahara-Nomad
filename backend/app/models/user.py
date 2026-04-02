@@ -21,6 +21,7 @@ class User(AuditableBase):
     is_dark_mode: Mapped[bool] = mapped_column(Boolean, default=False)
     language: Mapped[str] = mapped_column(String(10), default="en")
     region: Mapped[str] = mapped_column(String(10), default="NG")
+    expo_push_token: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     
     is_otp_verified: Mapped[bool] = mapped_column(Boolean, default=False)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
