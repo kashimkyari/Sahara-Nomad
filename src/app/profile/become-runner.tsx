@@ -13,6 +13,8 @@ import { BrutalistAlert } from '../../components/ui/BrutalistAlert';
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'expo-image';
+import { CameraView, useCameraPermissions } from 'expo-camera';
+import { useRef } from 'react';
 
 const steps = [
   { icon: ShieldCheck, title: 'BVN Verification', desc: 'We verify your Bank Verification Number to confirm your identity. Takes 2 minutes.' },
@@ -36,6 +38,8 @@ export default function BecomeRunnerScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [selfieUri, setSelfieUri] = useState<string | null>(null);
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+  const cameraRef = useRef<CameraView>(null);
 
   // Alert State
   const [alertVisible, setAlertVisible] = useState(false);
@@ -78,18 +82,28 @@ export default function BecomeRunnerScreen() {
   };
 
   const handleTakeSelfie = async () => {
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') {
-      showAlert('Permission Denied', 'Camera access is required for liveness verification.');
-      return;
+    if (!cameraPermission || !cameraPermission.granted) {
+      const { granted } = await requestCameraPermission();
+      if (!granted) {
+        showAlert('Permission Denied', 'Camera access is required for liveness verification.');
+        return;
+      }
     }
-    const result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.7,
-    });
-    if (!result.canceled) {
-      setSelfieUri(result.assets[0].uri);
+    // We handle the capture via handleCapture within the CameraView now
+  };
+
+  const handleCapture = async () => {
+    if (cameraRef.current) {
+      try {
+        const photo = await cameraRef.current.takePictureAsync({
+          quality: 0.7,
+        });
+        if (photo) {
+          setSelfieUri(photo.uri);
+        }
+      } catch (e: any) {
+        showAlert('Capture Error', 'Could not capture photo. Please try again.');
+      }
     }
   };
 
@@ -258,9 +272,29 @@ export default function BecomeRunnerScreen() {
                       <CheckCircle2 size={32} color={colors.secondary} style={styles.checkIcon} />
                     </View>
                   ) : (
-                    <TouchableOpacity style={styles.livenessOutline} onPress={handleTakeSelfie}>
-                      <Camera size={48} color={colors.text} opacity={0.5} />
-                    </TouchableOpacity>
+                    <View style={styles.livenessOutline}>
+                      {cameraPermission?.granted ? (
+                        <TouchableOpacity 
+                          style={styles.cameraPreviewContainer} 
+                          onPress={handleCapture}
+                          activeOpacity={0.9}
+                        >
+                          <CameraView
+                            ref={cameraRef}
+                            style={styles.cameraPreview}
+                            facing="front"
+                          />
+                          <View style={styles.captureOverlay}>
+                            <Camera size={32} color={colors.surface} />
+                          </View>
+                        </TouchableOpacity>
+                      ) : (
+                        <TouchableOpacity style={styles.cameraPlaceholder} onPress={handleTakeSelfie}>
+                          <Camera size={48} color={colors.text} opacity={0.5} />
+                          <Text style={styles.cameraPlaceholderText}>Tap to Enable Camera</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
                   )}
                   <Text style={styles.bvnInfoText}>
                     {selfieUri ? 'Selfie captured successfully!' : 'Tap to take a quick selfie scan.'}
@@ -547,14 +581,47 @@ const getStyles = (colors: any) => StyleSheet.create({
   methodTitleActive: { color: colors.surface },
   livenessBox: { alignItems: 'center', gap: DT.spacing.md, marginTop: DT.spacing.md },
   livenessOutline: {
-    width: 200, height: 260, borderWidth: 4, borderColor: colors.text, borderStyle: 'dashed',
-    borderRadius: 100, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface,
+    width: 220, height: 280, borderWidth: 4, borderColor: colors.text, borderStyle: 'dotted',
+    borderRadius: 110, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface,
+    overflow: 'hidden',
   },
   successEmoji: { fontSize: 80 },
   selfiePreview: {
     width: '100%',
     height: '100%',
-    borderRadius: 100,
+    borderRadius: 110,
+  },
+  cameraPreviewContainer: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 110,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  cameraPreview: {
+    flex: 1,
+  },
+  captureOverlay: {
+    position: 'absolute',
+    bottom: 20,
+    alignSelf: 'center',
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    borderWidth: 2,
+    borderColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cameraPlaceholder: {
+    alignItems: 'center',
+    gap: 12,
+  },
+  cameraPlaceholderText: {
+    fontFamily: DT.typography.bodySemiBold,
+    fontSize: 12,
+    color: colors.muted,
   },
   checkIcon: { position: 'absolute', bottom: -10, right: 20, backgroundColor: colors.surface, borderRadius: 20, borderWidth: 2, borderColor: colors.text, zIndex: 10 },
 });
