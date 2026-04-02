@@ -18,14 +18,14 @@ interface InputProps extends TextInputProps {
   style?: object;
 }
 
-export function Input({
+export const Input = React.forwardRef<TextInput, InputProps>(({
   label,
   error,
   rightElement,
   containerStyle,
   style,
   ...props
-}: InputProps) {
+}, ref) => {
   const { colors } = useTheme();
   const hasError = !!error;
   const styles = getStyles(colors);
@@ -46,7 +46,7 @@ export function Input({
       ) : null}
     </View>
   );
-}
+});
 
 const getStyles = (colors: any) => StyleSheet.create({
   container: {

@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -33,6 +33,10 @@ export default function AuthScreen() {
   const [phoneError, setPhoneError] = useState('');
   const [isOtpView, setIsOtpView] = useState(false);
   const [otpCode, setOtpCode] = useState('');
+  
+  const phoneRef = useRef<any>(null);
+  const passwordRef = useRef<any>(null);
+  const otpRef = useRef<any>(null);
 
   // Alert State
   const [alertVisible, setAlertVisible] = useState(false);
@@ -215,6 +219,11 @@ export default function AuthScreen() {
                   value={otpCode}
                   onChangeText={setOtpCode}
                   error={phoneError}
+                  textContentType="oneTimeCode"
+                  autoComplete="sms-otp"
+                  ref={otpRef}
+                  onSubmitEditing={handleVerifyOtp}
+                  returnKeyType="done"
                 />
                 <TouchableOpacity 
                   onPress={() => setIsOtpView(false)}
@@ -240,6 +249,10 @@ export default function AuthScreen() {
                     value={name}
                     onChangeText={setName}
                     autoCapitalize="words"
+                    textContentType="givenName"
+                    autoComplete="name"
+                    onSubmitEditing={() => phoneRef.current?.focus()}
+                    returnKeyType="next"
                   />
                 )}
 
@@ -261,6 +274,11 @@ export default function AuthScreen() {
                       error={phoneError}
                       containerStyle={styles.phoneInputContainer}
                       style={styles.phoneInput}
+                      textContentType="telephoneNumber"
+                      autoComplete="tel"
+                      ref={phoneRef}
+                      onSubmitEditing={() => passwordRef.current?.focus()}
+                      returnKeyType="next"
                     />
                   </View>
                 </View>
@@ -272,6 +290,9 @@ export default function AuthScreen() {
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
+                  ref={passwordRef}
+                  onSubmitEditing={handleSubmit}
+                  returnKeyType="go"
                   rightElement={
                     <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
                       <Text style={styles.showToggle}>{showPassword ? 'Hide' : 'Show'}</Text>
