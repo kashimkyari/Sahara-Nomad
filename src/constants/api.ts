@@ -5,5 +5,10 @@ export default {
     AUTH: {
         LOGIN: `${API_URL}/auth/token`,
         SIGNUP: `${API_URL}/auth/signup`,
-    }
+    },
+    WAKA: {
+        CREATE: `${API_URL}/waka/`,
+        GET: (id: string) => `${API_URL}/waka/${id}`,
+        MY_WAKAS: `${API_URL}/waka/mine`,
+    },
 };

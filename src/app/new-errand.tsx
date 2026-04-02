@@ -20,6 +20,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DesignTokens as DT } from '../constants/design';
 import { useTheme } from '../hooks/use-theme';
+import { useAuth } from '../context/AuthContext';
+import API from '../constants/api';
 
 const { width } = Dimensions.get('window');
 const SLIDER_WIDTH = width - DT.spacing.lg * 2 - 4; // subtract padding
@@ -36,6 +38,7 @@ const CATEGORIES = [
 
 export default function NewErrandScreen() {
   const { colors } = useTheme();
+  const { token } = useAuth();
   const router = useRouter();
   
   const [category, setCategory] = useState('package');
@@ -43,9 +46,14 @@ export default function NewErrandScreen() {
   const [items, setItems] = useState('');
   const [location, setLocation] = useState('');
   const [deliveryLocation, setDeliveryLocation] = useState('');
+
+  // GPS coordinates stored alongside the address strings
+  const [pickupCoords, setPickupCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [dropoffCoords, setDropoffCoords] = useState<{ lat: number; lng: number } | null>(null);
   
   const [isFetchingPickup, setIsFetchingPickup] = useState(false);
   const [isFetchingDelivery, setIsFetchingDelivery] = useState(false);
+  const [isBroadcasting, setIsBroadcasting] = useState(false);
   
   const [price, setPrice] = useState(5000);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -130,19 +138,62 @@ export default function NewErrandScreen() {
   const isFormValid = items.length > 0 && location.length > 0 && deliveryLocation.length > 0;
   const totalPrice = price + (urgency === 'flash' ? incentive : 0);
 
-  const handleBroadcast = () => {
-    if (!isFormValid) return;
-    setShowSuccess(true);
-    setTimeout(() => {
-      setShowSuccess(false);
-      router.replace('/(tabs)' as any);
-    }, 2000);
+  const handleBroadcast = async () => {
+    if (!isFormValid || isBroadcasting) return;
+
+    setIsBroadcasting(true);
+    try {
+      const payload = {
+        category,
+        item_description: items,
+        pickup: {
+          address: location,
+          lat: pickupCoords?.lat ?? 0,
+          lng: pickupCoords?.lng ?? 0,
+        },
+        dropoff: {
+          address: deliveryLocation,
+          lat: dropoffCoords?.lat ?? 0,
+          lng: dropoffCoords?.lng ?? 0,
+        },
+        urgency,
+        base_fee: price,
+        flash_incentive: urgency === 'flash' ? incentive : 0,
+        total_price: totalPrice,
+      };
+
+      const res = await fetch(API.WAKA.CREATE, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || `Server error ${res.status}`);
+      }
+
+      const waka = await res.json();
+      setShowSuccess(true);
+      setTimeout(() => {
+        setShowSuccess(false);
+        router.replace(`/waka/${waka.id}` as any);
+      }, 2000);
+    } catch (e: any) {
+      Alert.alert('Broadcast Failed', e.message || 'Something went wrong. Please try again.');
+    } finally {
+      setIsBroadcasting(false);
+    }
   };
 
   const handleLocateMe = async (type: 'pickup' | 'delivery') => {
     const isPickup = type === 'pickup';
     const setLoading = isPickup ? setIsFetchingPickup : setIsFetchingDelivery;
     const setValue = isPickup ? setLocation : setDeliveryLocation;
+    const setCoords = isPickup ? setPickupCoords : setDropoffCoords;
 
     try {
       setLoading(true);
@@ -155,10 +206,10 @@ export default function NewErrandScreen() {
       const loc = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Highest,
       });
-      const geocode = await Location.reverseGeocodeAsync({
-        latitude: loc.coords.latitude,
-        longitude: loc.coords.longitude,
-      });
+      const { latitude, longitude } = loc.coords;
+      setCoords({ lat: latitude, lng: longitude });
+
+      const geocode = await Location.reverseGeocodeAsync({ latitude, longitude });
 
       if (geocode && geocode.length > 0) {
         const place = geocode[0];
@@ -438,13 +489,17 @@ export default function NewErrandScreen() {
       {/* Sticky Brutalist Footer */}
       <View style={styles.footer}>
         <TouchableOpacity
-          style={[styles.broadcastBtn, !isFormValid && styles.broadcastDashed]}
+          style={[styles.broadcastBtn, (!isFormValid || isBroadcasting) && styles.broadcastDashed]}
           onPress={handleBroadcast}
-          disabled={!isFormValid}
+          disabled={!isFormValid || isBroadcasting}
         >
-          <Text style={[styles.broadcastText, !isFormValid && styles.broadcastTextDisabled]}>
-            {isFormValid ? `BROADCAST — ₦${totalPrice.toLocaleString()}` : 'FILL DETAILS TO BROADCAST'}
-          </Text>
+          {isBroadcasting ? (
+            <ActivityIndicator color={colors.surface} />
+          ) : (
+            <Text style={[styles.broadcastText, !isFormValid && styles.broadcastTextDisabled]}>
+              {isFormValid ? `BROADCAST — ₦${totalPrice.toLocaleString()}` : 'FILL DETAILS TO BROADCAST'}
+            </Text>
+          )}
         </TouchableOpacity>
       </View>
 

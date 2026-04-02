@@ -24,6 +24,7 @@ class User(AuditableBase):
     
     is_otp_verified: Mapped[bool] = mapped_column(Boolean, default=False)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_runner: Mapped[bool] = mapped_column(Boolean, default=False)  # set True when runner application is approved
     government_id_nin: Mapped[Optional[str]] = mapped_column(String(11), unique=True, nullable=True)
     loyalty_badge: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     stats_rating: Mapped[float] = mapped_column(Numeric(3, 2), default=5.0)
@@ -53,3 +54,24 @@ class RunnerProfile(AuditableBase):
     stats_rating: Mapped[float] = mapped_column(Numeric(3, 2), default=5.0)
 
     user: Mapped["User"] = relationship("User", back_populates="runner_profile")
+
+
+class RunnerApplication(AuditableBase):
+    """Tracks a user's request to become a runner. Admin sets status to 'approved' | 'rejected'."""
+    __tablename__ = "runner_applications"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), index=True)
+
+    # Collected during the application wizard
+    bvn: Mapped[Optional[str]] = mapped_column(String(11), nullable=True)          # masked/hashed in prod
+    home_address: Mapped[str] = mapped_column(String(512))
+    transport_mode: Mapped[str] = mapped_column(String(50))                         # Motorcycle / Keke / Car / On Foot
+    verification_method: Mapped[str] = mapped_column(String(20), default="otp")    # otp | liveness
+
+    # Admin workflow
+    status: Mapped[str] = mapped_column(String(20), default="pending")              # pending | approved | rejected
+    admin_note: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    reviewed_by: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), nullable=True)
+
+    user: Mapped["User"] = relationship("User", foreign_keys=[user_id])
