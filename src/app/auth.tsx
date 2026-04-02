@@ -97,8 +97,8 @@ export default function AuthScreen() {
         const res = await loginResponse.json();
         if (res.status === 'otp_sent') {
           setIsOtpView(true);
-        } else if (res.access_token) {
-          await signIn(res.access_token);
+        } else if (res.access_token && res.refresh_token) {
+          await signIn(res.access_token, res.refresh_token);
         }
     } catch (error: any) {
       setPhoneError(error.message);
@@ -127,8 +127,8 @@ export default function AuthScreen() {
         throw new Error(err.detail || 'OTP verification failed');
       }
 
-      const { access_token } = await response.json();
-      await signIn(access_token);
+      const { access_token, refresh_token } = await response.json();
+      await signIn(access_token, refresh_token);
     } catch (error: any) {
       setPhoneError(error.message);
     } finally {

@@ -7,12 +7,13 @@ class Settings(BaseSettings):
     
     JWT_SECRET: str = "your-secret-key-change-this-in-prod"
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7 # 1 week
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 30 # 30 days
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 90 # 90 days
     
     POSTGRES_SERVER: str = "localhost"
     POSTGRES_USER: str = "postgres"
     POSTGRES_PASSWORD: str = "postgres"
-    POSTGRES_DB: str = "sahara_nomad"
+    POSTGRES_DB: str = "sendam"
     SQLALCHEMY_DATABASE_URI: Optional[str] = None
     DATABASE_URL: Optional[str] = None
 

@@ -7,9 +7,9 @@ from ...models.user import User, RunnerProfile
 from ...models.wallet import Wallet, Transaction
 from ...models.waka import Waka
 from ...models.review import Review
-from ...schemas.user import UserCreate, UserResponse, Token, UserLogin, OTPVerify, UserUpdate
+from ...schemas.user import UserCreate, UserResponse, Token, UserLogin, OTPVerify, UserUpdate, TokenRefresh
 from ...schemas.review import ReviewBase, ReviewCreate, ReviewResponse
-from ...core.security import get_password_hash, create_access_token, verify_password
+from ...core.security import get_password_hash, create_access_token, create_refresh_token, verify_password
 from .deps import get_current_user
 from fastapi.security import OAuth2PasswordRequestForm
 
@@ -79,6 +79,7 @@ async def login_json(user_in: UserLogin, db: AsyncSession = Depends(get_db)):
     if user.is_otp_verified:
         return {
             "access_token": create_access_token(user.id),
+            "refresh_token": create_refresh_token(user.id),
             "token_type": "bearer",
         }
     
@@ -129,6 +130,7 @@ async def verify_otp(verify_in: OTPVerify, db: AsyncSession = Depends(get_db)):
     
     return {
         "access_token": create_access_token(user.id),
+        "refresh_token": create_refresh_token(user.id),
         "token_type": "bearer",
     }
 
@@ -179,6 +181,49 @@ async def _hydrate_user_response(user: User, db: AsyncSession) -> UserResponse:
                 review.reviewer_name = review.reviewer.full_name
     
     return resp
+
+@router.post("/refresh-token", response_model=Token)
+async def refresh_token(token_in: TokenRefresh, db: AsyncSession = Depends(get_db)):
+    """Refresh access token using a refresh token."""
+    from jose import jwt, JWTError
+    from ...core.config import settings
+    
+    try:
+        payload = jwt.decode(
+            token_in.refresh_token, settings.JWT_SECRET, algorithms=[settings.ALGORITHM]
+        )
+        token_type = payload.get("type")
+        if token_type != "refresh":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token type",
+            )
+        user_id: str = payload.get("sub")
+        if user_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid refresh token",
+            )
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate refresh token",
+        )
+    
+    # Check if user exists and is not deleted
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalars().first()
+    if not user or user.is_user_deleted:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found or deleted",
+        )
+    
+    return {
+        "access_token": create_access_token(user.id),
+        "refresh_token": token_in.refresh_token, # Keep using the same refresh token or issue a new one
+        "token_type": "bearer",
+    }
 
 @router.get("/me", response_model=UserResponse)
 async def get_me(current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):

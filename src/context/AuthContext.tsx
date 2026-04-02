@@ -1,5 +1,6 @@
 import { useRouter, useSegments } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 import API from '../constants/api';
 
@@ -39,9 +40,10 @@ interface User {
 
 interface AuthContextType {
   token: string | null;
+  refreshToken: string | null;
   user: User | null;
   isLoading: boolean;
-  signIn: (token: string) => Promise<void>;
+  signIn: (accessToken: string, refreshToken: string) => Promise<void>;
   signOut: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -50,6 +52,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
+  const [refreshToken, setRefreshTokenState] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const segments = useSegments();
@@ -71,25 +74,75 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (response.ok) {
         const userData = await response.json();
         setUser(userData);
-      } else {
-        // Token might be invalid
-        await signOut();
+        // Persist user data for offline access
+        await AsyncStorage.setItem('userData', JSON.stringify(userData));
+      } else if (response.status === 401) {
+        // Attempt to refresh token if we have a refresh token
+        const storedRefreshToken = await SecureStore.getItemAsync('refreshToken');
+        if (storedRefreshToken) {
+          const newTokens = await refreshAccessToken(storedRefreshToken);
+          if (newTokens) {
+            // Retry with new token
+            await fetchUserProfile(newTokens.access_token);
+            return;
+          }
+        }
       }
+      // For other errors, we keep the existing (possibly cached) user state.
+      // This follows the "never expire" policy.
     } catch (e) {
       console.error('Failed to fetch user profile', e);
     }
   };
 
+  const refreshAccessToken = async (currentRefreshToken: string) => {
+    try {
+      const response = await fetch(`${API.API_URL}/auth/refresh-token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: currentRefreshToken })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        await Promise.all([
+          SecureStore.setItemAsync('userToken', data.access_token),
+          SecureStore.setItemAsync('refreshToken', data.refresh_token)
+        ]);
+        setToken(data.access_token);
+        setRefreshTokenState(data.refresh_token);
+        return data;
+      }
+    } catch (e) {
+      console.error('Failed to refresh access token', e);
+    }
+    return null;
+  };
+
   useEffect(() => {
     const loadToken = async () => {
       try {
-        const storedToken = await SecureStore.getItemAsync('userToken');
+        const [storedToken, storedRefreshToken, storedUserData] = await Promise.all([
+          SecureStore.getItemAsync('userToken'),
+          SecureStore.getItemAsync('refreshToken'),
+          AsyncStorage.getItem('userData')
+        ]);
+
+        if (storedUserData) {
+          setUser(JSON.parse(storedUserData));
+        }
+
+        if (storedRefreshToken) {
+          setRefreshTokenState(storedRefreshToken);
+        }
+
         if (storedToken) {
           setToken(storedToken);
-          await fetchUserProfile(storedToken);
+          // Refresh user data in background if online
+          fetchUserProfile(storedToken);
         }
       } catch (e) {
-        console.error('Failed to load token', e);
+        console.error('Failed to load auth state', e);
       } finally {
         setIsLoading(false);
       }
@@ -98,15 +151,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loadToken();
   }, []);
 
-  const signIn = async (newToken: string) => {
-    await SecureStore.setItemAsync('userToken', newToken);
-    setToken(newToken);
-    await fetchUserProfile(newToken);
+  const signIn = async (accessToken: string, newRefreshToken: string) => {
+    await Promise.all([
+      SecureStore.setItemAsync('userToken', accessToken),
+      SecureStore.setItemAsync('refreshToken', newRefreshToken)
+    ]);
+    setToken(accessToken);
+    setRefreshTokenState(newRefreshToken);
+    await fetchUserProfile(accessToken);
   };
 
   const signOut = async () => {
-    await SecureStore.deleteItemAsync('userToken');
+    await Promise.all([
+      SecureStore.deleteItemAsync('userToken'),
+      SecureStore.deleteItemAsync('refreshToken'),
+      AsyncStorage.removeItem('userData')
+    ]);
     setToken(null);
+    setRefreshTokenState(null);
     setUser(null);
   };
 
@@ -126,7 +188,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [token, isLoading, segments]);
 
   return (
-    <AuthContext.Provider value={{ token, user, isLoading, signIn, signOut, refreshUser }}>
+    <AuthContext.Provider value={{ token, refreshToken, user, isLoading, signIn, signOut, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );
