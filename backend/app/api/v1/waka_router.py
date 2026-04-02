@@ -6,6 +6,7 @@ from ...models.waka import Waka
 from ...models.user import User
 from ...schemas.waka import WakaCreate, WakaResponse
 from .deps import get_current_user
+from ...services.notification_service import create_in_app_notification
 import uuid
 from typing import List
 
@@ -35,6 +36,19 @@ async def create_waka(
     db.add(db_obj)
     await db.commit()
     await db.refresh(db_obj)
+
+    # Initial Notification
+    await create_in_app_notification(
+        db=db,
+        user_id=employer_id,
+        title="Errand Posted",
+        body=f"Your request for '{db_obj.category}' has been posted and we're finding a runner.",
+        type="info",
+        linked_entity_id=db_obj.id,
+        linked_entity_type="waka"
+    )
+    await db.commit()
+
     return db_obj
 
 @router.get("/active", response_model=List[WakaResponse])
@@ -75,6 +89,19 @@ async def cancel_waka(
     waka.status = "cancelled"
     await db.commit()
     await db.refresh(waka)
+
+    # Cancellation Notification
+    await create_in_app_notification(
+        db=db,
+        user_id=current_user.id,
+        title="Errand Cancelled",
+        body=f"Your errand for '{waka.category}' has been successfully cancelled.",
+        type="warning",
+        linked_entity_id=waka.id,
+        linked_entity_type="waka"
+    )
+    await db.commit()
+
     return waka
 
 @router.post("/{waka_id}/complete", response_model=WakaResponse)
@@ -96,6 +123,19 @@ async def complete_waka(
     waka.step = 4
     await db.commit()
     await db.refresh(waka)
+
+    # Completion Notification
+    await create_in_app_notification(
+        db=db,
+        user_id=current_user.id,
+        title="Errand Completed",
+        body=f"Your errand for '{waka.category}' is finished. Thanks for using Sahara Nomad!",
+        type="success",
+        linked_entity_id=waka.id,
+        linked_entity_type="waka"
+    )
+    await db.commit()
+
     return waka
 
 @router.get("/mine", response_model=List[WakaResponse])

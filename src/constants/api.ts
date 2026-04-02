@@ -30,5 +30,10 @@ export default {
         HISTORY: (id: string) => `${API_URL}/chat/${id}/history`,
         SEND: `${API_URL}/chat/messages`,
         WS: (id: string, token: string) => `ws://172.20.10.9:8000/api/v1/chat/ws/${id}?token=${token}`,
+    },
+    NOTIFICATIONS: {
+        LIST: `${API_URL}/notifications/`,
+        READ: (id: string) => `${API_URL}/notifications/${id}/read`,
+        CLEAR_ALL: `${API_URL}/notifications/clear-all`,
     }
 };

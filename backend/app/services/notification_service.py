@@ -1,6 +1,9 @@
 from exponent_server_sdk import PushClient, PushMessage, PushServerError
 from typing import List, Optional
 from ..core.config import settings
+from ..models.notification import InAppNotification
+from sqlalchemy.ext.asyncio import AsyncSession
+import uuid
 
 def send_push_notification(token: str, title: str, body: str, data: Optional[dict] = None):
     try:
@@ -19,3 +22,24 @@ def send_push_notification(token: str, title: str, body: str, data: Optional[dic
 def broadcast_to_runners(tokens: List[str], title: str, body: str, waka_id: str):
     for token in tokens:
         send_push_notification(token, title, body, {"waka_id": waka_id})
+
+async def create_in_app_notification(
+    db: AsyncSession,
+    user_id: uuid.UUID,
+    title: str,
+    body: str,
+    type: str = "info",
+    linked_entity_id: uuid.UUID = None,
+    linked_entity_type: str = None
+):
+    note = InAppNotification(
+        user_id=user_id,
+        title=title,
+        body=body,
+        type=type,
+        linked_entity_id=linked_entity_id,
+        linked_entity_type=linked_entity_type
+    )
+    db.add(note)
+    await db.flush()
+    return note
