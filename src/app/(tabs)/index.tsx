@@ -47,6 +47,7 @@ export default function HomeScreen() {
   const [greeting, setGreeting] = useState('');
   const [activeWakas, setActiveWakas] = useState<any[]>([]);
   const [isLoadingWakas, setIsLoadingWakas] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const getStatusText = (step: number, status: string) => {
     if (status === 'finding_runner') return 'Finding Runner...';
@@ -77,13 +78,29 @@ export default function HomeScreen() {
     }
   };
 
+  const fetchUnreadCount = async () => {
+    if (!token) return;
+    try {
+      const res = await fetch(API.NOTIFICATIONS.UNREAD_COUNT, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setUnreadCount(data.unread_count);
+      }
+    } catch (e) {
+      console.error('Fetch unread count failed:', e);
+    }
+  };
+
   useEffect(() => {
     fetchActiveWakas();
+    fetchUnreadCount();
   }, [token]);
 
   const { refreshControl, refreshBanner, onScroll, refreshing } = useBrutalistRefresh({
     onRefresh: async () => { 
-      await Promise.all([refreshUser(), fetchActiveWakas()]);
+      await Promise.all([refreshUser(), fetchActiveWakas(), fetchUnreadCount()]);
     },
   });
 
@@ -132,7 +149,11 @@ export default function HomeScreen() {
             onPress={() => router.push('/notifications' as any)}
           >
             <Bell size={22} color={colors.text} strokeWidth={2.5} />
-            <View style={styles.bellDot} />
+            {unreadCount > 0 && (
+              <View style={styles.bellDot}>
+                <Text style={styles.unreadText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+              </View>
+            )}
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.avatarBox}
@@ -355,14 +376,21 @@ const getStyles = (colors: any) => StyleSheet.create({
   },
   bellDot: {
     position: 'absolute',
-    top: 6,
-    right: 6,
-    width: 10,
-    height: 10,
+    top: -5,
+    right: -5,
+    minWidth: 20,
+    height: 20,
     backgroundColor: colors.primary,
-    borderRadius: 0,
     borderWidth: 2,
     borderColor: colors.text,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 2,
+  },
+  unreadText: {
+    fontFamily: DT.typography.heading,
+    fontSize: 9,
+    color: colors.text,
   },
   avatarBox: {
     width: 44,

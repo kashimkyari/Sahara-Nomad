@@ -74,3 +74,20 @@ async def clear_all_notifications(
     )
     await db.commit()
     return {"status": "success"}
+
+@router.get("/unread-count")
+async def get_unread_count(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    from sqlalchemy import func
+    result = await db.execute(
+        select(func.count(InAppNotification.id))
+        .where(
+            InAppNotification.user_id == current_user.id,
+            InAppNotification.is_unread == True,
+            InAppNotification.is_deleted == False
+        )
+    )
+    count = result.scalar()
+    return {"unread_count": count}
