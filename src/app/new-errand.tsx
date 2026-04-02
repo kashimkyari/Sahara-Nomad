@@ -1,33 +1,39 @@
-import React, { useState, useRef, useCallback } from 'react';
+import * as Location from 'expo-location';
+import { Stack, useRouter } from 'expo-router';
+import { ChevronLeft, MapPin } from 'lucide-react-native';
+import React, { useRef, useState } from 'react';
 import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
-  StyleSheet,
-  PanResponder,
-  Dimensions,
+  ActivityIndicator,
+  Alert,
   Animated,
+  Dimensions,
   Modal,
+  PanResponder,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Stack, useRouter } from 'expo-router';
-import { ChevronLeft, MapPin, CheckCircle } from 'lucide-react-native';
 import { DesignTokens as DT } from '../constants/design';
 import { useTheme } from '../hooks/use-theme';
 
 const { width } = Dimensions.get('window');
 const SLIDER_WIDTH = width - DT.spacing.lg * 2 - 4; // subtract padding
-const MIN_PRICE = 1000;
-const MAX_PRICE = 10000;
+const MIN_PRICE = 3000;
+const MAX_PRICE = 30000;
 
 export default function NewErrandScreen() {
   const { colors } = useTheme();
   const router = useRouter();
   const [items, setItems] = useState('');
   const [location, setLocation] = useState('');
-  const [price, setPrice] = useState(2500);
+  const [deliveryLocation, setDeliveryLocation] = useState('');
+  const [isFetchingPickup, setIsFetchingPickup] = useState(false);
+  const [isFetchingDelivery, setIsFetchingDelivery] = useState(false);
+  const [price, setPrice] = useState(5000); // Updated to fall within new bounds
   const [showSuccess, setShowSuccess] = useState(false);
   const [scrollEnabled, setScrollEnabled] = useState(true);
 
@@ -47,30 +53,88 @@ export default function NewErrandScreen() {
       onPanResponderMove: (_, gestureState) => {
         let newX = currentX.current + gestureState.dx;
         newX = Math.max(0, Math.min(SLIDER_WIDTH, newX));
-        sliderX.setValue(newX - currentX.current);
-        const newPrice = Math.round(
-          MIN_PRICE + ((newX) / SLIDER_WIDTH) * (MAX_PRICE - MIN_PRICE)
-        );
-        setPrice(Math.max(MIN_PRICE, Math.min(MAX_PRICE, newPrice)));
+        
+        const rawPrice = MIN_PRICE + (newX / SLIDER_WIDTH) * (MAX_PRICE - MIN_PRICE);
+        const snappedPrice = Math.round(rawPrice / 500) * 500;
+        const boundedPrice = Math.max(MIN_PRICE, Math.min(MAX_PRICE, snappedPrice));
+        
+        const snappedX = ((boundedPrice - MIN_PRICE) / (MAX_PRICE - MIN_PRICE)) * SLIDER_WIDTH;
+        
+        sliderX.setValue(snappedX - currentX.current);
+        setPrice(boundedPrice);
       },
       onPanResponderRelease: (_, gestureState) => {
         setScrollEnabled(true);
         sliderX.flattenOffset();
+        
         let newX = currentX.current + gestureState.dx;
         newX = Math.max(0, Math.min(SLIDER_WIDTH, newX));
-        currentX.current = newX;
-        sliderX.setValue(newX);
+        
+        const rawPrice = MIN_PRICE + (newX / SLIDER_WIDTH) * (MAX_PRICE - MIN_PRICE);
+        const snappedPrice = Math.round(rawPrice / 500) * 500;
+        const boundedPrice = Math.max(MIN_PRICE, Math.min(MAX_PRICE, snappedPrice));
+        
+        const snappedX = ((boundedPrice - MIN_PRICE) / (MAX_PRICE - MIN_PRICE)) * SLIDER_WIDTH;
+        
+        currentX.current = snappedX;
+        sliderX.setValue(snappedX);
       },
     })
   ).current;
 
   const handleBroadcast = () => {
-    if (!items || !location) return;
+    if (!items || !location || !deliveryLocation) return;
     setShowSuccess(true);
     setTimeout(() => {
       setShowSuccess(false);
       router.replace('/(tabs)');
     }, 2000);
+  };
+
+  const handleLocateMe = async (type: 'pickup' | 'delivery') => {
+    const isPickup = type === 'pickup';
+    const setLoading = isPickup ? setIsFetchingPickup : setIsFetchingDelivery;
+    const setValue = isPickup ? setLocation : setDeliveryLocation;
+
+    try {
+      setLoading(true);
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Please enable location permissions in your settings.');
+        return;
+      }
+
+      const loc = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Highest, // Force highest precision
+      });
+      const geocode = await Location.reverseGeocodeAsync({
+        latitude: loc.coords.latitude,
+        longitude: loc.coords.longitude,
+      });
+
+      if (geocode && geocode.length > 0) {
+        const place = geocode[0];
+
+        const streetInfo = [place.streetNumber, place.street].filter(Boolean).join(' ');
+
+        // Collect granular parts: street -> landmark -> district -> city -> state
+        const parts = [
+          streetInfo || place.name, // Use landmark/building name if street data is missing
+          place.district,
+          place.city,
+          place.region
+        ].filter(Boolean);
+
+        // Deduplicate identical parts (e.g., if city and region are both "Lagos" or name is same as street)
+        const uniqueParts = parts.filter((item, index) => parts.indexOf(item) === index);
+
+        setValue(uniqueParts.join(', ') || 'Unknown Location');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Could not determine your location.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const fillWidth = sliderX.interpolate({
@@ -138,9 +202,18 @@ export default function NewErrandScreen() {
               value={location}
               onChangeText={setLocation}
             />
-            <View style={styles.locationIcon}>
-              <MapPin size={20} color={colors.surface} strokeWidth={2.5} />
-            </View>
+            <TouchableOpacity
+              style={styles.locationIcon}
+              onPress={() => handleLocateMe('pickup')}
+              disabled={isFetchingPickup}
+              activeOpacity={0.8}
+            >
+              {isFetchingPickup ? (
+                <ActivityIndicator size="small" color={colors.surface} />
+              ) : (
+                <MapPin size={20} color={colors.surface} strokeWidth={2.5} />
+              )}
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -152,10 +225,21 @@ export default function NewErrandScreen() {
               style={styles.locationTextInput}
               placeholder="e.g. 15 Ajose Adeogun St, VI"
               placeholderTextColor={colors.muted}
+              value={deliveryLocation}
+              onChangeText={setDeliveryLocation}
             />
-            <View style={[styles.locationIcon, { backgroundColor: colors.secondary }]}>
-              <MapPin size={20} color={colors.surface} strokeWidth={2.5} />
-            </View>
+            <TouchableOpacity
+              style={[styles.locationIcon, { backgroundColor: colors.secondary }]}
+              onPress={() => handleLocateMe('delivery')}
+              disabled={isFetchingDelivery}
+              activeOpacity={0.8}
+            >
+              {isFetchingDelivery ? (
+                <ActivityIndicator size="small" color={colors.surface} />
+              ) : (
+                <MapPin size={20} color={colors.surface} strokeWidth={2.5} />
+              )}
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -188,8 +272,8 @@ export default function NewErrandScreen() {
           </View>
 
           <View style={styles.sliderLabels}>
-            <Text style={styles.sliderLabelText}>₦1,000</Text>
-            <Text style={styles.sliderLabelText}>₦10,000</Text>
+            <Text style={styles.sliderLabelText}>₦3,000</Text>
+            <Text style={styles.sliderLabelText}>₦30,000</Text>
           </View>
         </View>
 
@@ -209,10 +293,10 @@ export default function NewErrandScreen() {
         <TouchableOpacity
           style={[
             styles.broadcastBtn,
-            (!items || !location) && styles.broadcastDisabled,
+            (!items || !location || !deliveryLocation) && styles.broadcastDisabled,
           ]}
           onPress={handleBroadcast}
-          disabled={!items || !location}
+          disabled={!items || !location || !deliveryLocation}
         >
           <Text style={styles.broadcastText}>
             Broadcast Waka — ₦{price.toLocaleString()}
