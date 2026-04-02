@@ -149,9 +149,9 @@ async def _hydrate_user_response(user: User, db: AsyncSession) -> UserResponse:
     resp.errands_count = errands_count
     resp.wallet_balance = float(wallet.balance) if wallet else 0.0
     
-    # Populate reviewer names for runner reviews if they exist
-    if user.runner_profile and user.runner_profile.reviews:
-        for review in user.runner_profile.reviews:
+    # Populate reviewer names for user reviews if they exist
+    if user.reviews_received:
+        for review in user.reviews_received:
             if hasattr(review, 'reviewer') and review.reviewer:
                 review.reviewer_name = review.reviewer.full_name
     
@@ -159,16 +159,15 @@ async def _hydrate_user_response(user: User, db: AsyncSession) -> UserResponse:
 
 @router.get("/me", response_model=UserResponse)
 async def get_me(current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    # Re-fetch with reviews if runner
-    if current_user.runner_profile:
-        result = await db.execute(
-            select(User)
-            .options(
-                selectinload(User.runner_profile).selectinload(RunnerProfile.reviews).selectinload(Review.reviewer)
-            )
-            .where(User.id == current_user.id)
+    result = await db.execute(
+        select(User)
+        .options(
+            selectinload(User.runner_profile),
+            selectinload(User.reviews_received).selectinload(Review.reviewer)
         )
-        current_user = result.scalars().first()
+        .where(User.id == current_user.id)
+    )
+    current_user = result.scalars().first()
         
     return await _hydrate_user_response(current_user, db)
 
@@ -177,7 +176,8 @@ async def get_runner_profile(runner_id: uuid.UUID, db: AsyncSession = Depends(ge
     result = await db.execute(
         select(User)
         .options(
-            selectinload(User.runner_profile).selectinload(RunnerProfile.reviews).selectinload(Review.reviewer)
+            selectinload(User.runner_profile),
+            selectinload(User.reviews_received).selectinload(Review.reviewer)
         )
         .where(User.id == runner_id)
     )
@@ -187,33 +187,33 @@ async def get_runner_profile(runner_id: uuid.UUID, db: AsyncSession = Depends(ge
         
     return await _hydrate_user_response(user, db)
 
-@router.post("/runners/{runner_id}/reviews", response_model=ReviewResponse)
+@router.post("/users/{user_id}/reviews", response_model=ReviewResponse)
 async def create_review(
-    runner_id: uuid.UUID,
+    user_id: uuid.UUID,
     review_in: ReviewBase,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    # Check if runner profile exists
-    result = await db.execute(select(RunnerProfile).where(User.id == runner_id))
-    runner_profile = result.scalars().first()
-    if not runner_profile:
-        raise HTTPException(status_code=404, detail="Runner profile not found")
+    # Check if target user exists
+    result = await db.execute(select(User).where(User.id == user_id))
+    target_user = result.scalars().first()
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User not found")
     
     review = Review(
-        runner_id=runner_profile.id,
+        target_user_id=target_user.id,
         reviewer_id=current_user.id,
         rating=review_in.rating,
         comment=review_in.comment
     )
     db.add(review)
     
-    # Update runner average rating
+    # Update target user average rating
     result = await db.execute(
-        select(func.avg(Review.rating)).where(Review.runner_id == runner_profile.id)
+        select(func.avg(Review.rating)).where(Review.target_user_id == target_user.id)
     )
     avg_rating = result.scalar() or review_in.rating
-    runner_profile.stats_rating = avg_rating
+    target_user.stats_rating = avg_rating
     
     await db.commit()
     await db.refresh(review)

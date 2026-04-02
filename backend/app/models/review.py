@@ -8,12 +8,12 @@ class Review(AuditableBase):
     __tablename__ = "reviews"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    runner_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("runner_profiles.id"))
+    target_user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"))
     reviewer_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"))
     
     rating: Mapped[int] = mapped_column(Integer) # 1-5
     comment: Mapped[str] = mapped_column(Text)
 
     # Relationships
-    runner: Mapped["RunnerProfile"] = relationship("RunnerProfile", back_populates="reviews")
-    reviewer: Mapped["User"] = relationship("User", back_populates="reviews_given")
+    target_user: Mapped["User"] = relationship("User", foreign_keys=[target_user_id], back_populates="reviews_received")
+    reviewer: Mapped["User"] = relationship("User", foreign_keys=[reviewer_id], back_populates="reviews_given")

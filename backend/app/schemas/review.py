@@ -8,7 +8,7 @@ class ReviewBase(BaseModel):
     comment: str
 
 class ReviewCreate(ReviewBase):
-    runner_id: UUID
+    pass
 
 class ReviewResponse(ReviewBase):
     id: UUID

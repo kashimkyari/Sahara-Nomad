@@ -35,7 +35,8 @@ class User(AuditableBase):
     # Relationships
     runner_profile: Mapped[Optional["RunnerProfile"]] = relationship("RunnerProfile", back_populates="user", uselist=False)
     wallet: Mapped["Wallet"] = relationship("Wallet", back_populates="user", uselist=False)
-    reviews_given: Mapped[list["Review"]] = relationship("Review", back_populates="reviewer")
+    reviews_given: Mapped[list["Review"]] = relationship("Review", foreign_keys="[Review.reviewer_id]", back_populates="reviewer")
+    reviews_received: Mapped[list["Review"]] = relationship("Review", foreign_keys="[Review.target_user_id]", back_populates="target_user")
 
 class RunnerProfile(AuditableBase):
     __tablename__ = "runner_profiles"
@@ -52,4 +53,3 @@ class RunnerProfile(AuditableBase):
     stats_rating: Mapped[float] = mapped_column(Numeric(3, 2), default=5.0)
 
     user: Mapped["User"] = relationship("User", back_populates="runner_profile")
-    reviews: Mapped[list["Review"]] = relationship("Review", back_populates="runner")

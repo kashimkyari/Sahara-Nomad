@@ -27,9 +27,8 @@ class RunnerProfileResponse(BaseModel):
     bio: Optional[str] = None
     hourly_rate: Optional[float] = None
     stats_trips: int = 0
-    stats_rating: float = 5.0
+    stats_rating: float = 2.5
     is_online: bool = False
-    reviews: List[ReviewResponse] = []
 
     class Config:
         from_attributes = True
@@ -39,7 +38,7 @@ class UserResponse(UserBase):
     is_otp_verified: bool
     is_verified: bool
     loyalty_badge: Optional[str] = None
-    stats_rating: float = 5.0
+    stats_rating: float = 2.5
     created_at: datetime
     avatar_url: Optional[str] = None
     push_notifications_enabled: bool
@@ -51,6 +50,7 @@ class UserResponse(UserBase):
     errands_count: int = 0
     wallet_balance: float = 0.0
     runner_profile: Optional[RunnerProfileResponse] = None
+    reviews_received: List[ReviewResponse] = []
 
     class Config:
         from_attributes = True
