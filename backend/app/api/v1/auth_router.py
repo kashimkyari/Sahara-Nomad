@@ -61,6 +61,18 @@ async def login_json(user_in: UserLogin, db: AsyncSession = Depends(get_db)):
     
     return {"status": "otp_sent", "phone_number": user_in.phone_number}
 
+@router.post("/request-otp")
+async def request_otp(phone_number: str, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(User).where(User.phone_number == phone_number))
+    user = result.scalars().first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    user.otp_code = "123456"
+    user.otp_expires_at = datetime.utcnow() + timedelta(minutes=10)
+    await db.commit()
+    return {"status": "otp_sent", "phone_number": phone_number}
+
 @router.post("/verify-otp", response_model=Token)
 async def verify_otp(verify_in: OTPVerify, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(User).where(User.phone_number == verify_in.phone_number))

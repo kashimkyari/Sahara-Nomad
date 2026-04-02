@@ -39,6 +39,7 @@ export default function AuthScreen() {
       return;
     }
     setPhoneError('');
+    setIsOtpView(false); // Reset view if switching tabs or starting over
     setLoading(true);
 
     const fullPhone = `+234${phone.replace(/^0+/, '')}`;
@@ -121,6 +122,28 @@ export default function AuthScreen() {
     }
   };
 
+  const handleResendOtp = async () => {
+    setLoading(true);
+    setPhoneError('');
+    const fullPhone = `+234${phone.replace(/^0+/, '')}`;
+
+    try {
+      const response = await fetch(`${API.API_URL}/auth/request-otp?phone_number=${encodeURIComponent(fullPhone)}`, {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.detail || 'Failed to resend OTP');
+      }
+      alert('New code sent! Check your messages (Dev: 123456)');
+    } catch (error: any) {
+      setPhoneError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const styles = getStyles(colors);
 
   return (
@@ -184,6 +207,14 @@ export default function AuthScreen() {
                   style={styles.backToAuth}
                 >
                   <Text style={styles.backToAuthText}>Wrong number? Go back</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  onPress={handleResendOtp}
+                  disabled={loading}
+                  style={styles.resendBtn}
+                >
+                  <Text style={styles.resendText}>Didn't get a code? Resend</Text>
                 </TouchableOpacity>
               </View>
             ) : (
@@ -417,5 +448,15 @@ const getStyles = (colors: any) => StyleSheet.create({
     fontSize: 14,
     color: colors.muted,
     textDecorationLine: 'underline',
+  },
+  resendBtn: {
+    marginTop: DT.spacing.lg,
+    alignItems: 'center',
+    padding: 10,
+  },
+  resendText: {
+    fontFamily: DT.typography.bodySemiBold,
+    fontSize: 14,
+    color: colors.primary,
   },
 });
