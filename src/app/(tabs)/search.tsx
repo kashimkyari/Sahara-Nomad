@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Image, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Search, MapPin, Star, History, ArrowRight, TrendingUp } from 'lucide-react-native';
+import { Search, MapPin, Star, History, ArrowRight, TrendingUp, X } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { DesignTokens as DT } from '../../constants/design';
 import { useTheme } from '../../hooks/use-theme';
@@ -152,6 +152,18 @@ export default function SearchScreen() {
               onChangeText={setQuery}
               onSubmitEditing={() => saveRecentSearch(query)}
             />
+            {query.length > 0 && (
+              <TouchableOpacity 
+                onPress={() => {
+                  setQuery('');
+                  // Refetch with empty query to reset results
+                  fetchSearchData('', activeFilter);
+                }} 
+                style={styles.clearIcon}
+              >
+                <X size={20} color={colors.muted} />
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
@@ -398,6 +410,11 @@ const getStyles = (colors: any) => StyleSheet.create({
     fontFamily: DT.typography.body,
     fontSize: 16,
     color: colors.text,
+  },
+  clearIcon: {
+    paddingHorizontal: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   filterScroll: {
     paddingHorizontal: DT.spacing.lg,
