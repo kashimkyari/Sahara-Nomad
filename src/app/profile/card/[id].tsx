@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ChevronLeft, CreditCard, Trash2, CheckCircle2 } from 'lucide-react-native';
-import { DesignTokens as DT } from '../../constants/design';
+import { DesignTokens as DT } from '../../../constants/design';
 
 const cardData: Record<string, { label: string; number: string; type: string; bank: string; active: boolean; expires: string }> = {
   '1': { label: 'Kuda Bank', number: '•••• •••• •••• 4521', type: 'Bank Transfer', bank: 'Kuda MFB', active: true, expires: 'N/A' },

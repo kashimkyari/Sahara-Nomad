@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ChevronLeft, ArrowDownLeft, ArrowUpRight, Share2 } from 'lucide-react-native';
-import { DesignTokens as DT } from '../../constants/design';
+import { DesignTokens as DT } from '../../../constants/design';
 
 type TxType = { label: string; amount: string; date: string; time: string; ref: string; positive: boolean; status: string; method: string; description: string };
 
