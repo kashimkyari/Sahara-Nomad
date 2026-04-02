@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "SendAm",
-    "slug": "sendam",
+    "slug": "sendam-ng",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -44,8 +44,10 @@
     },
     "extra": {
       "eas": {
-        "projectId": "YOUR_PROJECT_ID_HERE"
-      }
-    }
+        "projectId": "81026117-38a4-4c29-b3a3-22ff34bf03b4"
+      },
+      "router": {}
+    },
+    "owner": "0xkashim"
   }
 }
