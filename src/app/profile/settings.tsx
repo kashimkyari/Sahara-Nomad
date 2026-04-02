@@ -78,6 +78,8 @@ export default function ProfileSettingsScreen() {
   const [location, setLocation] = useState(user?.location_services_enabled ?? true);
   const [language, setLanguage] = useState(user?.language ?? 'en');
   const [region, setRegion] = useState(user?.region ?? 'NG');
+  const [deletionStep, setDeletionStep] = useState(0); // 0: None, 1: Warning, 2: Confirm, 3: Final
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -117,6 +119,29 @@ export default function ProfileSettingsScreen() {
       if (key === 'push_notifications_enabled') setNotifs(!value);
       if (key === 'location_services_enabled') setLocation(!value);
       console.error(error);
+    }
+  };
+
+  const handleAccountDeletion = async () => {
+    if (!token) return;
+    try {
+      setIsDeleting(true);
+      const response = await fetch(`${API.API_URL}/auth/me`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+      });
+
+      if (!response.ok) throw new Error('Failed to delete account');
+      
+      Alert.alert('Account Deleted', 'Your account has been permanently removed.');
+      signOut();
+    } catch (error: any) {
+      Alert.alert('Error', error.message);
+    } finally {
+      setIsDeleting(false);
+      setDeletionStep(0);
     }
   };
 
@@ -235,10 +260,72 @@ export default function ProfileSettingsScreen() {
 
         <Text style={[styles.sectionLabel, { marginTop: DT.spacing.lg }]}>DANGER ZONE</Text>
         <View style={styles.group}>
-          <TouchableOpacity style={styles.linkRow}>
-            <View style={styles.linkInfo}><Text style={[styles.linkTitle, { color: colors.error }]}>Delete Account</Text><Text style={styles.linkSub}>Permanently removes all your data</Text></View>
-            <ChevronRight size={18} color={colors.error} />
-          </TouchableOpacity>
+          {deletionStep === 0 ? (
+            <TouchableOpacity style={styles.linkRow} onPress={() => setDeletionStep(1)}>
+              <View style={styles.linkInfo}>
+                <Text style={[styles.linkTitle, { color: colors.error }]}>Delete Account</Text>
+                <Text style={styles.linkSub}>Permanently removes all your data</Text>
+              </View>
+              <ChevronRight size={18} color={colors.error} />
+            </TouchableOpacity>
+          ) : (
+            <View style={{ padding: DT.spacing.md }}>
+              {deletionStep === 1 && (
+                <View>
+                  <Text style={[styles.linkTitle, { color: colors.error, fontSize: 16 }]}>Wait! Are you sure?</Text>
+                  <Text style={[styles.linkSub, { marginTop: 4, fontSize: 13 }]}>
+                    Deleting your account will permanently remove your profile, errand history, and wallet balance. This action cannot be undone.
+                  </Text>
+                  <View style={{ flexDirection: 'row', gap: DT.spacing.sm, marginTop: DT.spacing.md }}>
+                    <TouchableOpacity style={[styles.deleteBtnSecondary, { flex: 1 }]} onPress={() => setDeletionStep(0)}>
+                      <Text style={styles.deleteBtnText}>GO BACK</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[styles.deleteBtnPrimary, { flex: 1.5 }]} onPress={() => setDeletionStep(2)}>
+                      <Text style={[styles.deleteBtnText, { color: colors.surface }]}>I UNDERSTAND</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+              {deletionStep === 2 && (
+                <View>
+                  <Text style={[styles.linkTitle, { color: colors.error, fontSize: 16 }]}>Final Confirmation</Text>
+                  <Text style={[styles.linkSub, { marginTop: 4, fontSize: 13 }]}>
+                    All your active wakas will be cancelled. If you are a runner, your profile will be deactivated.
+                  </Text>
+                  <View style={{ flexDirection: 'row', gap: DT.spacing.sm, marginTop: DT.spacing.md }}>
+                    <TouchableOpacity style={[styles.deleteBtnSecondary, { flex: 1 }]} onPress={() => setDeletionStep(1)}>
+                      <Text style={styles.deleteBtnText}>PREVIOUS</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[styles.deleteBtnPrimary, { flex: 1.5, borderColor: colors.error, backgroundColor: colors.error }]} onPress={() => setDeletionStep(3)}>
+                      <Text style={[styles.deleteBtnText, { color: colors.surface }]}>CONFIRM ERASE</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+              {deletionStep === 3 && (
+                <View>
+                  <Text style={[styles.linkTitle, { color: colors.error, fontSize: 16 }]}>Irreversible Action</Text>
+                  <Text style={[styles.linkSub, { marginTop: 4, fontSize: 13 }]}>
+                    This is the last step. Click the button below to permanently erase your data from Sahara Nomad.
+                  </Text>
+                  <View style={{ gap: DT.spacing.sm, marginTop: DT.spacing.md }}>
+                    <TouchableOpacity 
+                      style={[styles.deleteBtnPrimary, { backgroundColor: colors.text, borderColor: colors.text }]} 
+                      onPress={handleAccountDeletion}
+                      disabled={isDeleting}
+                    >
+                      <Text style={[styles.deleteBtnText, { color: colors.surface }]}>
+                        {isDeleting ? 'ERASING...' : 'PERMANENTLY DELETE ACCOUNT'}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[styles.deleteBtnSecondary]} onPress={() => setDeletionStep(0)} disabled={isDeleting}>
+                      <Text style={styles.deleteBtnText}>CANCEL</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+            </View>
+          )}
         </View>
 
         <TouchableOpacity style={styles.logoutButton} onPress={signOut}>
@@ -291,5 +378,26 @@ const getStyles = (colors: any) => StyleSheet.create({
     fontFamily: DT.typography.heading,
     fontSize: 16,
     color: colors.surface,
+  },
+  deleteBtnPrimary: {
+    padding: DT.spacing.sm,
+    borderWidth: 2,
+    borderColor: colors.text,
+    backgroundColor: colors.text,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteBtnSecondary: {
+    padding: DT.spacing.sm,
+    borderWidth: 2,
+    borderColor: colors.text,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteBtnText: {
+    fontFamily: DT.typography.heading,
+    fontSize: 12,
+    color: colors.text,
   },
 });

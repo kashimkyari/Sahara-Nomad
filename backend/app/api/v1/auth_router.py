@@ -70,6 +70,12 @@ async def login_json(user_in: UserLogin, db: AsyncSession = Depends(get_db)):
             detail="Incorrect phone number or password",
         )
     
+    if user.is_user_deleted:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This account has been deleted",
+        )
+    
     if user.is_otp_verified:
         return {
             "access_token": create_access_token(user.id),
@@ -102,6 +108,12 @@ async def verify_otp(verify_in: OTPVerify, db: AsyncSession = Depends(get_db)):
     
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    
+    if user.is_user_deleted:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This account has been deleted",
+        )
     
     if user.otp_code != verify_in.otp_code:
         raise HTTPException(status_code=400, detail="Invalid OTP code")
@@ -260,6 +272,17 @@ async def update_me(
     await db.commit()
     await db.refresh(current_user)
     return await _hydrate_user_response(current_user, db)
+
+@router.delete("/me", response_model=dict)
+async def delete_me(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Permanently delete user account (soft delete)."""
+    current_user.is_user_deleted = True
+    current_user.soft_delete() # sets is_deleted=True and deleted_at
+    await db.commit()
+    return {"status": "account_deleted"}
 
 @router.post("/me/avatar")
 async def upload_avatar(

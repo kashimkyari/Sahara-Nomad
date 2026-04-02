@@ -29,6 +29,7 @@ class User(AuditableBase):
     loyalty_badge: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     stats_rating: Mapped[float] = mapped_column(Numeric(3, 2), default=5.0)
     avatar_url: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    is_user_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
 
     otp_code: Mapped[Optional[str]] = mapped_column(String(6), nullable=True)
     otp_expires_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
