@@ -59,7 +59,7 @@ export default function HomeScreen() {
             <Text style={styles.username}>Chidi 👋</Text>
           </View>
           <View style={styles.headerRight}>
-            <TouchableOpacity style={styles.bellWrapper} onPress={() => router.push('/profile')}>
+            <TouchableOpacity style={styles.bellWrapper} onPress={() => router.push('/notifications' as any)}>
               <Bell size={22} color={colors.text} strokeWidth={2.5} />
               <View style={styles.bellDot} />
             </TouchableOpacity>
