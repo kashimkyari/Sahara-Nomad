@@ -37,6 +37,7 @@ class UserResponse(UserBase):
     id: UUID
     is_otp_verified: bool
     is_verified: bool
+    is_runner: bool
     loyalty_badge: Optional[str] = None
     stats_rating: float = 2.5
     created_at: datetime
