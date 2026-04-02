@@ -87,32 +87,7 @@ export default function WakaStatusScreen() {
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
 
-        {/* Status Banner */}
-        <View style={styles.statusBanner}>
-          <Clock size={18} color={colors.text} strokeWidth={2.5} />
-          <Text style={styles.statusText}>{waka.status}</Text>
-        </View>
-
-        {/* Progress Stepper */}
-        <View style={styles.stepperRow}>
-          {STEPS.map((s, i) => {
-            const active = i < waka.step;
-            const current = i === waka.step - 1;
-            return (
-              <View key={s.label} style={styles.stepItem}>
-                <View style={[styles.stepCircle, active && styles.stepCircleActive, current && styles.stepCircleCurrent]}>
-                  <s.icon size={14} color={active ? colors.surface : colors.muted} strokeWidth={2.5} />
-                </View>
-                <Text style={[styles.stepLabel, active && styles.stepLabelActive]}>{s.label}</Text>
-                {i < STEPS.length - 1 && (
-                  <View style={[styles.stepLine, active && styles.stepLineActive]} />
-                )}
-              </View>
-            );
-          })}
-        </View>
-
-        {/* Waka Info Card */}
+        {/* Waka Info Card (Moves above Stepper for context) */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>{waka.title}</Text>
           <View style={styles.infoRow}>
@@ -135,31 +110,62 @@ export default function WakaStatusScreen() {
           </View>
         </View>
 
+        {/* Status Banner */}
+        <View style={styles.statusBanner}>
+          <Clock size={18} color={colors.text} strokeWidth={2.5} />
+          <Text style={styles.statusText}>{waka.status}</Text>
+        </View>
+
+        {/* Progress Stepper */}
+        <View style={styles.stepperRow}>
+          {STEPS.map((s, i) => {
+            const active = i < waka.step;
+            const current = i === waka.step - 1;
+            return (
+              <View key={s.label} style={styles.stepItem}>
+                <View style={[styles.stepCircle, active && styles.stepCircleActive, current && styles.stepCircleCurrent]}>
+                  <s.icon size={16} color={active ? colors.surface : colors.muted} strokeWidth={3} />
+                </View>
+                <Text style={[styles.stepLabel, active && styles.stepLabelActive]}>{s.label}</Text>
+                {i < STEPS.length - 1 && (
+                  <View style={[styles.stepLine, active && styles.stepLineActive]} />
+                )}
+              </View>
+            );
+          })}
+        </View>
+
         {/* Runner Card */}
         {waka.runner.img ? (
           <View style={styles.runnerCard}>
-            <Image source={{ uri: waka.runner.img }} style={styles.runnerAvatar} />
-            <View style={styles.runnerInfo}>
-              <Text style={styles.runnerName}>{waka.runner.name}</Text>
-              <Text style={styles.runnerRating}>★ {waka.runner.rating} · Your runner</Text>
+            <View style={styles.runnerHeaderRow}>
+              <Image source={{ uri: waka.runner.img }} style={styles.runnerAvatar} />
+              <View style={styles.runnerInfo}>
+                <Text style={styles.runnerName}>{waka.runner.name}</Text>
+                <Text style={styles.runnerRating}>★ {waka.runner.rating} · Your runner</Text>
+              </View>
             </View>
             <View style={styles.runnerActions}>
               <TouchableOpacity style={styles.actionBtn}>
-                <MessageCircle size={18} color={colors.text} strokeWidth={2.5} />
+                <MessageCircle size={20} color={colors.text} strokeWidth={2.5} />
+                <Text style={styles.actionBtnText}>MESSAGE</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.actionBtn, { backgroundColor: colors.secondary }]}>
-                <Phone size={18} color={colors.surface} strokeWidth={2.5} />
+                <Phone size={20} color={colors.surface} strokeWidth={2.5} />
+                <Text style={[styles.actionBtnText, { color: colors.surface }]}>CALL</Text>
               </TouchableOpacity>
             </View>
           </View>
         ) : (
           <View style={styles.runnerCard}>
-            <View style={styles.noRunnerBox}>
-              <Text style={styles.noRunnerEmoji}>⏳</Text>
-            </View>
-            <View style={styles.runnerInfo}>
-              <Text style={styles.runnerName}>Finding runner…</Text>
-              <Text style={styles.runnerRating}>Broadcast active nearby</Text>
+            <View style={styles.runnerHeaderRow}>
+              <View style={styles.noRunnerBox}>
+                <Text style={styles.noRunnerEmoji}>⏳</Text>
+              </View>
+              <View style={styles.runnerInfo}>
+                <Text style={styles.runnerName}>Finding runner…</Text>
+                <Text style={styles.runnerRating}>Broadcast active nearby</Text>
+              </View>
             </View>
           </View>
         )}
@@ -224,21 +230,21 @@ const getStyles = (colors: any) => StyleSheet.create({
   statusBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: DT.spacing.sm,
+    gap: DT.spacing.md,
     backgroundColor: colors.accent,
-    borderWidth: 2,
+    borderWidth: 3,
     borderColor: colors.text,
     padding: DT.spacing.md,
-    marginBottom: DT.spacing.lg,
+    marginBottom: DT.spacing.xl,
     shadowColor: colors.text,
-    shadowOffset: { width: 3, height: 3 },
+    shadowOffset: { width: 4, height: 4 },
     shadowOpacity: 1,
     shadowRadius: 0,
     elevation: 4,
   },
   statusText: {
-    fontFamily: DT.typography.bodySemiBold,
-    fontSize: 14,
+    fontFamily: DT.typography.heading,
+    fontSize: 16,
     color: colors.text,
     flex: 1,
   },
@@ -246,18 +252,18 @@ const getStyles = (colors: any) => StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: DT.spacing.lg,
+    marginBottom: 40,
     position: 'relative',
   },
   stepItem: {
     alignItems: 'center',
     flex: 1,
-    gap: 4,
+    gap: 8,
   },
   stepCircle: {
-    width: 32,
-    height: 32,
-    borderWidth: 2,
+    width: 36,
+    height: 36,
+    borderWidth: 3,
     borderColor: colors.text,
     backgroundColor: colors.surface,
     alignItems: 'center',
@@ -270,42 +276,41 @@ const getStyles = (colors: any) => StyleSheet.create({
     backgroundColor: colors.primary,
   },
   stepLabel: {
-    fontFamily: DT.typography.body,
-    fontSize: 10,
+    fontFamily: DT.typography.heading,
+    fontSize: 11,
     color: colors.muted,
     textAlign: 'center',
   },
   stepLabelActive: {
     color: colors.text,
-    fontFamily: DT.typography.bodySemiBold,
   },
   stepLine: {
     position: 'absolute',
-    top: 15,
+    top: 16,
     left: '55%',
     right: '-55%',
-    height: 2,
-    backgroundColor: colors.muted,
+    height: 4,
+    backgroundColor: colors.border,
     zIndex: -1,
   },
   stepLineActive: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.text,
   },
   card: {
     backgroundColor: colors.surface,
-    borderWidth: 2,
+    borderWidth: 3,
     borderColor: colors.text,
-    padding: DT.spacing.md,
-    marginBottom: DT.spacing.md,
+    padding: DT.spacing.lg,
+    marginBottom: DT.spacing.lg,
     shadowColor: colors.text,
-    shadowOffset: { width: 4, height: 4 },
+    shadowOffset: { width: 6, height: 6 },
     shadowOpacity: 1,
     shadowRadius: 0,
-    elevation: 5,
+    elevation: 6,
   },
   cardTitle: {
     fontFamily: DT.typography.heading,
-    fontSize: 17,
+    fontSize: 22,
     color: colors.text,
     marginBottom: DT.spacing.md,
   },
@@ -367,77 +372,90 @@ const getStyles = (colors: any) => StyleSheet.create({
     color: colors.text,
   },
   runnerCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
     backgroundColor: colors.surface,
-    borderWidth: 2,
+    borderWidth: 3,
     borderColor: colors.text,
     padding: DT.spacing.md,
-    marginBottom: DT.spacing.lg,
+    marginBottom: DT.spacing.xl,
     shadowColor: colors.text,
-    shadowOffset: { width: 4, height: 4 },
+    shadowOffset: { width: 5, height: 5 },
     shadowOpacity: 1,
     shadowRadius: 0,
     elevation: 5,
     gap: DT.spacing.md,
   },
+  runnerHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: DT.spacing.md,
+  },
   runnerAvatar: {
-    width: 52,
-    height: 52,
-    borderWidth: 2,
+    width: 64,
+    height: 64,
+    borderWidth: 3,
     borderColor: colors.text,
   },
   noRunnerBox: {
-    width: 52,
-    height: 52,
-    borderWidth: 2,
+    width: 64,
+    height: 64,
+    borderWidth: 3,
     borderColor: colors.text,
     backgroundColor: colors.background,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  noRunnerEmoji: { fontSize: 24 },
+  noRunnerEmoji: { fontSize: 28 },
   runnerInfo: { flex: 1 },
   runnerName: {
     fontFamily: DT.typography.heading,
-    fontSize: 15,
+    fontSize: 18,
     color: colors.text,
   },
   runnerRating: {
-    fontFamily: DT.typography.body,
-    fontSize: 12,
+    fontFamily: DT.typography.bodySemiBold,
+    fontSize: 13,
     color: colors.muted,
-    marginTop: 2,
+    marginTop: 4,
   },
   runnerActions: {
     flexDirection: 'row',
-    gap: DT.spacing.sm,
+    gap: DT.spacing.md,
+    marginTop: 8,
   },
   actionBtn: {
-    width: 40,
-    height: 40,
-    borderWidth: 2,
+    flex: 1,
+    flexDirection: 'row',
+    height: 48,
+    borderWidth: 3,
     borderColor: colors.text,
     backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 8,
     shadowColor: colors.text,
-    shadowOffset: { width: 2, height: 2 },
+    shadowOffset: { width: 3, height: 3 },
     shadowOpacity: 1,
     shadowRadius: 0,
     elevation: 3,
   },
+  actionBtnText: {
+    fontFamily: DT.typography.heading,
+    fontSize: 14,
+    color: colors.text,
+  },
   cancelBtn: {
-    height: 48,
-    borderWidth: 2,
+    height: 64,
+    borderWidth: 3,
     borderColor: colors.error,
-    backgroundColor: colors.surface,
+    borderStyle: 'dashed',
+    backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
   },
   cancelText: {
     fontFamily: DT.typography.heading,
-    fontSize: 15,
+    fontSize: 18,
+    letterSpacing: 1,
     color: colors.error,
   },
 });
