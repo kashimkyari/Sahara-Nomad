@@ -1,4 +1,4 @@
-import { useRouter, useSegments } from 'expo-router';
+import { useRouter, useSegments, useRootNavigationState } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
@@ -64,6 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const segments = useSegments();
   const router = useRouter();
+  const rootNavigationState = useRootNavigationState();
 
   const signOut = async () => {
     try {
@@ -186,7 +187,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Strictly enforce navigation guards
   useEffect(() => {
-    if (isLoading) return;
+    if (isLoading || !rootNavigationState?.key) return;
 
     // Determine current group (auth/onboarding vs protected)
     const firstSegment = segments[0] as any;
@@ -199,7 +200,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Redirect to home if authenticated and currently in auth group
       router.replace('/(tabs)');
     }
-  }, [token, isLoading, segments]);
+  }, [token, isLoading, segments, rootNavigationState?.key]);
 
   // Sync Push Token when authenticated
   useEffect(() => {
