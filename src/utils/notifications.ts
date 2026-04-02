@@ -39,16 +39,18 @@ export async function registerForPushNotificationsAsync() {
     }
     
     try {
-      // In Expo 55/SDK 55, projectId is usually automatically handled if logged in to EAS
-      // Otherwise, we can pass it from constants or config.
       const projectId = Constants.expoConfig?.extra?.eas?.projectId || 
                         Constants.easConfig?.projectId;
       
+      if (!projectId) {
+        console.warn('Push Tokens: No "projectId" found in app.json. Fetching token might fail.');
+      }
+
       token = (await Notifications.getExpoPushTokenAsync({
         projectId: projectId,
       })).data;
     } catch (e) {
-      console.error('Error getting push token', e);
+      console.error('Error getting push token. Verify you have a "projectId" in app.json under "extra.eas".', e);
     }
   } else {
     // console.log('Must use physical device for Push Notifications');
