@@ -64,10 +64,33 @@ async def list_conversations(
                 # For now, let's just use the title if it starts with an emoji or just the title
                 waka_emoji = "🛒" # Default emoji for errands
         
+        # Determine status of the last message (sent by current_user)
+        last_msg_status = None
+        last_msg_stmt = (
+            select(Message)
+            .where(Message.conversation_id == conv.id)
+            .order_by(Message.created_at.desc())
+            .limit(1)
+        )
+        last_msg_res = await db.execute(last_msg_stmt)
+        last_msg = last_msg_res.scalar_one_or_none()
+        
+        if last_msg and last_msg.sender_id == current_user.id:
+            last_msg_status = "read" if last_msg.is_read else "sent"
+            
         conv_dict = ConversationRead.model_validate(conv)
         conv_dict.unread_count = unread_count
         conv_dict.waka_title = waka_title
         conv_dict.waka_emoji = waka_emoji
+        conv_dict.last_message_status = last_msg_status
+        
+        if other_user:
+            conv_dict.other_user = UserInfo.model_validate(other_user)
+        
+        # Determine if pinned by current user
+        conv_dict.is_pinned = conv.is_pinned_by_employer if conv.employer_id == current_user.id else conv.is_pinned_by_runner
+        
+        enriched.append(conv_dict)
         
     return enriched
 

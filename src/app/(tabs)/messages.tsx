@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet, ScrollView, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -7,43 +7,11 @@ import { DesignTokens as DT } from '../../constants/design';
 import { useTheme } from '../../hooks/use-theme';
 import { useAuth } from '../../context/AuthContext';
 import API from '../../constants/api';
-import { useEffect } from 'react';
 import { ActivityIndicator } from 'react-native';
+import { useBrutalistRefresh } from '../../components/ui/BrutalistRefreshControl';
 
 const filters = ['All Chats', 'Unread', 'Active Errands', 'Archived'];
 
-const mockMessages = [
-  { 
-    id: '1', 
-    name: 'Chinedu O.', 
-    lastMsg: 'I am at the market now, I found the tomatoes you requested.', 
-    time: '12:45 PM', 
-    unread: true, 
-    errandTag: '🛒 Mile 12 Run',
-    pinned: true,
-    status: 'none' // 'none', 'sent', 'read'
-  },
-  { 
-    id: '2', 
-    name: 'Amina B.', 
-    lastMsg: 'Your package has been delivered at the front desk.', 
-    time: 'Yesterday', 
-    unread: false, 
-    errandTag: '📦 Dispatch',
-    pinned: false,
-    status: 'read'
-  },
-  { 
-    id: '3', 
-    name: 'Tunde S.', 
-    lastMsg: 'On my way! ETA 15 mins.', 
-    time: 'Mon', 
-    unread: false, 
-    errandTag: '🍔 Food Pickup',
-    pinned: false,
-    status: 'sent'
-  },
-];
 
 export default function MessagesScreen() {
   const { colors } = useTheme();
@@ -76,7 +44,6 @@ export default function MessagesScreen() {
       setLoading(false);
     }
   };
-
   const filteredConversations = conversations.filter((c) => {
     const matchQuery = c.other_user?.full_name.toLowerCase().includes(query.toLowerCase()) || 
                        c.last_message_text?.toLowerCase().includes(query.toLowerCase());
@@ -86,19 +53,36 @@ export default function MessagesScreen() {
     return matchQuery;
   });
 
+  const totalUnread = conversations.reduce((acc, conv) => acc + (conv.unread_count || 0), 0);
+
+  const { refreshControl, refreshBanner, onScroll } = useBrutalistRefresh({
+    onRefresh: fetchConversations,
+  });
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerTitleRow}>
           <Text style={styles.title}>Messages</Text>
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>1</Text>
-          </View>
+          {totalUnread > 0 && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{totalUnread}</Text>
+            </View>
+          )}
         </View>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      <View style={styles.flex1}>
+        {refreshBanner}
+        <ScrollView 
+        style={styles.flex1} 
+        showsVerticalScrollIndicator={false} 
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={refreshControl}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+      >
         
         {/* Search Bar */}
         <View style={styles.searchContainer}>
@@ -201,10 +185,15 @@ export default function MessagesScreen() {
                     {conv.last_message_text || 'No messages yet'}
                   </Text>
   
-                  {/* Read Receipts Layout - Simplified for now */}
-                  {conv.unread_count === 0 && conv.last_message_text && (
+                  {/* Read Receipts Layout */}
+                  {conv.last_message_status === 'read' && (
                     <View style={styles.receiptWrap}>
                       <CheckCheck size={16} color={colors.primary} strokeWidth={3} />
+                    </View>
+                  )}
+                  {conv.last_message_status === 'sent' && (
+                    <View style={styles.receiptWrap}>
+                      <Check size={16} color={colors.muted} strokeWidth={3} />
                     </View>
                   )}
                 </View>
@@ -215,6 +204,7 @@ export default function MessagesScreen() {
         </View>
 
       </ScrollView>
+      </View>
     </SafeAreaView>
   );
 }
@@ -223,6 +213,9 @@ const getStyles = (colors: any) => StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  flex1: {
+    flex: 1,
   },
   scrollContent: {
     paddingBottom: 100,

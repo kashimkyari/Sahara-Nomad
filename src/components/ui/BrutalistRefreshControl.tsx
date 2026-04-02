@@ -22,7 +22,7 @@ interface UseBrutalistRefreshOptions {
 
 interface BrutalistRefreshReturn {
   refreshControl: React.ReactElement<RefreshControlProps>;
-  refreshBanner: React.ReactElement;
+  refreshBanner: React.ReactElement | null;
   refreshing: boolean;
   onScroll: (e: any) => void;
 }
@@ -75,7 +75,7 @@ export function useBrutalistRefresh({
     }
   }, [onRefresh]);
 
-  const translateY = refreshing ? 0 : -(80 * (1 - pullDepth));
+  const translateY = refreshing ? -20 : -(80 * (1 - pullDepth));
   const scale = refreshing ? 1 : 0.4 + 0.65 * pullDepth + (pastThreshold ? 0.05 : 0);
   const rotateDeg = refreshing ? '0deg' : `${-3 + 3 * pullDepth}deg`;
   const bgColor = refreshing ? colors.primary : colors.accent;
@@ -83,7 +83,7 @@ export function useBrutalistRefresh({
 
   const spring = { type: 'spring', stiffness: 280, damping: 22 } as const;
 
-  const refreshBanner = (
+  const refreshBanner = (pullDepth > 0 || refreshing) ? (
     <View style={styles.bannerSlot} pointerEvents="none">
       <MotiView
         animate={{
@@ -117,7 +117,7 @@ export function useBrutalistRefresh({
         </MotiView>
       </MotiView>
     </View>
-  );
+  ) : null;
 
   const refreshControl = (
     <RefreshControl

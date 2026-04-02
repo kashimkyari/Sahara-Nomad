@@ -26,9 +26,9 @@ export default {
         DELETE: (id: string) => `${API_URL}/wallet/payment-methods/${id}`,
     },
     MESSAGES: {
-        CONVERSATIONS: `${API_URL}/messages/conversations`,
-        HISTORY: (id: string) => `${API_URL}/messages/${id}/history`,
-        SEND: `${API_URL}/messages/messages`,
-        WS: (id: string) => `ws://172.20.10.9:8000/api/v1/messages/ws/${id}`,
+        CONVERSATIONS: `${API_URL}/chat/conversations`,
+        HISTORY: (id: string) => `${API_URL}/chat/${id}/history`,
+        SEND: `${API_URL}/chat/messages`,
+        WS: (id: string) => `ws://172.20.10.9:8000/api/v1/chat/ws/${id}`,
     }
 };

@@ -36,6 +36,7 @@ class ConversationRead(ConversationBase):
     unread_count: int = 0
     other_user: Optional[UserInfo] = None
     is_pinned: bool = False
+    last_message_status: Optional[str] = None # 'sent' or 'read'
     waka_title: Optional[str] = None
     waka_emoji: Optional[str] = None
     
