@@ -4,14 +4,32 @@ from sqlalchemy import select, func, cast
 from geoalchemy2 import Geography
 from ...database import get_db
 from ...models.user import User
+from ...models.search import SearchHistory
 from ...models.waka import Waka
-from ...schemas.search import SearchResponse, RunnerSearchResponse
+from ...schemas.search import SearchResponse, RunnerSearchResponse, SearchRecord
 from .deps import get_current_user
 from typing import List
+from datetime import datetime, timedelta
 
 from ...services.market_service import MarketService
 
 router = APIRouter()
+
+@router.post("/record")
+async def record_search(
+    record: SearchRecord,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Record a search query to history."""
+    history = SearchHistory(
+        user_id=current_user.id,
+        query=record.query.strip().lower(),
+        city=current_user.city
+    )
+    db.add(history)
+    await db.commit()
+    return {"status": "ok"}
 
 @router.get("/runners", response_model=SearchResponse)
 async def search_runners(
@@ -54,6 +72,22 @@ async def search_runners(
     city = current_user.city
     markets = MarketService.get_popular_markets(city)
     
+    # Get real trending searches for the city (last 7 days)
+    seven_days_ago = datetime.utcnow() - timedelta(days=7)
+    trending_stmt = (
+        select(SearchHistory.query, func.count(SearchHistory.id).label("count"))
+        .where(SearchHistory.city == city, SearchHistory.created_at >= seven_days_ago)
+        .group_by(SearchHistory.query)
+        .order_by(func.count(SearchHistory.id).desc())
+        .limit(5)
+    )
+    trending_result = await db.execute(trending_stmt)
+    trending_searches = [row[0] for row in trending_result.all()]
+    
+    # Fallback trending searches if none in city
+    if not trending_searches:
+        trending_searches = ["Food delivery", "Laundry", "Market run", "Groceries", "Pharmacy"]
+
     result = await db.execute(stmt)
     rows = result.all()
     
@@ -74,6 +108,6 @@ async def search_runners(
         
     return SearchResponse(
         runners=runners,
-        trending_searches=["Fresh Tomatoes", "Macbook charger", "Market Run"],
+        trending_searches=trending_searches,
         markets=markets
     )

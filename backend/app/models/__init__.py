@@ -5,6 +5,7 @@ from .wallet import Wallet, Transaction
 from .waka import Waka
 from .notification import InAppNotification
 from .message import Conversation, Message
+from .search import SearchHistory
 
 __all__ = [
     "Base",
@@ -17,5 +18,6 @@ __all__ = [
     "Waka",
     "InAppNotification",
     "Conversation",
-    "Message"
+    "Message",
+    "SearchHistory"
 ]

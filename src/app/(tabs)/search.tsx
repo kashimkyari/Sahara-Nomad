@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Image, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Search, MapPin, Star, History, ArrowRight } from 'lucide-react-native';
+import { Search, MapPin, Star, History, ArrowRight, TrendingUp } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { DesignTokens as DT } from '../../constants/design';
 import { useTheme } from '../../hooks/use-theme';
@@ -9,9 +9,10 @@ import { useBrutalistRefresh } from '../../components/ui/BrutalistRefreshControl
 import { MotiView } from 'moti';
 import { useAuth } from '../../context/AuthContext';
 import API from '../../constants/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const filters = ['Available Now', 'Under 2km', '5★ Rated', 'Vehicles'];
-const recentSearches = ['Fresh Tomatoes', 'Macbook repair', 'Plumber in Yaba', 'Groceries'];
+const RECENT_SEARCHES_KEY = 'sahara_recent_searches';
 
 export default function SearchScreen() {
   const { colors } = useTheme();
@@ -23,7 +24,45 @@ export default function SearchScreen() {
   const [selectedMarket, setSelectedMarket] = useState('');
   const [activeFilter, setActiveFilter] = useState('Available Now');
   const [loading, setLoading] = useState(false);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [trendingSearches, setTrendingSearches] = useState<string[]>([]);
   const styles = getStyles(colors);
+
+  useEffect(() => {
+    loadRecentSearches();
+  }, []);
+
+  const loadRecentSearches = async () => {
+    try {
+      const saved = await AsyncStorage.getItem(RECENT_SEARCHES_KEY);
+      if (saved) setRecentSearches(JSON.parse(saved));
+    } catch (e) {
+      console.error('Failed to load recent searches', e);
+    }
+  };
+
+  const saveRecentSearch = async (s: string) => {
+    if (!s.trim()) return;
+    try {
+      const filtered = [s, ...recentSearches.filter(item => item !== s)].slice(0, 5);
+      setRecentSearches(filtered);
+      await AsyncStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(filtered));
+      
+      // Record on backend for city-trends
+      if (token && s.length > 2) {
+        fetch(`${API.API_URL}/search/record`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}` 
+          },
+          body: JSON.stringify({ query: s })
+        }).catch(err => console.error('Failed to record search:', err));
+      }
+    } catch (e) {
+      console.error('Failed to save search', e);
+    }
+  };
 
   const fetchSearchData = async (mkt?: string, flt?: string) => {
     if (!token) return;
@@ -45,6 +84,7 @@ export default function SearchScreen() {
       });
       const data = await res.json();
       setRunners(data.runners || []);
+      if (data.trending_searches) setTrendingSearches(data.trending_searches);
       
       if (data.markets && data.markets.length > 0) {
         setMarkets(data.markets);
@@ -110,6 +150,7 @@ export default function SearchScreen() {
               placeholderTextColor={colors.muted}
               value={query}
               onChangeText={setQuery}
+              onSubmitEditing={() => saveRecentSearch(query)}
             />
           </View>
         </View>
@@ -240,19 +281,65 @@ export default function SearchScreen() {
           </ScrollView>
         </View>
 
-        {/* Recent Searches */}
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>RECENT SEARCHES</Text>
-          <View style={styles.recentList}>
-            {recentSearches.map(search => (
-              <TouchableOpacity key={search} style={styles.recentRow}>
-                <History size={16} color={colors.muted} />
-                <Text style={styles.recentText}>{search}</Text>
-                <ArrowRight size={16} color={colors.muted} />
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
+        {/* Search Recommendations (Trending & Recent) */}
+        {!query && (
+          <>
+            {trendingSearches.length > 0 && (
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionLabel}>TRENDING IN {user?.city?.toUpperCase() || 'YOUR AREA'}</Text>
+                  <TrendingUp size={14} color={colors.muted} />
+                </View>
+                <View style={styles.tagsWrap}>
+                  {trendingSearches.map((s) => (
+                    <TouchableOpacity 
+                      key={s} 
+                      style={styles.trendingTag}
+                      onPress={() => {
+                        setQuery(s);
+                        saveRecentSearch(s);
+                        fetchSearchData();
+                      }}
+                    >
+                      <Text style={styles.marketTagText}>{s}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {recentSearches.length > 0 && (
+              <View style={styles.section}>
+                <Text style={styles.sectionLabel}>RECENT SEARCHES</Text>
+                <View style={styles.recentList}>
+                  {recentSearches.map(search => (
+                    <TouchableOpacity 
+                      key={search} 
+                      style={styles.recentRow}
+                      onPress={() => {
+                        setQuery(search);
+                        fetchSearchData();
+                      }}
+                    >
+                      <History size={16} color={colors.muted} />
+                      <Text style={styles.recentText}>{search}</Text>
+                      <ArrowRight size={16} color={colors.muted} />
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <TouchableOpacity 
+                  style={styles.clearBtn} 
+                  onPress={async () => {
+                    setRecentSearches([]);
+                    await AsyncStorage.removeItem(RECENT_SEARCHES_KEY);
+                  }}
+                >
+                  <Text style={styles.clearBtnText}>Clear History</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </>
+        )}
 
       </ScrollView>
       </MotiView>
@@ -525,9 +612,28 @@ const getStyles = (colors: any) => StyleSheet.create({
     padding: 20,
   },
   emptyText: {
-      fontFamily: DT.typography.body,
-      fontSize: 12,
       color: colors.muted,
       textAlign: 'center',
+  },
+  trendingTag: {
+    paddingHorizontal: DT.spacing.md,
+    paddingVertical: DT.spacing.sm,
+    backgroundColor: colors.surface,
+    borderWidth: 2,
+    borderColor: colors.muted,
+    shadowColor: colors.text,
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+  },
+  clearBtn: {
+    marginTop: DT.spacing.md,
+    alignSelf: 'center',
+  },
+  clearBtnText: {
+    fontFamily: DT.typography.body,
+    fontSize: 12,
+    color: colors.muted,
+    textDecorationLine: 'underline',
   }
 });

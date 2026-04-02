@@ -11,6 +11,9 @@ class RunnerSearchResponse(BaseModel):
     image: str
     active_waka_count: int
 
+class SearchRecord(BaseModel):
+    query: str
+
 class SearchResponse(BaseModel):
     runners: List[RunnerSearchResponse]
     trending_searches: List[str]
