@@ -7,15 +7,18 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, ArrowRight } from 'lucide-react-native';
 import { DesignTokens as DT } from '../../constants/design';
+import { useTheme } from '../../hooks/use-theme';
 
 type Step = 'phone' | 'otp' | 'done';
 
 export default function ChangePhoneScreen() {
+  const { colors } = useTheme();
   const router = useRouter();
   const [step, setStep] = useState<Step>('phone');
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const inputRefs = useRef<(TextInput | null)[]>([]);
+  const styles = getStyles(colors);
 
   const handleOtpChange = (val: string, i: number) => {
     const next = [...otp];
@@ -38,7 +41,7 @@ export default function ChangePhoneScreen() {
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <ChevronLeft size={24} color={DT.colors.text} strokeWidth={2.5} />
+          <ChevronLeft size={24} color={colors.text} strokeWidth={2.5} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Change Phone</Text>
         <View style={{ width: 40 }} />
@@ -78,14 +81,14 @@ export default function ChangePhoneScreen() {
                   onChangeText={setPhone}
                   keyboardType="phone-pad"
                   placeholder="812 000 0000"
-                  placeholderTextColor={DT.colors.muted}
+                  placeholderTextColor={colors.muted}
                   maxLength={10}
                   autoFocus
                 />
               </View>
               <TouchableOpacity style={styles.actionBtn} onPress={handlePhoneSubmit}>
                 <Text style={styles.actionBtnText}>Send OTP</Text>
-                <ArrowRight size={20} color={DT.colors.surface} strokeWidth={2.5} />
+                <ArrowRight size={20} color={colors.surface} strokeWidth={2.5} />
               </TouchableOpacity>
             </>
           )}
@@ -110,7 +113,7 @@ export default function ChangePhoneScreen() {
               </View>
               <TouchableOpacity style={styles.actionBtn} onPress={handleVerify}>
                 <Text style={styles.actionBtnText}>Verify OTP</Text>
-                <ArrowRight size={20} color={DT.colors.surface} strokeWidth={2.5} />
+                <ArrowRight size={20} color={colors.surface} strokeWidth={2.5} />
               </TouchableOpacity>
               <TouchableOpacity style={styles.resendBtn}>
                 <Text style={styles.resendText}>Resend OTP</Text>
@@ -134,65 +137,65 @@ export default function ChangePhoneScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: DT.colors.background },
+const getStyles = (colors: any) => StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: colors.background },
   flex1: { flex: 1 },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: DT.spacing.lg, paddingVertical: DT.spacing.md,
-    borderBottomWidth: 2, borderBottomColor: DT.colors.text,
+    borderBottomWidth: 2, borderBottomColor: colors.text,
   },
   backBtn: {
-    width: 40, height: 40, borderWidth: 2, borderColor: DT.colors.text,
-    backgroundColor: DT.colors.surface, alignItems: 'center', justifyContent: 'center',
+    width: 40, height: 40, borderWidth: 2, borderColor: colors.text,
+    backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center',
   },
-  headerTitle: { fontFamily: DT.typography.heading, fontSize: 20, color: DT.colors.text },
+  headerTitle: { fontFamily: DT.typography.heading, fontSize: 20, color: colors.text },
   content: { flex: 1, paddingHorizontal: DT.spacing.lg, paddingTop: DT.spacing.xl },
   stepBar: { flexDirection: 'row', alignItems: 'center', marginBottom: DT.spacing.xl },
   stepBarItem: { flexDirection: 'row', alignItems: 'center', flex: 1 },
   stepCircle: {
-    width: 32, height: 32, borderWidth: 2, borderColor: DT.colors.text,
-    backgroundColor: DT.colors.surface, alignItems: 'center', justifyContent: 'center',
+    width: 32, height: 32, borderWidth: 2, borderColor: colors.text,
+    backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center',
   },
-  stepCircleActive: { backgroundColor: DT.colors.primary },
-  stepCircleDone: { backgroundColor: DT.colors.secondary },
-  stepNum: { fontFamily: DT.typography.heading, fontSize: 14, color: DT.colors.muted },
-  stepNumActive: { color: DT.colors.surface },
-  stepNumDone: { color: DT.colors.surface },
-  stepConnector: { flex: 1, height: 2, backgroundColor: DT.colors.text },
-  stepTitle: { fontFamily: DT.typography.heading, fontSize: 24, color: DT.colors.text, marginBottom: 6 },
-  stepSub: { fontFamily: DT.typography.body, fontSize: 14, color: DT.colors.muted, marginBottom: DT.spacing.xl },
+  stepCircleActive: { backgroundColor: colors.primary },
+  stepCircleDone: { backgroundColor: colors.secondary },
+  stepNum: { fontFamily: DT.typography.heading, fontSize: 14, color: colors.muted },
+  stepNumActive: { color: colors.surface },
+  stepNumDone: { color: colors.surface },
+  stepConnector: { flex: 1, height: 2, backgroundColor: colors.text },
+  stepTitle: { fontFamily: DT.typography.heading, fontSize: 24, color: colors.text, marginBottom: 6 },
+  stepSub: { fontFamily: DT.typography.body, fontSize: 14, color: colors.muted, marginBottom: DT.spacing.xl },
   phoneRow: {
-    flexDirection: 'row', borderWidth: 2, borderColor: DT.colors.text,
-    backgroundColor: DT.colors.surface, marginBottom: DT.spacing.lg,
-    shadowColor: DT.colors.text, shadowOffset: { width: 4, height: 4 }, shadowOpacity: 1, shadowRadius: 0, elevation: 4,
+    flexDirection: 'row', borderWidth: 2, borderColor: colors.text,
+    backgroundColor: colors.surface, marginBottom: DT.spacing.lg,
+    shadowColor: colors.text, shadowOffset: { width: 4, height: 4 }, shadowOpacity: 1, shadowRadius: 0, elevation: 4,
   },
   prefixBox: {
-    width: 64, backgroundColor: DT.colors.secondary, borderRightWidth: 2,
-    borderRightColor: DT.colors.text, alignItems: 'center', justifyContent: 'center', height: 52,
+    width: 64, backgroundColor: colors.secondary, borderRightWidth: 2,
+    borderRightColor: colors.text, alignItems: 'center', justifyContent: 'center', height: 52,
   },
-  prefixText: { fontFamily: DT.typography.heading, fontSize: 14, color: DT.colors.surface },
+  prefixText: { fontFamily: DT.typography.heading, fontSize: 14, color: colors.surface },
   phoneInput: {
     flex: 1, height: 52, paddingHorizontal: DT.spacing.md,
-    fontFamily: DT.typography.body, fontSize: 18, color: DT.colors.text, letterSpacing: 2,
+    fontFamily: DT.typography.body, fontSize: 18, color: colors.text, letterSpacing: 2,
   },
   otpRow: { flexDirection: 'row', gap: DT.spacing.sm, marginBottom: DT.spacing.lg },
   otpBox: {
-    flex: 1, height: 56, borderWidth: 2, borderColor: DT.colors.text,
-    backgroundColor: DT.colors.surface, fontFamily: DT.typography.heading, fontSize: 22, color: DT.colors.text,
-    shadowColor: DT.colors.text, shadowOffset: { width: 2, height: 2 }, shadowOpacity: 1, shadowRadius: 0, elevation: 3,
+    flex: 1, height: 56, borderWidth: 2, borderColor: colors.text,
+    backgroundColor: colors.surface, fontFamily: DT.typography.heading, fontSize: 22, color: colors.text,
+    shadowColor: colors.text, shadowOffset: { width: 2, height: 2 }, shadowOpacity: 1, shadowRadius: 0, elevation: 3,
   },
-  otpBoxFilled: { borderColor: DT.colors.primary, backgroundColor: '#FFF0EB' },
+  otpBoxFilled: { borderColor: colors.primary, backgroundColor: colors.primary + '20' },
   actionBtn: {
-    height: 56, backgroundColor: DT.colors.primary, borderWidth: 2, borderColor: DT.colors.text,
+    height: 56, backgroundColor: colors.primary, borderWidth: 2, borderColor: colors.text,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: DT.spacing.sm,
-    shadowColor: DT.colors.text, shadowOffset: { width: 4, height: 4 }, shadowOpacity: 1, shadowRadius: 0, elevation: 5,
+    shadowColor: colors.text, shadowOffset: { width: 4, height: 4 }, shadowOpacity: 1, shadowRadius: 0, elevation: 5,
   },
-  actionBtnText: { fontFamily: DT.typography.heading, fontSize: 17, color: DT.colors.surface },
+  actionBtnText: { fontFamily: DT.typography.heading, fontSize: 17, color: colors.surface },
   resendBtn: { alignItems: 'center', marginTop: DT.spacing.md, padding: DT.spacing.sm },
-  resendText: { fontFamily: DT.typography.bodySemiBold, fontSize: 14, color: DT.colors.primary },
+  resendText: { fontFamily: DT.typography.bodySemiBold, fontSize: 14, color: colors.primary },
   successBox: { alignItems: 'center', gap: DT.spacing.md, marginTop: DT.spacing.xl },
   successEmoji: { fontSize: 64 },
-  successTitle: { fontFamily: DT.typography.heading, fontSize: 28, color: DT.colors.text },
-  successSub: { fontFamily: DT.typography.body, fontSize: 15, color: DT.colors.muted, textAlign: 'center' },
+  successTitle: { fontFamily: DT.typography.heading, fontSize: 28, color: colors.text },
+  successSub: { fontFamily: DT.typography.body, fontSize: 15, color: colors.muted, textAlign: 'center' },
 });

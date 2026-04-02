@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ChevronLeft, ArrowDownLeft, ArrowUpRight, Share2 } from 'lucide-react-native';
 import { DesignTokens as DT } from '../../../constants/design';
+import { useTheme } from '../../../hooks/use-theme';
 
 type TxType = { label: string; amount: string; date: string; time: string; ref: string; positive: boolean; status: string; method: string; description: string };
 
@@ -14,29 +15,31 @@ const txData: Record<string, TxType> = {
 };
 
 export default function TransactionDetailScreen() {
+  const { colors } = useTheme();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const tx = txData[id as string] ?? txData['0'];
+  const styles = getStyles(colors);
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <ChevronLeft size={24} color={DT.colors.text} strokeWidth={2.5} />
+          <ChevronLeft size={24} color={colors.text} strokeWidth={2.5} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Transaction</Text>
         <TouchableOpacity style={styles.shareBtn}>
-          <Share2 size={18} color={DT.colors.text} strokeWidth={2.5} />
+          <Share2 size={18} color={colors.text} strokeWidth={2.5} />
         </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* Amount hero */}
-        <View style={[styles.amountHero, { backgroundColor: tx.positive ? DT.colors.secondary : DT.colors.primary }]}>
+        <View style={[styles.amountHero, { backgroundColor: tx.positive ? colors.secondary : colors.primary }]}>
           <View style={styles.arrowCircle}>
             {tx.positive
-              ? <ArrowDownLeft size={28} color={DT.colors.secondary} strokeWidth={2.5} />
-              : <ArrowUpRight size={28} color={DT.colors.primary} strokeWidth={2.5} />}
+              ? <ArrowDownLeft size={28} color={colors.secondary} strokeWidth={2.5} />
+              : <ArrowUpRight size={28} color={colors.primary} strokeWidth={2.5} />}
           </View>
           <Text style={styles.heroAmount}>{tx.positive ? '+' : '-'}{tx.amount}</Text>
           <Text style={styles.heroLabel}>{tx.label}</Text>
@@ -58,7 +61,7 @@ export default function TransactionDetailScreen() {
             <View key={row.label}>
               <View style={styles.detailRow}>
                 <Text style={styles.detailLabel}>{row.label}</Text>
-                <Text style={[styles.detailValue, row.label === 'Status' && { color: DT.colors.secondary }]}>
+                <Text style={[styles.detailValue, row.label === 'Status' && { color: colors.secondary }]}>
                   {row.value}
                 </Text>
               </View>
@@ -84,60 +87,60 @@ export default function TransactionDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: DT.colors.background },
+const getStyles = (colors: any) => StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: colors.background },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: DT.spacing.lg, paddingVertical: DT.spacing.md,
-    borderBottomWidth: 2, borderBottomColor: DT.colors.text,
+    borderBottomWidth: 2, borderBottomColor: colors.text,
   },
   backBtn: {
-    width: 40, height: 40, borderWidth: 2, borderColor: DT.colors.text,
-    backgroundColor: DT.colors.surface, alignItems: 'center', justifyContent: 'center',
+    width: 40, height: 40, borderWidth: 2, borderColor: colors.text,
+    backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center',
   },
   shareBtn: {
-    width: 40, height: 40, borderWidth: 2, borderColor: DT.colors.text,
-    backgroundColor: DT.colors.surface, alignItems: 'center', justifyContent: 'center',
+    width: 40, height: 40, borderWidth: 2, borderColor: colors.text,
+    backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center',
   },
-  headerTitle: { fontFamily: DT.typography.heading, fontSize: 20, color: DT.colors.text },
+  headerTitle: { fontFamily: DT.typography.heading, fontSize: 20, color: colors.text },
   scroll: { paddingHorizontal: DT.spacing.lg, paddingTop: DT.spacing.md, paddingBottom: 40 },
   amountHero: {
     alignItems: 'center', padding: DT.spacing.xl, marginBottom: DT.spacing.lg,
-    borderWidth: 2, borderColor: DT.colors.text, gap: DT.spacing.sm,
-    shadowColor: DT.colors.text, shadowOffset: { width: 4, height: 4 }, shadowOpacity: 1, shadowRadius: 0, elevation: 5,
+    borderWidth: 2, borderColor: colors.text, gap: DT.spacing.sm,
+    shadowColor: colors.text, shadowOffset: { width: 4, height: 4 }, shadowOpacity: 1, shadowRadius: 0, elevation: 5,
   },
   arrowCircle: {
-    width: 56, height: 56, backgroundColor: DT.colors.surface, borderWidth: 2, borderColor: DT.colors.text,
+    width: 56, height: 56, backgroundColor: colors.surface, borderWidth: 2, borderColor: colors.text,
     alignItems: 'center', justifyContent: 'center',
   },
-  heroAmount: { fontFamily: DT.typography.heading, fontSize: 40, color: DT.colors.surface },
+  heroAmount: { fontFamily: DT.typography.heading, fontSize: 40, color: colors.surface },
   heroLabel: { fontFamily: DT.typography.body, fontSize: 14, color: 'rgba(255,255,255,0.85)' },
   heroBadge: {
-    backgroundColor: DT.colors.accent, borderWidth: 2, borderColor: DT.colors.text,
+    backgroundColor: colors.accent, borderWidth: 2, borderColor: colors.text,
     paddingHorizontal: 10, paddingVertical: 3,
   },
-  heroBadgeText: { fontFamily: DT.typography.heading, fontSize: 11, color: DT.colors.text, letterSpacing: 1 },
+  heroBadgeText: { fontFamily: DT.typography.heading, fontSize: 11, color: colors.text, letterSpacing: 1 },
   sectionLabel: {
-    fontFamily: DT.typography.heading, fontSize: 11, color: DT.colors.muted,
+    fontFamily: DT.typography.heading, fontSize: 11, color: colors.muted,
     letterSpacing: 1.5, marginBottom: DT.spacing.md,
   },
   detailCard: {
-    borderWidth: 2, borderColor: DT.colors.text, backgroundColor: DT.colors.surface, marginBottom: DT.spacing.lg,
-    shadowColor: DT.colors.text, shadowOffset: { width: 3, height: 3 }, shadowOpacity: 1, shadowRadius: 0, elevation: 4,
+    borderWidth: 2, borderColor: colors.text, backgroundColor: colors.surface, marginBottom: DT.spacing.lg,
+    shadowColor: colors.text, shadowOffset: { width: 3, height: 3 }, shadowOpacity: 1, shadowRadius: 0, elevation: 4,
   },
   detailRow: { flexDirection: 'row', justifyContent: 'space-between', padding: DT.spacing.md },
-  detailLabel: { fontFamily: DT.typography.body, fontSize: 13, color: DT.colors.muted },
-  detailValue: { fontFamily: DT.typography.bodySemiBold, fontSize: 13, color: DT.colors.text },
-  divider: { height: 2, backgroundColor: DT.colors.text },
+  detailLabel: { fontFamily: DT.typography.body, fontSize: 13, color: colors.muted },
+  detailValue: { fontFamily: DT.typography.bodySemiBold, fontSize: 13, color: colors.text },
+  divider: { height: 2, backgroundColor: colors.text },
   descCard: {
-    borderWidth: 2, borderColor: DT.colors.text, backgroundColor: DT.colors.surface, padding: DT.spacing.md,
+    borderWidth: 2, borderColor: colors.text, backgroundColor: colors.surface, padding: DT.spacing.md,
     marginBottom: DT.spacing.lg,
-    shadowColor: DT.colors.text, shadowOffset: { width: 3, height: 3 }, shadowOpacity: 1, shadowRadius: 0, elevation: 4,
+    shadowColor: colors.text, shadowOffset: { width: 3, height: 3 }, shadowOpacity: 1, shadowRadius: 0, elevation: 4,
   },
-  descText: { fontFamily: DT.typography.body, fontSize: 14, color: DT.colors.text, lineHeight: 22 },
+  descText: { fontFamily: DT.typography.body, fontSize: 14, color: colors.text, lineHeight: 22 },
   disputeBtn: {
-    height: 48, borderWidth: 2, borderColor: DT.colors.error, backgroundColor: DT.colors.surface,
+    height: 48, borderWidth: 2, borderColor: colors.error, backgroundColor: colors.surface,
     alignItems: 'center', justifyContent: 'center',
   },
-  disputeText: { fontFamily: DT.typography.bodySemiBold, fontSize: 14, color: DT.colors.error },
+  disputeText: { fontFamily: DT.typography.bodySemiBold, fontSize: 14, color: colors.error },
 });

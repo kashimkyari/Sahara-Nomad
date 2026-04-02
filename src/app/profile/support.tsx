@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, ChevronRight, MessageSquare, Phone, Mail } from 'lucide-react-native';
 import { DesignTokens as DT } from '../../constants/design';
+import { useTheme } from '../../hooks/use-theme';
 
 const faqs = [
   { q: 'How do I cancel a waka?', a: 'Open the active waka from your Home screen and tap "Cancel Waka". Cancellations are free before a runner accepts. After acceptance, a ₦500 cancellation fee applies.' },
@@ -14,16 +15,18 @@ const faqs = [
 ];
 
 export default function SupportScreen() {
+  const { colors } = useTheme();
   const router = useRouter();
   const [expanded, setExpanded] = useState<number | null>(null);
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
+  const styles = getStyles(colors);
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <ChevronLeft size={24} color={DT.colors.text} strokeWidth={2.5} />
+          <ChevronLeft size={24} color={colors.text} strokeWidth={2.5} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Support</Text>
         <View style={{ width: 40 }} />
@@ -33,19 +36,19 @@ export default function SupportScreen() {
         {/* Contact channels */}
         <Text style={styles.sectionLabel}>REACH US</Text>
         {[
-          { icon: MessageSquare, label: 'Live Chat', sub: 'Avg. 3 min response', color: DT.colors.primary },
-          { icon: Phone, label: 'Call Support', sub: '9am – 6pm Mon–Sat', color: DT.colors.secondary },
-          { icon: Mail, label: 'Email Us', sub: 'support@sendam.ng', color: DT.colors.accent },
+          { icon: MessageSquare, label: 'Live Chat', sub: 'Avg. 3 min response', color: colors.primary },
+          { icon: Phone, label: 'Call Support', sub: '9am – 6pm Mon–Sat', color: colors.secondary },
+          { icon: Mail, label: 'Email Us', sub: 'support@sendam.ng', color: colors.accent },
         ].map((ch) => (
           <TouchableOpacity key={ch.label} style={styles.channelRow}>
             <View style={[styles.channelIcon, { backgroundColor: ch.color }]}>
-              <ch.icon size={20} color={DT.colors.surface} strokeWidth={2.5} />
+              <ch.icon size={20} color={colors.surface} strokeWidth={2.5} />
             </View>
             <View style={styles.channelInfo}>
               <Text style={styles.channelLabel}>{ch.label}</Text>
               <Text style={styles.channelSub}>{ch.sub}</Text>
             </View>
-            <ChevronRight size={18} color={DT.colors.muted} />
+            <ChevronRight size={18} color={colors.muted} />
           </TouchableOpacity>
         ))}
 
@@ -67,14 +70,14 @@ export default function SupportScreen() {
         <TextInput
           style={styles.input}
           placeholder="Subject"
-          placeholderTextColor={DT.colors.muted}
+          placeholderTextColor={colors.muted}
           value={subject}
           onChangeText={setSubject}
         />
         <TextInput
           style={[styles.input, styles.textArea]}
           placeholder="Describe your issue in detail..."
-          placeholderTextColor={DT.colors.muted}
+          placeholderTextColor={colors.muted}
           value={body}
           onChangeText={setBody}
           multiline
@@ -89,55 +92,55 @@ export default function SupportScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: DT.colors.background },
+const getStyles = (colors: any) => StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: colors.background },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: DT.spacing.lg, paddingVertical: DT.spacing.md,
-    borderBottomWidth: 2, borderBottomColor: DT.colors.text,
+    borderBottomWidth: 2, borderBottomColor: colors.text,
   },
   backBtn: {
-    width: 40, height: 40, borderWidth: 2, borderColor: DT.colors.text,
-    backgroundColor: DT.colors.surface, alignItems: 'center', justifyContent: 'center',
+    width: 40, height: 40, borderWidth: 2, borderColor: colors.text,
+    backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center',
   },
-  headerTitle: { fontFamily: DT.typography.heading, fontSize: 20, color: DT.colors.text },
+  headerTitle: { fontFamily: DT.typography.heading, fontSize: 20, color: colors.text },
   scroll: { paddingHorizontal: DT.spacing.lg, paddingTop: DT.spacing.lg, paddingBottom: 40 },
   sectionLabel: {
-    fontFamily: DT.typography.heading, fontSize: 11, color: DT.colors.muted,
+    fontFamily: DT.typography.heading, fontSize: 11, color: colors.muted,
     letterSpacing: 1.5, marginBottom: DT.spacing.md,
   },
   channelRow: {
     flexDirection: 'row', alignItems: 'center', gap: DT.spacing.md,
-    borderWidth: 2, borderColor: DT.colors.text, backgroundColor: DT.colors.surface,
+    borderWidth: 2, borderColor: colors.text, backgroundColor: colors.surface,
     padding: DT.spacing.md, marginBottom: DT.spacing.md,
-    shadowColor: DT.colors.text, shadowOffset: { width: 3, height: 3 }, shadowOpacity: 1, shadowRadius: 0, elevation: 4,
+    shadowColor: colors.text, shadowOffset: { width: 3, height: 3 }, shadowOpacity: 1, shadowRadius: 0, elevation: 4,
   },
   channelIcon: {
-    width: 44, height: 44, borderWidth: 2, borderColor: DT.colors.text,
+    width: 44, height: 44, borderWidth: 2, borderColor: colors.text,
     alignItems: 'center', justifyContent: 'center',
   },
   channelInfo: { flex: 1 },
-  channelLabel: { fontFamily: DT.typography.heading, fontSize: 14, color: DT.colors.text },
-  channelSub: { fontFamily: DT.typography.body, fontSize: 12, color: DT.colors.muted, marginTop: 2 },
+  channelLabel: { fontFamily: DT.typography.heading, fontSize: 14, color: colors.text },
+  channelSub: { fontFamily: DT.typography.body, fontSize: 12, color: colors.muted, marginTop: 2 },
   faqItem: {
-    borderWidth: 2, borderColor: DT.colors.text, backgroundColor: DT.colors.surface,
+    borderWidth: 2, borderColor: colors.text, backgroundColor: colors.surface,
     padding: DT.spacing.md, marginBottom: DT.spacing.sm,
   },
-  faqQ: { fontFamily: DT.typography.bodySemiBold, fontSize: 14, color: DT.colors.text, lineHeight: 20 },
+  faqQ: { fontFamily: DT.typography.bodySemiBold, fontSize: 14, color: colors.text, lineHeight: 20 },
   faqA: {
-    fontFamily: DT.typography.body, fontSize: 13, color: DT.colors.muted,
+    fontFamily: DT.typography.body, fontSize: 13, color: colors.muted,
     marginTop: DT.spacing.sm, lineHeight: 20,
   },
   input: {
-    height: 48, borderWidth: 2, borderColor: DT.colors.text, backgroundColor: DT.colors.surface,
+    height: 48, borderWidth: 2, borderColor: colors.text, backgroundColor: colors.surface,
     paddingHorizontal: DT.spacing.md, fontFamily: DT.typography.body, fontSize: 15,
-    color: DT.colors.text, marginBottom: DT.spacing.md,
+    color: colors.text, marginBottom: DT.spacing.md,
   },
   textArea: { height: 120, paddingTop: DT.spacing.md, textAlignVertical: 'top' },
   submitBtn: {
-    height: 56, backgroundColor: DT.colors.primary, borderWidth: 2, borderColor: DT.colors.text,
+    height: 56, backgroundColor: colors.primary, borderWidth: 2, borderColor: colors.text,
     alignItems: 'center', justifyContent: 'center',
-    shadowColor: DT.colors.text, shadowOffset: { width: 4, height: 4 }, shadowOpacity: 1, shadowRadius: 0, elevation: 5,
+    shadowColor: colors.text, shadowOffset: { width: 4, height: 4 }, shadowOpacity: 1, shadowRadius: 0, elevation: 5,
   },
-  submitBtnText: { fontFamily: DT.typography.heading, fontSize: 17, color: DT.colors.surface },
+  submitBtnText: { fontFamily: DT.typography.heading, fontSize: 17, color: colors.surface },
 });

@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, MapPin, CheckCircle } from 'lucide-react-native';
 import { DesignTokens as DT } from '../constants/design';
+import { useTheme } from '../hooks/use-theme';
 
 const { width } = Dimensions.get('window');
 const SLIDER_WIDTH = width - DT.spacing.lg * 2 - 4; // subtract padding
@@ -22,6 +23,7 @@ const MIN_PRICE = 1000;
 const MAX_PRICE = 10000;
 
 export default function NewErrandScreen() {
+  const { colors } = useTheme();
   const router = useRouter();
   const [items, setItems] = useState('');
   const [location, setLocation] = useState('');
@@ -80,6 +82,8 @@ export default function NewErrandScreen() {
     extrapolate: 'clamp',
   });
 
+  const styles = getStyles(colors);
+
   return (
     <SafeAreaView style={styles.safeArea}>
       {/* Header */}
@@ -88,7 +92,7 @@ export default function NewErrandScreen() {
           style={styles.backBtn}
           onPress={() => router.back()}
         >
-          <ChevronLeft size={24} color={DT.colors.text} strokeWidth={2.5} />
+          <ChevronLeft size={24} color={colors.text} strokeWidth={2.5} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Send Someone</Text>
         <View style={{ width: 40 }} />
@@ -111,7 +115,7 @@ export default function NewErrandScreen() {
             multiline
             numberOfLines={5}
             placeholder="E.g. 2 baskets of fresh pepper from Mama Ngozi's stall, Middle row at Mile 12..."
-            placeholderTextColor={DT.colors.muted}
+            placeholderTextColor={colors.muted}
             value={items}
             onChangeText={setItems}
             textAlignVertical="top"
@@ -125,12 +129,12 @@ export default function NewErrandScreen() {
             <TextInput
               style={styles.locationTextInput}
               placeholder="e.g. Mile 12 Market, Lagos"
-              placeholderTextColor={DT.colors.muted}
+              placeholderTextColor={colors.muted}
               value={location}
               onChangeText={setLocation}
             />
             <View style={styles.locationIcon}>
-              <MapPin size={20} color={DT.colors.surface} strokeWidth={2.5} />
+              <MapPin size={20} color={colors.surface} strokeWidth={2.5} />
             </View>
           </View>
         </View>
@@ -142,10 +146,10 @@ export default function NewErrandScreen() {
             <TextInput
               style={styles.locationTextInput}
               placeholder="e.g. 15 Ajose Adeogun St, VI"
-              placeholderTextColor={DT.colors.muted}
+              placeholderTextColor={colors.muted}
             />
-            <View style={[styles.locationIcon, { backgroundColor: DT.colors.secondary }]}>
-              <MapPin size={20} color={DT.colors.surface} strokeWidth={2.5} />
+            <View style={[styles.locationIcon, { backgroundColor: colors.secondary }]}>
+              <MapPin size={20} color={colors.surface} strokeWidth={2.5} />
             </View>
           </View>
         </View>
@@ -228,10 +232,10 @@ export default function NewErrandScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: DT.colors.background,
+    backgroundColor: colors.background,
   },
   flex1: { flex: 1 },
   header: {
@@ -241,22 +245,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: DT.spacing.lg,
     paddingVertical: DT.spacing.md,
     borderBottomWidth: 2,
-    borderBottomColor: DT.colors.text,
-    backgroundColor: DT.colors.background,
+    borderBottomColor: colors.text,
+    backgroundColor: colors.background,
   },
   backBtn: {
     width: 40,
     height: 40,
     borderWidth: 2,
-    borderColor: DT.colors.text,
-    backgroundColor: DT.colors.surface,
+    borderColor: colors.text,
+    backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
     fontFamily: DT.typography.heading,
     fontSize: 20,
-    color: DT.colors.text,
+    color: colors.text,
   },
   scrollContent: {
     paddingHorizontal: DT.spacing.lg,
@@ -269,25 +273,25 @@ const styles = StyleSheet.create({
   fieldLabel: {
     fontFamily: DT.typography.heading,
     fontSize: 15,
-    color: DT.colors.text,
+    color: colors.text,
     marginBottom: 4,
   },
   fieldHint: {
     fontFamily: DT.typography.body,
     fontSize: 12,
-    color: DT.colors.muted,
+    color: colors.muted,
     marginBottom: 8,
     lineHeight: 18,
   },
   textArea: {
     height: 120,
     borderWidth: 2,
-    borderColor: DT.colors.text,
-    backgroundColor: DT.colors.surface,
+    borderColor: colors.text,
+    backgroundColor: colors.surface,
     padding: DT.spacing.md,
     fontFamily: DT.typography.body,
     fontSize: 15,
-    color: DT.colors.text,
+    color: colors.text,
     textAlignVertical: 'top',
     borderRadius: 0,
   },
@@ -295,8 +299,8 @@ const styles = StyleSheet.create({
     height: 48,
     flexDirection: 'row',
     borderWidth: 2,
-    borderColor: DT.colors.text,
-    backgroundColor: DT.colors.surface,
+    borderColor: colors.text,
+    backgroundColor: colors.surface,
     overflow: 'hidden',
   },
   locationTextInput: {
@@ -304,15 +308,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: DT.spacing.md,
     fontFamily: DT.typography.body,
     fontSize: 15,
-    color: DT.colors.text,
+    color: colors.text,
   },
   locationIcon: {
     width: 48,
-    backgroundColor: DT.colors.primary,
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     borderLeftWidth: 2,
-    borderLeftColor: DT.colors.text,
+    borderLeftColor: colors.text,
   },
   sliderHeader: {
     flexDirection: 'row',
@@ -321,12 +325,12 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   priceTag: {
-    backgroundColor: DT.colors.accent,
+    backgroundColor: colors.accent,
     borderWidth: 2,
-    borderColor: DT.colors.text,
+    borderColor: colors.text,
     paddingHorizontal: 10,
     paddingVertical: 2,
-    shadowColor: DT.colors.text,
+    shadowColor: colors.text,
     shadowOffset: { width: 2, height: 2 },
     shadowOpacity: 1,
     shadowRadius: 0,
@@ -335,7 +339,7 @@ const styles = StyleSheet.create({
   priceTagText: {
     fontFamily: DT.typography.heading,
     fontSize: 16,
-    color: DT.colors.text,
+    color: colors.text,
   },
   sliderContainer: {
     height: 40,
@@ -344,14 +348,14 @@ const styles = StyleSheet.create({
   },
   sliderTrack: {
     height: 8,
-    backgroundColor: DT.colors.surface,
+    backgroundColor: colors.surface,
     borderWidth: 2,
-    borderColor: DT.colors.text,
+    borderColor: colors.text,
     overflow: 'visible',
   },
   sliderFill: {
     height: '100%',
-    backgroundColor: DT.colors.primary,
+    backgroundColor: colors.primary,
   },
   thumbWrapper: {
     position: 'absolute',
@@ -361,10 +365,10 @@ const styles = StyleSheet.create({
   thumb: {
     width: 28,
     height: 28,
-    backgroundColor: DT.colors.surface,
+    backgroundColor: colors.surface,
     borderWidth: 2,
-    borderColor: DT.colors.text,
-    shadowColor: DT.colors.text,
+    borderColor: colors.text,
+    shadowColor: colors.text,
     shadowOffset: { width: 3, height: 3 },
     shadowOpacity: 1,
     shadowRadius: 0,
@@ -378,25 +382,25 @@ const styles = StyleSheet.create({
   sliderLabelText: {
     fontFamily: DT.typography.body,
     fontSize: 12,
-    color: DT.colors.muted,
+    color: colors.muted,
   },
   infoBox: {
-    backgroundColor: DT.colors.surface,
+    backgroundColor: colors.surface,
     borderWidth: 2,
-    borderColor: DT.colors.text,
+    borderColor: colors.text,
     padding: DT.spacing.md,
     marginBottom: DT.spacing.lg,
   },
   infoTitle: {
     fontFamily: DT.typography.heading,
     fontSize: 15,
-    color: DT.colors.text,
+    color: colors.text,
     marginBottom: 6,
   },
   infoText: {
     fontFamily: DT.typography.body,
     fontSize: 13,
-    color: DT.colors.muted,
+    color: colors.muted,
     lineHeight: 22,
   },
   footer: {
@@ -408,17 +412,17 @@ const styles = StyleSheet.create({
     paddingBottom: DT.spacing.lg,
     paddingTop: DT.spacing.md,
     borderTopWidth: 2,
-    borderTopColor: DT.colors.text,
-    backgroundColor: DT.colors.background,
+    borderTopColor: colors.text,
+    backgroundColor: colors.background,
   },
   broadcastBtn: {
     height: 56,
-    backgroundColor: DT.colors.primary,
+    backgroundColor: colors.primary,
     borderWidth: 2,
-    borderColor: DT.colors.text,
+    borderColor: colors.text,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: DT.colors.text,
+    shadowColor: colors.text,
     shadowOffset: { width: 4, height: 4 },
     shadowOpacity: 1,
     shadowRadius: 0,
@@ -432,7 +436,7 @@ const styles = StyleSheet.create({
   broadcastText: {
     fontFamily: DT.typography.heading,
     fontSize: 18,
-    color: DT.colors.surface,
+    color: colors.surface,
     letterSpacing: 0.3,
   },
   successOverlay: {
@@ -443,12 +447,12 @@ const styles = StyleSheet.create({
   },
   successCard: {
     width: width - 64,
-    backgroundColor: DT.colors.background,
+    backgroundColor: colors.background,
     borderWidth: 3,
-    borderColor: DT.colors.text,
+    borderColor: colors.text,
     padding: DT.spacing.xl,
     alignItems: 'center',
-    shadowColor: DT.colors.text,
+    shadowColor: colors.text,
     shadowOffset: { width: 8, height: 8 },
     shadowOpacity: 1,
     shadowRadius: 0,
@@ -461,13 +465,13 @@ const styles = StyleSheet.create({
   successTitle: {
     fontFamily: DT.typography.heading,
     fontSize: 28,
-    color: DT.colors.text,
+    color: colors.text,
     marginBottom: DT.spacing.sm,
   },
   successBody: {
     fontFamily: DT.typography.body,
     fontSize: 15,
-    color: DT.colors.muted,
+    color: colors.muted,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: DT.spacing.lg,
@@ -475,8 +479,8 @@ const styles = StyleSheet.create({
   successProgress: {
     width: '100%',
     height: 6,
-    backgroundColor: DT.colors.secondary,
+    backgroundColor: colors.secondary,
     borderWidth: 1,
-    borderColor: DT.colors.text,
+    borderColor: colors.text,
   },
 });

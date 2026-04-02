@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet } from 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Search } from 'lucide-react-native';
 import { DesignTokens as DT } from '../../constants/design';
+import { useTheme } from '../../hooks/use-theme';
 
 const markets = ['Mile 12', 'Balogun', 'Yaba', 'Ikeja', 'Oshodi', 'Tejuosho'];
 const categories = [
@@ -15,7 +16,9 @@ const categories = [
 ];
 
 export default function SearchScreen() {
+  const { colors } = useTheme();
   const [query, setQuery] = useState('');
+  const styles = getStyles(colors);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -27,12 +30,12 @@ export default function SearchScreen() {
         {/* Search Bar */}
         <View style={styles.searchBox}>
           <View style={styles.searchIcon}>
-            <Search size={20} color={DT.colors.surface} strokeWidth={2.5} />
+            <Search size={20} color={colors.surface} strokeWidth={2.5} />
           </View>
           <TextInput
             style={styles.searchInput}
             placeholder="Market, area, or item..."
-            placeholderTextColor={DT.colors.muted}
+            placeholderTextColor={colors.muted}
             value={query}
             onChangeText={setQuery}
           />
@@ -67,29 +70,29 @@ export default function SearchScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: DT.colors.background,
+    backgroundColor: colors.background,
   },
   header: {
     paddingHorizontal: DT.spacing.lg,
     paddingVertical: DT.spacing.md,
     borderBottomWidth: 2,
-    borderBottomColor: DT.colors.text,
+    borderBottomColor: colors.text,
   },
   title: {
     fontFamily: DT.typography.heading,
     fontSize: 24,
-    color: DT.colors.text,
+    color: colors.text,
   },
   searchBox: {
     flexDirection: 'row',
     margin: DT.spacing.lg,
     borderWidth: 2,
-    borderColor: DT.colors.text,
-    backgroundColor: DT.colors.surface,
-    shadowColor: DT.colors.text,
+    borderColor: colors.text,
+    backgroundColor: colors.surface,
+    shadowColor: colors.text,
     shadowOffset: { width: 4, height: 4 },
     shadowOpacity: 1,
     shadowRadius: 0,
@@ -97,7 +100,7 @@ const styles = StyleSheet.create({
   },
   searchIcon: {
     width: 48,
-    backgroundColor: DT.colors.text,
+    backgroundColor: colors.text,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -107,7 +110,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: DT.spacing.md,
     fontFamily: DT.typography.body,
     fontSize: 15,
-    color: DT.colors.text,
+    color: colors.text,
   },
   section: {
     paddingHorizontal: DT.spacing.lg,
@@ -116,7 +119,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontFamily: DT.typography.heading,
     fontSize: 12,
-    color: DT.colors.muted,
+    color: colors.muted,
     letterSpacing: 1.5,
     marginBottom: DT.spacing.md,
   },
@@ -128,10 +131,10 @@ const styles = StyleSheet.create({
   marketTag: {
     paddingHorizontal: DT.spacing.md,
     paddingVertical: DT.spacing.sm,
-    backgroundColor: DT.colors.surface,
+    backgroundColor: colors.surface,
     borderWidth: 2,
-    borderColor: DT.colors.text,
-    shadowColor: DT.colors.text,
+    borderColor: colors.text,
+    shadowColor: colors.text,
     shadowOffset: { width: 2, height: 2 },
     shadowOpacity: 1,
     shadowRadius: 0,
@@ -140,7 +143,7 @@ const styles = StyleSheet.create({
   marketTagText: {
     fontFamily: DT.typography.bodySemiBold,
     fontSize: 14,
-    color: DT.colors.text,
+    color: colors.text,
   },
   categoryGrid: {
     flexDirection: 'row',
@@ -150,12 +153,12 @@ const styles = StyleSheet.create({
   categoryCard: {
     width: '30%',
     aspectRatio: 1,
-    backgroundColor: DT.colors.surface,
+    backgroundColor: colors.surface,
     borderWidth: 2,
-    borderColor: DT.colors.text,
+    borderColor: colors.text,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: DT.colors.text,
+    shadowColor: colors.text,
     shadowOffset: { width: 3, height: 3 },
     shadowOpacity: 1,
     shadowRadius: 0,
@@ -168,6 +171,6 @@ const styles = StyleSheet.create({
   categoryLabel: {
     fontFamily: DT.typography.body,
     fontSize: 13,
-    color: DT.colors.text,
+    color: colors.text,
   },
 });

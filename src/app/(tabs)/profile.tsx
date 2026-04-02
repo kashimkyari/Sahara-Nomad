@@ -3,6 +3,7 @@ import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useTheme } from '../../hooks/use-theme';
 import { DesignTokens as DT } from '../../constants/design';
 
 const menuItems = [
@@ -13,7 +14,10 @@ const menuItems = [
 ];
 
 export default function ProfileScreen() {
+  const { colors } = useTheme();
   const router = useRouter();
+
+  const styles = getStyles(colors);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -61,9 +65,9 @@ export default function ProfileScreen() {
                 style={styles.menuItem}
                 onPress={() => router.push(item.route as any)}
               >
-                <item.icon size={20} color={DT.colors.text} strokeWidth={2} />
+                <item.icon size={20} color={colors.text} strokeWidth={2} />
                 <Text style={styles.menuItemText}>{item.label}</Text>
-                <ChevronRight size={16} color={DT.colors.muted} />
+                <ChevronRight size={16} color={colors.muted} />
               </TouchableOpacity>
               {i < arr.length - 1 && <View style={styles.menuDivider} />}
             </View>
@@ -72,7 +76,7 @@ export default function ProfileScreen() {
 
         {/* Logout */}
         <TouchableOpacity style={styles.logoutButton}>
-          <LogOut size={20} color={DT.colors.error} strokeWidth={2} />
+          <LogOut size={20} color={colors.error} strokeWidth={2} />
           <Text style={styles.logoutText}>Sign Out</Text>
         </TouchableOpacity>
       </ScrollView>
@@ -80,31 +84,31 @@ export default function ProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: DT.colors.background,
+    backgroundColor: colors.background,
   },
   header: {
     paddingHorizontal: DT.spacing.lg,
     paddingVertical: DT.spacing.md,
     borderBottomWidth: 2,
-    borderBottomColor: DT.colors.text,
+    borderBottomColor: colors.text,
   },
   title: {
     fontFamily: DT.typography.heading,
     fontSize: 24,
-    color: DT.colors.text,
+    color: colors.text,
   },
   profileCard: {
     flexDirection: 'row',
     alignItems: 'center',
     margin: DT.spacing.lg,
     padding: DT.spacing.md,
-    backgroundColor: DT.colors.surface,
+    backgroundColor: colors.surface,
     borderWidth: 2,
-    borderColor: DT.colors.text,
-    shadowColor: DT.colors.text,
+    borderColor: colors.text,
+    shadowColor: colors.text,
     shadowOffset: { width: 4, height: 4 },
     shadowOpacity: 1,
     shadowRadius: 0,
@@ -114,29 +118,29 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderWidth: 2,
-    borderColor: DT.colors.text,
+    borderColor: colors.text,
     overflow: 'hidden',
     marginRight: DT.spacing.md,
   },
   avatar: { width: '100%', height: '100%' },
   profileInfo: { flex: 1 },
-  name: { fontFamily: DT.typography.heading, fontSize: 18, color: DT.colors.text },
-  email: { fontFamily: DT.typography.body, fontSize: 13, color: DT.colors.muted, marginTop: 2 },
+  name: { fontFamily: DT.typography.heading, fontSize: 18, color: colors.text },
+  email: { fontFamily: DT.typography.body, fontSize: 13, color: colors.muted, marginTop: 2 },
   ratingBadge: {
-    backgroundColor: DT.colors.accent,
+    backgroundColor: colors.accent,
     borderWidth: 2,
-    borderColor: DT.colors.text,
+    borderColor: colors.text,
     paddingHorizontal: 8,
     paddingVertical: 4,
   },
-  ratingText: { fontFamily: DT.typography.heading, fontSize: 13, color: DT.colors.text },
+  ratingText: { fontFamily: DT.typography.heading, fontSize: 13, color: colors.text },
   statsRow: {
     flexDirection: 'row',
     marginHorizontal: DT.spacing.lg,
     marginBottom: DT.spacing.lg,
     borderWidth: 2,
-    borderColor: DT.colors.text,
-    backgroundColor: DT.colors.surface,
+    borderColor: colors.text,
+    backgroundColor: colors.surface,
   },
   statBox: {
     flex: 1,
@@ -145,17 +149,17 @@ const styles = StyleSheet.create({
   },
   statBoxBorder: {
     borderRightWidth: 2,
-    borderRightColor: DT.colors.text,
+    borderRightColor: colors.text,
   },
-  statValue: { fontFamily: DT.typography.heading, fontSize: 20, color: DT.colors.text },
-  statLabel: { fontFamily: DT.typography.body, fontSize: 12, color: DT.colors.muted, marginTop: 2 },
+  statValue: { fontFamily: DT.typography.heading, fontSize: 20, color: colors.text },
+  statLabel: { fontFamily: DT.typography.body, fontSize: 12, color: colors.muted, marginTop: 2 },
   menu: {
     marginHorizontal: DT.spacing.lg,
     borderWidth: 2,
-    borderColor: DT.colors.text,
-    backgroundColor: DT.colors.surface,
+    borderColor: colors.text,
+    backgroundColor: colors.surface,
     marginBottom: DT.spacing.lg,
-    shadowColor: DT.colors.text,
+    shadowColor: colors.text,
     shadowOffset: { width: 3, height: 3 },
     shadowOpacity: 1,
     shadowRadius: 0,
@@ -168,11 +172,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: DT.spacing.md,
     gap: DT.spacing.md,
   },
-  menuDivider: { height: 2, backgroundColor: DT.colors.text },
+  menuDivider: { height: 2, backgroundColor: colors.text },
   menuItemText: {
     fontFamily: DT.typography.body,
     fontSize: 15,
-    color: DT.colors.text,
+    color: colors.text,
     flex: 1,
   },
   logoutButton: {
@@ -182,13 +186,13 @@ const styles = StyleSheet.create({
     padding: DT.spacing.md,
     gap: DT.spacing.md,
     borderWidth: 2,
-    borderColor: DT.colors.error,
-    backgroundColor: DT.colors.surface,
+    borderColor: colors.error,
+    backgroundColor: colors.surface,
     marginBottom: DT.spacing.xl,
   },
   logoutText: {
     fontFamily: DT.typography.bodySemiBold,
     fontSize: 15,
-    color: DT.colors.error,
+    color: colors.error,
   },
 });

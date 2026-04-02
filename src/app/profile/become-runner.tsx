@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, Bike, CheckCircle2, ShieldCheck, MapPin, Zap } from 'lucide-react-native';
 import { DesignTokens as DT } from '../../constants/design';
+import { useTheme } from '../../hooks/use-theme';
 
 const steps = [
   { icon: ShieldCheck, title: 'BVN Verification', desc: 'We verify your Bank Verification Number to confirm your identity. Takes 2 minutes.' },
@@ -15,10 +16,12 @@ const steps = [
 ];
 
 export default function BecomeRunnerScreen() {
+  const { colors } = useTheme();
   const router = useRouter();
   const [started, setStarted] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [transport, setTransport] = useState('');
+  const styles = getStyles(colors);
 
   const transports = ['Motorcycle', 'Keke Napep', 'Car', 'On Foot'];
 
@@ -27,7 +30,7 @@ export default function BecomeRunnerScreen() {
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
           <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-            <ChevronLeft size={24} color={DT.colors.text} strokeWidth={2.5} />
+            <ChevronLeft size={24} color={colors.text} strokeWidth={2.5} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Become a Runner</Text>
           <View style={{ width: 40 }} />
@@ -63,7 +66,7 @@ export default function BecomeRunnerScreen() {
               <View style={styles.stepNum}>
                 <Text style={styles.stepNumText}>{i + 1}</Text>
               </View>
-              <s.icon size={20} color={DT.colors.primary} strokeWidth={2.5} />
+              <s.icon size={20} color={colors.primary} strokeWidth={2.5} />
               <View style={styles.stepInfo}>
                 <Text style={styles.stepTitle}>{s.title}</Text>
                 <Text style={styles.stepDesc}>{s.desc}</Text>
@@ -84,7 +87,7 @@ export default function BecomeRunnerScreen() {
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => currentStep > 0 ? setCurrentStep(c => c - 1) : setStarted(false)}>
-          <ChevronLeft size={24} color={DT.colors.text} strokeWidth={2.5} />
+          <ChevronLeft size={24} color={colors.text} strokeWidth={2.5} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Step {currentStep + 1} of {steps.length}</Text>
         <View style={{ width: 40 }} />
@@ -99,7 +102,7 @@ export default function BecomeRunnerScreen() {
         {currentStep < 3 && (
           <>
             <View style={styles.stepIconCircle}>
-              {React.createElement(steps[currentStep].icon, { size: 32, color: DT.colors.surface, strokeWidth: 2.5 })}
+              {React.createElement(steps[currentStep].icon, { size: 32, color: colors.surface, strokeWidth: 2.5 })}
             </View>
             <Text style={styles.bigStepTitle}>{steps[currentStep].title}</Text>
             <Text style={styles.bigStepDesc}>{steps[currentStep].desc}</Text>
@@ -132,7 +135,7 @@ export default function BecomeRunnerScreen() {
 
         {currentStep === 3 && (
           <View style={styles.successBox}>
-            <CheckCircle2 size={64} color={DT.colors.secondary} strokeWidth={2} />
+            <CheckCircle2 size={64} color={colors.secondary} strokeWidth={2} />
             <Text style={styles.successTitle}>Application Submitted!</Text>
             <Text style={styles.successSub}>We'll verify your details within 24 hours. You'll get an SMS when you're approved.</Text>
             <TouchableOpacity style={styles.nextBtn} onPress={() => router.back()}>
@@ -145,84 +148,84 @@ export default function BecomeRunnerScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: DT.colors.background },
+const getStyles = (colors: any) => StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: colors.background },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: DT.spacing.lg, paddingVertical: DT.spacing.md,
-    borderBottomWidth: 2, borderBottomColor: DT.colors.text,
+    borderBottomWidth: 2, borderBottomColor: colors.text,
   },
   backBtn: {
-    width: 40, height: 40, borderWidth: 2, borderColor: DT.colors.text,
-    backgroundColor: DT.colors.surface, alignItems: 'center', justifyContent: 'center',
+    width: 40, height: 40, borderWidth: 2, borderColor: colors.text,
+    backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center',
   },
-  headerTitle: { fontFamily: DT.typography.heading, fontSize: 18, color: DT.colors.text },
+  headerTitle: { fontFamily: DT.typography.heading, fontSize: 18, color: colors.text },
   scroll: { paddingHorizontal: DT.spacing.lg, paddingTop: DT.spacing.lg, paddingBottom: 40 },
   hero: {
-    alignItems: 'center', borderWidth: 2, borderColor: DT.colors.text,
-    backgroundColor: DT.colors.primary, padding: DT.spacing.xl, marginBottom: DT.spacing.lg,
-    shadowColor: DT.colors.text, shadowOffset: { width: 4, height: 4 }, shadowOpacity: 1, shadowRadius: 0, elevation: 5,
+    alignItems: 'center', borderWidth: 2, borderColor: colors.text,
+    backgroundColor: colors.primary, padding: DT.spacing.xl, marginBottom: DT.spacing.lg,
+    shadowColor: colors.text, shadowOffset: { width: 4, height: 4 }, shadowOpacity: 1, shadowRadius: 0, elevation: 5,
   },
   heroEmoji: { fontSize: 56, marginBottom: DT.spacing.md },
-  heroTitle: { fontFamily: DT.typography.heading, fontSize: 28, color: DT.colors.surface, textAlign: 'center', marginBottom: DT.spacing.md },
+  heroTitle: { fontFamily: DT.typography.heading, fontSize: 28, color: colors.surface, textAlign: 'center', marginBottom: DT.spacing.md },
   heroSub: { fontFamily: DT.typography.body, fontSize: 14, color: 'rgba(255,255,255,0.85)', textAlign: 'center', lineHeight: 22 },
   statsRow: {
-    flexDirection: 'row', borderWidth: 2, borderColor: DT.colors.text, backgroundColor: DT.colors.surface,
+    flexDirection: 'row', borderWidth: 2, borderColor: colors.text, backgroundColor: colors.surface,
     marginBottom: DT.spacing.lg,
-    shadowColor: DT.colors.text, shadowOffset: { width: 3, height: 3 }, shadowOpacity: 1, shadowRadius: 0, elevation: 4,
+    shadowColor: colors.text, shadowOffset: { width: 3, height: 3 }, shadowOpacity: 1, shadowRadius: 0, elevation: 4,
   },
   statBox: { flex: 1, alignItems: 'center', paddingVertical: DT.spacing.md },
-  statBorder: { borderRightWidth: 2, borderRightColor: DT.colors.text },
-  statValue: { fontFamily: DT.typography.heading, fontSize: 20, color: DT.colors.text },
-  statLabel: { fontFamily: DT.typography.body, fontSize: 11, color: DT.colors.muted, marginTop: 2 },
+  statBorder: { borderRightWidth: 2, borderRightColor: colors.text },
+  statValue: { fontFamily: DT.typography.heading, fontSize: 20, color: colors.text },
+  statLabel: { fontFamily: DT.typography.body, fontSize: 11, color: colors.muted, marginTop: 2 },
   sectionLabel: {
-    fontFamily: DT.typography.heading, fontSize: 11, color: DT.colors.muted, letterSpacing: 1.5, marginBottom: DT.spacing.md,
+    fontFamily: DT.typography.heading, fontSize: 11, color: colors.muted, letterSpacing: 1.5, marginBottom: DT.spacing.md,
   },
   stepCard: {
     flexDirection: 'row', alignItems: 'flex-start', gap: DT.spacing.md,
-    borderWidth: 2, borderColor: DT.colors.text, backgroundColor: DT.colors.surface,
+    borderWidth: 2, borderColor: colors.text, backgroundColor: colors.surface,
     padding: DT.spacing.md, marginBottom: DT.spacing.sm,
   },
   stepNum: {
-    width: 24, height: 24, backgroundColor: DT.colors.accent, borderWidth: 2, borderColor: DT.colors.text,
+    width: 24, height: 24, backgroundColor: colors.accent, borderWidth: 2, borderColor: colors.text,
     alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   },
-  stepNumText: { fontFamily: DT.typography.heading, fontSize: 12, color: DT.colors.text },
+  stepNumText: { fontFamily: DT.typography.heading, fontSize: 12, color: colors.text },
   stepInfo: { flex: 1 },
-  stepTitle: { fontFamily: DT.typography.heading, fontSize: 14, color: DT.colors.text },
-  stepDesc: { fontFamily: DT.typography.body, fontSize: 12, color: DT.colors.muted, marginTop: 2, lineHeight: 18 },
+  stepTitle: { fontFamily: DT.typography.heading, fontSize: 14, color: colors.text },
+  stepDesc: { fontFamily: DT.typography.body, fontSize: 12, color: colors.muted, marginTop: 2, lineHeight: 18 },
   startBtn: {
-    height: 56, backgroundColor: DT.colors.secondary, borderWidth: 2, borderColor: DT.colors.text,
+    height: 56, backgroundColor: colors.secondary, borderWidth: 2, borderColor: colors.text,
     alignItems: 'center', justifyContent: 'center', marginTop: DT.spacing.lg,
-    shadowColor: DT.colors.text, shadowOffset: { width: 4, height: 4 }, shadowOpacity: 1, shadowRadius: 0, elevation: 5,
+    shadowColor: colors.text, shadowOffset: { width: 4, height: 4 }, shadowOpacity: 1, shadowRadius: 0, elevation: 5,
   },
-  startBtnText: { fontFamily: DT.typography.heading, fontSize: 17, color: DT.colors.surface },
-  progressTrack: { height: 4, backgroundColor: DT.colors.background, borderBottomWidth: 2, borderBottomColor: DT.colors.text },
-  progressFill: { height: '100%', backgroundColor: DT.colors.primary },
+  startBtnText: { fontFamily: DT.typography.heading, fontSize: 17, color: colors.surface },
+  progressTrack: { height: 4, backgroundColor: colors.background, borderBottomWidth: 2, borderBottomColor: colors.text },
+  progressFill: { height: '100%', backgroundColor: colors.primary },
   stepContent: { flex: 1, paddingHorizontal: DT.spacing.lg, paddingTop: DT.spacing.xl, gap: DT.spacing.md },
   stepIconCircle: {
-    width: 72, height: 72, backgroundColor: DT.colors.primary, borderWidth: 3, borderColor: DT.colors.text,
+    width: 72, height: 72, backgroundColor: colors.primary, borderWidth: 3, borderColor: colors.text,
     alignItems: 'center', justifyContent: 'center',
-    shadowColor: DT.colors.text, shadowOffset: { width: 4, height: 4 }, shadowOpacity: 1, shadowRadius: 0, elevation: 5,
+    shadowColor: colors.text, shadowOffset: { width: 4, height: 4 }, shadowOpacity: 1, shadowRadius: 0, elevation: 5,
   },
-  bigStepTitle: { fontFamily: DT.typography.heading, fontSize: 28, color: DT.colors.text },
-  bigStepDesc: { fontFamily: DT.typography.body, fontSize: 15, color: DT.colors.muted, lineHeight: 24 },
+  bigStepTitle: { fontFamily: DT.typography.heading, fontSize: 28, color: colors.text },
+  bigStepDesc: { fontFamily: DT.typography.body, fontSize: 15, color: colors.muted, lineHeight: 24 },
   transportGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: DT.spacing.sm },
   transportChip: {
     paddingHorizontal: DT.spacing.md, paddingVertical: DT.spacing.sm,
-    borderWidth: 2, borderColor: DT.colors.text, backgroundColor: DT.colors.surface,
+    borderWidth: 2, borderColor: colors.text, backgroundColor: colors.surface,
   },
-  transportChipActive: { backgroundColor: DT.colors.primary, borderColor: DT.colors.primary },
-  transportText: { fontFamily: DT.typography.bodySemiBold, fontSize: 14, color: DT.colors.text },
-  transportTextActive: { color: DT.colors.surface },
+  transportChipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  transportText: { fontFamily: DT.typography.bodySemiBold, fontSize: 14, color: colors.text },
+  transportTextActive: { color: colors.surface },
   nextBtn: {
-    height: 56, backgroundColor: DT.colors.primary, borderWidth: 2, borderColor: DT.colors.text,
+    height: 56, backgroundColor: colors.primary, borderWidth: 2, borderColor: colors.text,
     alignItems: 'center', justifyContent: 'center',
-    shadowColor: DT.colors.text, shadowOffset: { width: 4, height: 4 }, shadowOpacity: 1, shadowRadius: 0, elevation: 5,
+    shadowColor: colors.text, shadowOffset: { width: 4, height: 4 }, shadowOpacity: 1, shadowRadius: 0, elevation: 5,
   },
-  nextBtnDisabled: { backgroundColor: DT.colors.muted, shadowOpacity: 0, elevation: 0 },
-  nextBtnText: { fontFamily: DT.typography.heading, fontSize: 17, color: DT.colors.surface },
+  nextBtnDisabled: { backgroundColor: colors.muted, shadowOpacity: 0, elevation: 0 },
+  nextBtnText: { fontFamily: DT.typography.heading, fontSize: 17, color: colors.surface },
   successBox: { alignItems: 'center', gap: DT.spacing.md, paddingTop: DT.spacing.xl },
-  successTitle: { fontFamily: DT.typography.heading, fontSize: 26, color: DT.colors.text },
-  successSub: { fontFamily: DT.typography.body, fontSize: 15, color: DT.colors.muted, textAlign: 'center', lineHeight: 22 },
+  successTitle: { fontFamily: DT.typography.heading, fontSize: 26, color: colors.text },
+  successSub: { fontFamily: DT.typography.body, fontSize: 15, color: colors.muted, textAlign: 'center', lineHeight: 22 },
 });

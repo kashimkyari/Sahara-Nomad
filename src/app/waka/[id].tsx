@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ChevronLeft, MapPin, Phone, MessageCircle, CheckCircle2, Truck, Clock } from 'lucide-react-native';
 import { DesignTokens as DT } from '../../constants/design';
+import { useTheme } from '../../hooks/use-theme';
 
 const wakaData: Record<string, {
   title: string;
@@ -53,10 +54,12 @@ const STEPS = [
 ];
 
 export default function WakaStatusScreen() {
+  const { colors } = useTheme();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const waka = wakaData[id as string] ?? wakaData.w1;
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  const styles = getStyles(colors);
 
   useEffect(() => {
     const pulse = Animated.loop(
@@ -74,7 +77,7 @@ export default function WakaStatusScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <ChevronLeft size={24} color={DT.colors.text} strokeWidth={2.5} />
+          <ChevronLeft size={24} color={colors.text} strokeWidth={2.5} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Waka Status</Text>
         <Animated.View style={[styles.livePill, { transform: [{ scale: pulseAnim }] }]}>
@@ -86,7 +89,7 @@ export default function WakaStatusScreen() {
 
         {/* Status Banner */}
         <View style={styles.statusBanner}>
-          <Clock size={18} color={DT.colors.text} strokeWidth={2.5} />
+          <Clock size={18} color={colors.text} strokeWidth={2.5} />
           <Text style={styles.statusText}>{waka.status}</Text>
         </View>
 
@@ -98,7 +101,7 @@ export default function WakaStatusScreen() {
             return (
               <View key={s.label} style={styles.stepItem}>
                 <View style={[styles.stepCircle, active && styles.stepCircleActive, current && styles.stepCircleCurrent]}>
-                  <s.icon size={14} color={active ? DT.colors.surface : DT.colors.muted} strokeWidth={2.5} />
+                  <s.icon size={14} color={active ? colors.surface : colors.muted} strokeWidth={2.5} />
                 </View>
                 <Text style={[styles.stepLabel, active && styles.stepLabelActive]}>{s.label}</Text>
                 {i < STEPS.length - 1 && (
@@ -113,11 +116,11 @@ export default function WakaStatusScreen() {
         <View style={styles.card}>
           <Text style={styles.cardTitle}>{waka.title}</Text>
           <View style={styles.infoRow}>
-            <MapPin size={14} color={DT.colors.primary} />
+            <MapPin size={14} color={colors.primary} />
             <Text style={styles.infoText}>{waka.market}</Text>
           </View>
           <View style={styles.infoRow}>
-            <MapPin size={14} color={DT.colors.secondary} />
+            <MapPin size={14} color={colors.secondary} />
             <Text style={styles.infoText}>{waka.delivery}</Text>
           </View>
           <View style={styles.divider} />
@@ -142,10 +145,10 @@ export default function WakaStatusScreen() {
             </View>
             <View style={styles.runnerActions}>
               <TouchableOpacity style={styles.actionBtn}>
-                <MessageCircle size={18} color={DT.colors.text} strokeWidth={2.5} />
+                <MessageCircle size={18} color={colors.text} strokeWidth={2.5} />
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.actionBtn, { backgroundColor: DT.colors.secondary }]}>
-                <Phone size={18} color={DT.colors.surface} strokeWidth={2.5} />
+              <TouchableOpacity style={[styles.actionBtn, { backgroundColor: colors.secondary }]}>
+                <Phone size={18} color={colors.surface} strokeWidth={2.5} />
               </TouchableOpacity>
             </View>
           </View>
@@ -170,10 +173,10 @@ export default function WakaStatusScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: DT.colors.background,
+    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -181,36 +184,36 @@ const styles = StyleSheet.create({
     paddingHorizontal: DT.spacing.lg,
     paddingVertical: DT.spacing.md,
     borderBottomWidth: 2,
-    borderBottomColor: DT.colors.text,
-    backgroundColor: DT.colors.background,
+    borderBottomColor: colors.text,
+    backgroundColor: colors.background,
     gap: DT.spacing.md,
   },
   backBtn: {
     width: 40,
     height: 40,
     borderWidth: 2,
-    borderColor: DT.colors.text,
-    backgroundColor: DT.colors.surface,
+    borderColor: colors.text,
+    backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
     fontFamily: DT.typography.heading,
     fontSize: 20,
-    color: DT.colors.text,
+    color: colors.text,
     flex: 1,
   },
   livePill: {
-    backgroundColor: DT.colors.secondary,
+    backgroundColor: colors.secondary,
     borderWidth: 2,
-    borderColor: DT.colors.text,
+    borderColor: colors.text,
     paddingHorizontal: 8,
     paddingVertical: 3,
   },
   liveText: {
     fontFamily: DT.typography.heading,
     fontSize: 11,
-    color: DT.colors.surface,
+    color: colors.surface,
     letterSpacing: 1,
   },
   scroll: {
@@ -222,12 +225,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: DT.spacing.sm,
-    backgroundColor: DT.colors.accent,
+    backgroundColor: colors.accent,
     borderWidth: 2,
-    borderColor: DT.colors.text,
+    borderColor: colors.text,
     padding: DT.spacing.md,
     marginBottom: DT.spacing.lg,
-    shadowColor: DT.colors.text,
+    shadowColor: colors.text,
     shadowOffset: { width: 3, height: 3 },
     shadowOpacity: 1,
     shadowRadius: 0,
@@ -236,7 +239,7 @@ const styles = StyleSheet.create({
   statusText: {
     fontFamily: DT.typography.bodySemiBold,
     fontSize: 14,
-    color: DT.colors.text,
+    color: colors.text,
     flex: 1,
   },
   stepperRow: {
@@ -255,25 +258,25 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderWidth: 2,
-    borderColor: DT.colors.text,
-    backgroundColor: DT.colors.surface,
+    borderColor: colors.text,
+    backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
   },
   stepCircleActive: {
-    backgroundColor: DT.colors.muted,
+    backgroundColor: colors.muted,
   },
   stepCircleCurrent: {
-    backgroundColor: DT.colors.primary,
+    backgroundColor: colors.primary,
   },
   stepLabel: {
     fontFamily: DT.typography.body,
     fontSize: 10,
-    color: DT.colors.muted,
+    color: colors.muted,
     textAlign: 'center',
   },
   stepLabelActive: {
-    color: DT.colors.text,
+    color: colors.text,
     fontFamily: DT.typography.bodySemiBold,
   },
   stepLine: {
@@ -282,19 +285,19 @@ const styles = StyleSheet.create({
     left: '55%',
     right: '-55%',
     height: 2,
-    backgroundColor: DT.colors.muted,
+    backgroundColor: colors.muted,
     zIndex: -1,
   },
   stepLineActive: {
-    backgroundColor: DT.colors.primary,
+    backgroundColor: colors.primary,
   },
   card: {
-    backgroundColor: DT.colors.surface,
+    backgroundColor: colors.surface,
     borderWidth: 2,
-    borderColor: DT.colors.text,
+    borderColor: colors.text,
     padding: DT.spacing.md,
     marginBottom: DT.spacing.md,
-    shadowColor: DT.colors.text,
+    shadowColor: colors.text,
     shadowOffset: { width: 4, height: 4 },
     shadowOpacity: 1,
     shadowRadius: 0,
@@ -303,7 +306,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontFamily: DT.typography.heading,
     fontSize: 17,
-    color: DT.colors.text,
+    color: colors.text,
     marginBottom: DT.spacing.md,
   },
   infoRow: {
@@ -315,25 +318,25 @@ const styles = StyleSheet.create({
   infoText: {
     fontFamily: DT.typography.body,
     fontSize: 13,
-    color: DT.colors.text,
+    color: colors.text,
     flex: 1,
   },
   divider: {
     height: 2,
-    backgroundColor: DT.colors.text,
+    backgroundColor: colors.text,
     marginVertical: DT.spacing.md,
   },
   itemsLabel: {
     fontFamily: DT.typography.heading,
     fontSize: 12,
-    color: DT.colors.muted,
+    color: colors.muted,
     letterSpacing: 1,
     marginBottom: 4,
   },
   itemsText: {
     fontFamily: DT.typography.body,
     fontSize: 14,
-    color: DT.colors.text,
+    color: colors.text,
     lineHeight: 20,
   },
   feeRow: {
@@ -344,15 +347,15 @@ const styles = StyleSheet.create({
   feeLabel: {
     fontFamily: DT.typography.bodySemiBold,
     fontSize: 14,
-    color: DT.colors.text,
+    color: colors.text,
   },
   feeTag: {
-    backgroundColor: DT.colors.accent,
+    backgroundColor: colors.accent,
     borderWidth: 2,
-    borderColor: DT.colors.text,
+    borderColor: colors.text,
     paddingHorizontal: 10,
     paddingVertical: 3,
-    shadowColor: DT.colors.text,
+    shadowColor: colors.text,
     shadowOffset: { width: 2, height: 2 },
     shadowOpacity: 1,
     shadowRadius: 0,
@@ -361,17 +364,17 @@ const styles = StyleSheet.create({
   feeTagText: {
     fontFamily: DT.typography.heading,
     fontSize: 15,
-    color: DT.colors.text,
+    color: colors.text,
   },
   runnerCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: DT.colors.surface,
+    backgroundColor: colors.surface,
     borderWidth: 2,
-    borderColor: DT.colors.text,
+    borderColor: colors.text,
     padding: DT.spacing.md,
     marginBottom: DT.spacing.lg,
-    shadowColor: DT.colors.text,
+    shadowColor: colors.text,
     shadowOffset: { width: 4, height: 4 },
     shadowOpacity: 1,
     shadowRadius: 0,
@@ -382,14 +385,14 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderWidth: 2,
-    borderColor: DT.colors.text,
+    borderColor: colors.text,
   },
   noRunnerBox: {
     width: 52,
     height: 52,
     borderWidth: 2,
-    borderColor: DT.colors.text,
-    backgroundColor: DT.colors.background,
+    borderColor: colors.text,
+    backgroundColor: colors.background,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -398,12 +401,12 @@ const styles = StyleSheet.create({
   runnerName: {
     fontFamily: DT.typography.heading,
     fontSize: 15,
-    color: DT.colors.text,
+    color: colors.text,
   },
   runnerRating: {
     fontFamily: DT.typography.body,
     fontSize: 12,
-    color: DT.colors.muted,
+    color: colors.muted,
     marginTop: 2,
   },
   runnerActions: {
@@ -414,11 +417,11 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderWidth: 2,
-    borderColor: DT.colors.text,
-    backgroundColor: DT.colors.surface,
+    borderColor: colors.text,
+    backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: DT.colors.text,
+    shadowColor: colors.text,
     shadowOffset: { width: 2, height: 2 },
     shadowOpacity: 1,
     shadowRadius: 0,
@@ -427,14 +430,14 @@ const styles = StyleSheet.create({
   cancelBtn: {
     height: 48,
     borderWidth: 2,
-    borderColor: DT.colors.error,
-    backgroundColor: DT.colors.surface,
+    borderColor: colors.error,
+    backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cancelText: {
     fontFamily: DT.typography.heading,
     fontSize: 15,
-    color: DT.colors.error,
+    color: colors.error,
   },
 });

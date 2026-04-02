@@ -1,9 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
 import React from 'react';
+import { useTheme } from '../../hooks/use-theme';
 import { DesignTokens as DT } from '../../constants/design';
 
 export default function TabLayout() {
+  const { colors } = useTheme();
   const triggerOptions = {
     disableAutomaticContentInsets: true,
     contentStyle: { paddingBottom: 0 },
@@ -11,22 +13,22 @@ export default function TabLayout() {
 
   return (
     <NativeTabs
-      backgroundColor={DT.colors.surface}
+      backgroundColor={colors.surface}
       blurEffect="systemMaterial"
       iconColor={{
-        default: DT.colors.muted,
-        selected: DT.colors.primary,
+        default: colors.muted,
+        selected: colors.primary,
       }}
       labelStyle={{
         default: {
           fontFamily: 'PlusJakartaSans_500Medium',
           fontSize: 10,
-          color: DT.colors.muted,
+          color: colors.muted,
         },
         selected: {
           fontFamily: 'PlusJakartaSans_600SemiBold',
           fontSize: 10,
-          color: DT.colors.primary,
+          color: colors.primary,
         },
       }}
     >

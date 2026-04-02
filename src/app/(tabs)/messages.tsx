@@ -3,6 +3,7 @@ import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { DesignTokens as DT } from '../../constants/design';
+import { useTheme } from '../../hooks/use-theme';
 
 const messages = [
   { id: '1', name: 'Chinedu O.', lastMsg: 'I am at the market now, I found the...', time: '12:45', unread: true },
@@ -11,7 +12,9 @@ const messages = [
 ];
 
 export default function MessagesScreen() {
+  const { colors } = useTheme();
   const router = useRouter();
+  const styles = getStyles(colors);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -51,10 +54,10 @@ export default function MessagesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: DT.colors.background,
+    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -62,27 +65,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: DT.spacing.lg,
     paddingVertical: DT.spacing.md,
     borderBottomWidth: 2,
-    borderBottomColor: DT.colors.text,
+    borderBottomColor: colors.text,
     gap: 10,
   },
   title: {
     fontFamily: DT.typography.heading,
     fontSize: 24,
-    color: DT.colors.text,
+    color: colors.text,
   },
   badge: {
     width: 22,
     height: 22,
-    backgroundColor: DT.colors.primary,
+    backgroundColor: colors.primary,
     borderWidth: 2,
-    borderColor: DT.colors.text,
+    borderColor: colors.text,
     alignItems: 'center',
     justifyContent: 'center',
   },
   badgeText: {
     fontFamily: DT.typography.heading,
     fontSize: 11,
-    color: DT.colors.surface,
+    color: colors.surface,
   },
   messageRow: {
     flexDirection: 'row',
@@ -90,8 +93,8 @@ const styles = StyleSheet.create({
     paddingVertical: DT.spacing.md,
     paddingHorizontal: DT.spacing.lg,
     borderBottomWidth: 2,
-    borderBottomColor: DT.colors.text,
-    backgroundColor: DT.colors.background,
+    borderBottomColor: colors.text,
+    backgroundColor: colors.background,
   },
   avatarWrap: {
     position: 'relative',
@@ -101,7 +104,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderWidth: 2,
-    borderColor: DT.colors.text,
+    borderColor: colors.text,
   },
   unreadDot: {
     position: 'absolute',
@@ -109,9 +112,9 @@ const styles = StyleSheet.create({
     right: -3,
     width: 12,
     height: 12,
-    backgroundColor: DT.colors.primary,
+    backgroundColor: colors.primary,
     borderWidth: 2,
-    borderColor: DT.colors.background,
+    borderColor: colors.background,
   },
   messageContent: {
     flex: 1,
@@ -124,7 +127,7 @@ const styles = StyleSheet.create({
   name: {
     fontFamily: DT.typography.body,
     fontSize: 15,
-    color: DT.colors.text,
+    color: colors.text,
   },
   nameBold: {
     fontFamily: DT.typography.bodySemiBold,
@@ -132,11 +135,11 @@ const styles = StyleSheet.create({
   time: {
     fontFamily: DT.typography.body,
     fontSize: 12,
-    color: DT.colors.muted,
+    color: colors.muted,
   },
   lastMsg: {
     fontFamily: DT.typography.body,
     fontSize: 13,
-    color: DT.colors.muted,
+    color: colors.muted,
   },
 });

@@ -18,6 +18,7 @@ import {
   ArrowRight,
   Zap,
 } from 'lucide-react-native';
+import { useTheme } from '../../hooks/use-theme';
 import { DesignTokens as DT } from '../../constants/design';
 
 const runners = [
@@ -34,6 +35,7 @@ const activeWakas = [
 ];
 
 export default function HomeScreen() {
+  const { colors } = useTheme();
   const router = useRouter();
   const fabScale = useRef(new Animated.Value(1)).current;
 
@@ -41,6 +43,8 @@ export default function HomeScreen() {
     Animated.spring(fabScale, { toValue: 0.9, useNativeDriver: true }).start();
   const onFABPressOut = () =>
     Animated.spring(fabScale, { toValue: 1, useNativeDriver: true }).start();
+
+  const styles = getStyles(colors);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -55,11 +59,11 @@ export default function HomeScreen() {
             <Text style={styles.username}>Chidi 👋</Text>
           </View>
           <View style={styles.headerRight}>
-            <TouchableOpacity style={styles.bellWrapper} onPress={() => router.push('/(tabs)/profile')}>
-              <Bell size={22} color={DT.colors.text} strokeWidth={2.5} />
+            <TouchableOpacity style={styles.bellWrapper} onPress={() => router.push('/profile')}>
+              <Bell size={22} color={colors.text} strokeWidth={2.5} />
               <View style={styles.bellDot} />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.avatarBox} onPress={() => router.push('/(tabs)/profile')}>
+            <TouchableOpacity style={styles.avatarBox} onPress={() => router.push('/profile')}>
               <Image
                 source={{ uri: 'https://i.pravatar.cc/150?u=chidi' }}
                 style={styles.avatar}
@@ -90,7 +94,7 @@ export default function HomeScreen() {
                     <Text style={styles.wakaTitle}>{waka.title}</Text>
                     <View style={styles.wakaFooter}>
                       <Text style={styles.wakaStatus}>{waka.status}</Text>
-                      <ArrowRight size={16} color={DT.colors.surface} />
+                      <ArrowRight size={16} color={colors.surface} />
                     </View>
                   </View>
                 </TouchableOpacity>
@@ -105,11 +109,11 @@ export default function HomeScreen() {
           onPress={() => router.push('/new-errand')}
         >
           <View style={styles.postBannerLeft}>
-            <Zap size={20} color={DT.colors.text} fill={DT.colors.accent} />
+            <Zap size={20} color={colors.text} fill={colors.accent} />
             <Text style={styles.postBannerText}>What do you need today?</Text>
           </View>
           <View style={styles.postBannerArrow}>
-            <ArrowRight size={18} color={DT.colors.surface} />
+            <ArrowRight size={18} color={colors.surface} />
           </View>
         </TouchableOpacity>
 
@@ -135,10 +139,10 @@ export default function HomeScreen() {
               <View style={styles.runnerInfo}>
                 <Text style={styles.runnerName}>{runner.name}</Text>
                 <View style={styles.runnerMeta}>
-                  <Star size={12} color={DT.colors.accent} fill={DT.colors.accent} />
+                  <Star size={12} color={colors.accent} fill={colors.accent} />
                   <Text style={styles.runnerRating}>{runner.rating}</Text>
                   <View style={styles.dot} />
-                  <MapPin size={12} color={DT.colors.muted} />
+                  <MapPin size={12} color={colors.muted} />
                   <Text style={styles.runnerKm}>{runner.km} away</Text>
                 </View>
               </View>
@@ -167,17 +171,17 @@ export default function HomeScreen() {
           onPressOut={onFABPressOut}
           activeOpacity={1}
         >
-          <Plus size={30} color={DT.colors.surface} strokeWidth={3} />
+          <Plus size={30} color={colors.surface} strokeWidth={3} />
         </TouchableOpacity>
       </Animated.View>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: DT.colors.background,
+    backgroundColor: colors.background,
   },
   scrollContent: {
     paddingHorizontal: DT.spacing.lg,
@@ -193,12 +197,12 @@ const styles = StyleSheet.create({
   greeting: {
     fontFamily: DT.typography.body,
     fontSize: 14,
-    color: DT.colors.muted,
+    color: colors.muted,
   },
   username: {
     fontFamily: DT.typography.heading,
     fontSize: 26,
-    color: DT.colors.text,
+    color: colors.text,
   },
   headerRight: {
     flexDirection: 'row',
@@ -209,8 +213,8 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderWidth: 2,
-    borderColor: DT.colors.text,
-    backgroundColor: DT.colors.surface,
+    borderColor: colors.text,
+    backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -220,16 +224,16 @@ const styles = StyleSheet.create({
     right: 6,
     width: 8,
     height: 8,
-    backgroundColor: DT.colors.primary,
+    backgroundColor: colors.primary,
     borderRadius: 0,
     borderWidth: 1,
-    borderColor: DT.colors.text,
+    borderColor: colors.text,
   },
   avatarBox: {
     width: 40,
     height: 40,
     borderWidth: 2,
-    borderColor: DT.colors.text,
+    borderColor: colors.text,
     overflow: 'hidden',
   },
   avatar: { width: '100%', height: '100%' },
@@ -245,14 +249,14 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontFamily: DT.typography.heading,
     fontSize: 12,
-    color: DT.colors.muted,
+    color: colors.muted,
     letterSpacing: 1.5,
     marginBottom: DT.spacing.md,
   },
   seeAll: {
     fontFamily: DT.typography.body,
     fontSize: 13,
-    color: DT.colors.primary,
+    color: colors.primary,
     textDecorationLine: 'underline',
   },
   horizontalList: {
@@ -261,11 +265,11 @@ const styles = StyleSheet.create({
   wakaCardWrapper: {},
   wakaCard: {
     width: 260,
-    backgroundColor: DT.colors.secondary,
+    backgroundColor: colors.secondary,
     borderWidth: 2,
-    borderColor: DT.colors.text,
+    borderColor: colors.text,
     padding: DT.spacing.md,
-    shadowColor: DT.colors.text,
+    shadowColor: colors.text,
     shadowOffset: { width: 4, height: 4 },
     shadowOpacity: 1,
     shadowRadius: 0,
@@ -273,23 +277,23 @@ const styles = StyleSheet.create({
   },
   wakaLive: {
     alignSelf: 'flex-start',
-    backgroundColor: DT.colors.accent,
+    backgroundColor: colors.accent,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderWidth: 1.5,
-    borderColor: DT.colors.text,
+    borderColor: colors.text,
     marginBottom: 8,
   },
   wakaLiveText: {
     fontFamily: DT.typography.heading,
     fontSize: 10,
-    color: DT.colors.text,
+    color: colors.text,
     letterSpacing: 1,
   },
   wakaTitle: {
     fontFamily: DT.typography.heading,
     fontSize: 16,
-    color: DT.colors.surface,
+    color: colors.surface,
     marginBottom: 8,
   },
   wakaFooter: {
@@ -300,19 +304,19 @@ const styles = StyleSheet.create({
   wakaStatus: {
     fontFamily: DT.typography.body,
     fontSize: 12,
-    color: DT.colors.surface,
+    color: colors.surface,
     opacity: 0.85,
   },
   postBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: DT.colors.accent,
+    backgroundColor: colors.accent,
     borderWidth: 2,
-    borderColor: DT.colors.text,
+    borderColor: colors.text,
     padding: DT.spacing.md,
     marginBottom: DT.spacing.lg,
-    shadowColor: DT.colors.text,
+    shadowColor: colors.text,
     shadowOffset: { width: 4, height: 4 },
     shadowOpacity: 1,
     shadowRadius: 0,
@@ -326,12 +330,12 @@ const styles = StyleSheet.create({
   postBannerText: {
     fontFamily: DT.typography.heading,
     fontSize: 16,
-    color: DT.colors.text,
+    color: colors.text,
   },
   postBannerArrow: {
     width: 32,
     height: 32,
-    backgroundColor: DT.colors.text,
+    backgroundColor: colors.text,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -340,8 +344,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     height: 72,
     borderBottomWidth: 2,
-    borderBottomColor: DT.colors.text,
-    backgroundColor: DT.colors.background,
+    borderBottomColor: colors.text,
+    backgroundColor: colors.background,
   },
   runnerAvatarWrap: {
     position: 'relative',
@@ -351,7 +355,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderWidth: 2,
-    borderColor: DT.colors.text,
+    borderColor: colors.text,
   },
   onlineDot: {
     position: 'absolute',
@@ -359,9 +363,9 @@ const styles = StyleSheet.create({
     right: -2,
     width: 12,
     height: 12,
-    backgroundColor: DT.colors.secondary,
+    backgroundColor: colors.secondary,
     borderWidth: 2,
-    borderColor: DT.colors.surface,
+    borderColor: colors.surface,
     borderRadius: 0,
   },
   runnerInfo: {
@@ -370,7 +374,7 @@ const styles = StyleSheet.create({
   runnerName: {
     fontFamily: DT.typography.heading,
     fontSize: 15,
-    color: DT.colors.text,
+    color: colors.text,
     marginBottom: 2,
   },
   runnerMeta: {
@@ -381,28 +385,28 @@ const styles = StyleSheet.create({
   runnerRating: {
     fontFamily: DT.typography.body,
     fontSize: 13,
-    color: DT.colors.text,
+    color: colors.text,
   },
   dot: {
     width: 3,
     height: 3,
-    backgroundColor: DT.colors.muted,
+    backgroundColor: colors.muted,
     borderRadius: 0,
   },
   runnerKm: {
     fontFamily: DT.typography.body,
     fontSize: 13,
-    color: DT.colors.muted,
+    color: colors.muted,
   },
   hireBtn: {
     height: 32,
     paddingHorizontal: DT.spacing.md,
-    backgroundColor: DT.colors.primary,
+    backgroundColor: colors.primary,
     borderWidth: 2,
-    borderColor: DT.colors.text,
+    borderColor: colors.text,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: DT.colors.text,
+    shadowColor: colors.text,
     shadowOffset: { width: 2, height: 2 },
     shadowOpacity: 1,
     shadowRadius: 0,
@@ -411,13 +415,13 @@ const styles = StyleSheet.create({
   hireBtnText: {
     fontFamily: DT.typography.heading,
     fontSize: 13,
-    color: DT.colors.surface,
+    color: colors.surface,
   },
   fabShadow: {
     position: 'absolute',
     bottom: 96,
     right: DT.spacing.lg,
-    shadowColor: DT.colors.text,
+    shadowColor: colors.text,
     shadowOffset: { width: 4, height: 4 },
     shadowOpacity: 1,
     shadowRadius: 0,
@@ -426,9 +430,9 @@ const styles = StyleSheet.create({
   fab: {
     width: 64,
     height: 64,
-    backgroundColor: DT.colors.primary,
+    backgroundColor: colors.primary,
     borderWidth: 2,
-    borderColor: DT.colors.text,
+    borderColor: colors.text,
     alignItems: 'center',
     justifyContent: 'center',
   },

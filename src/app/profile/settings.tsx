@@ -2,20 +2,23 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Switch, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useTheme } from '../../hooks/use-theme';
 import { ChevronLeft, ChevronRight, Bell, MapPin, Moon, Globe } from 'lucide-react-native';
 import { DesignTokens as DT } from '../../constants/design';
 
 export default function ProfileSettingsScreen() {
+  const { isDarkMode, toggleTheme, colors } = useTheme();
   const router = useRouter();
   const [notifs, setNotifs] = useState(true);
   const [location, setLocation] = useState(true);
-  const [darkMode, setDarkMode] = useState(false);
+
+  const styles = getStyles(colors);
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <ChevronLeft size={24} color={DT.colors.text} strokeWidth={2.5} />
+          <ChevronLeft size={24} color={colors.text} strokeWidth={2.5} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Settings</Text>
         <View style={{ width: 40 }} />
@@ -26,26 +29,26 @@ export default function ProfileSettingsScreen() {
         <View style={styles.group}>
           <View style={styles.settingRow}>
             <View style={styles.settingLeft}>
-              <View style={[styles.icon, { backgroundColor: DT.colors.primary }]}><Bell size={18} color={DT.colors.surface} strokeWidth={2.5} /></View>
+              <View style={[styles.icon, { backgroundColor: colors.primary }]}><Bell size={18} color={colors.surface} strokeWidth={2.5} /></View>
               <View><Text style={styles.settingTitle}>Push Notifications</Text><Text style={styles.settingSub}>Waka updates & runner messages</Text></View>
             </View>
-            <Switch value={notifs} onValueChange={setNotifs} trackColor={{ false: DT.colors.muted, true: DT.colors.primary }} thumbColor={DT.colors.surface} />
+            <Switch value={notifs} onValueChange={setNotifs} trackColor={{ false: colors.muted, true: colors.primary }} thumbColor={colors.surface} />
           </View>
           <View style={styles.divider} />
           <View style={styles.settingRow}>
             <View style={styles.settingLeft}>
-              <View style={[styles.icon, { backgroundColor: DT.colors.secondary }]}><MapPin size={18} color={DT.colors.surface} strokeWidth={2.5} /></View>
+              <View style={[styles.icon, { backgroundColor: colors.secondary }]}><MapPin size={18} color={colors.surface} strokeWidth={2.5} /></View>
               <View><Text style={styles.settingTitle}>Location Services</Text><Text style={styles.settingSub}>Used to find runners near you</Text></View>
             </View>
-            <Switch value={location} onValueChange={setLocation} trackColor={{ false: DT.colors.muted, true: DT.colors.secondary }} thumbColor={DT.colors.surface} />
+            <Switch value={location} onValueChange={setLocation} trackColor={{ false: colors.muted, true: colors.secondary }} thumbColor={colors.surface} />
           </View>
           <View style={styles.divider} />
           <View style={styles.settingRow}>
             <View style={styles.settingLeft}>
-              <View style={[styles.icon, { backgroundColor: DT.colors.text }]}><Moon size={18} color={DT.colors.surface} strokeWidth={2.5} /></View>
-              <View><Text style={styles.settingTitle}>Dark Mode</Text><Text style={styles.settingSub}>Coming soon</Text></View>
+              <View style={[styles.icon, { backgroundColor: colors.text }]}><Moon size={18} color={colors.surface} strokeWidth={2.5} /></View>
+              <View><Text style={styles.settingTitle}>Dark Mode</Text><Text style={styles.settingSub}>Neobrutalist dark experience</Text></View>
             </View>
-            <Switch value={darkMode} onValueChange={setDarkMode} trackColor={{ false: DT.colors.muted, true: DT.colors.text }} thumbColor={DT.colors.surface} disabled />
+            <Switch value={isDarkMode} onValueChange={toggleTheme} trackColor={{ false: colors.muted, true: colors.text }} thumbColor={colors.surface} />
           </View>
         </View>
 
@@ -60,7 +63,7 @@ export default function ProfileSettingsScreen() {
             <View key={item.label}>
               <TouchableOpacity style={styles.linkRow} onPress={() => router.push(item.route as any)}>
                 <View style={styles.linkInfo}><Text style={styles.linkTitle}>{item.label}</Text><Text style={styles.linkSub}>{item.sub}</Text></View>
-                <ChevronRight size={18} color={DT.colors.muted} />
+                <ChevronRight size={18} color={colors.muted} />
               </TouchableOpacity>
               {i < arr.length - 1 && <View style={styles.divider} />}
             </View>
@@ -70,17 +73,17 @@ export default function ProfileSettingsScreen() {
         <Text style={[styles.sectionLabel, { marginTop: DT.spacing.lg }]}>LANGUAGE & REGION</Text>
         <View style={styles.group}>
           <TouchableOpacity style={styles.linkRow} onPress={() => router.push('/profile/language' as any)}>
-            <View style={[styles.icon, { backgroundColor: DT.colors.accent, marginRight: DT.spacing.md }]}><Globe size={18} color={DT.colors.text} strokeWidth={2.5} /></View>
+            <View style={[styles.icon, { backgroundColor: colors.accent, marginRight: DT.spacing.md }]}><Globe size={18} color={colors.text} strokeWidth={2.5} /></View>
             <View style={styles.linkInfo}><Text style={styles.linkTitle}>Language</Text><Text style={styles.linkSub}>English (Nigeria)</Text></View>
-            <ChevronRight size={18} color={DT.colors.muted} />
+            <ChevronRight size={18} color={colors.muted} />
           </TouchableOpacity>
         </View>
 
         <Text style={[styles.sectionLabel, { marginTop: DT.spacing.lg }]}>DANGER ZONE</Text>
         <View style={styles.group}>
           <TouchableOpacity style={styles.linkRow}>
-            <View style={styles.linkInfo}><Text style={[styles.linkTitle, { color: DT.colors.error }]}>Delete Account</Text><Text style={styles.linkSub}>Permanently removes all your data</Text></View>
-            <ChevronRight size={18} color={DT.colors.error} />
+            <View style={styles.linkInfo}><Text style={[styles.linkTitle, { color: colors.error }]}>Delete Account</Text><Text style={styles.linkSub}>Permanently removes all your data</Text></View>
+            <ChevronRight size={18} color={colors.error} />
           </TouchableOpacity>
         </View>
 
@@ -90,23 +93,23 @@ export default function ProfileSettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: DT.colors.background },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: DT.spacing.lg, paddingVertical: DT.spacing.md, borderBottomWidth: 2, borderBottomColor: DT.colors.text },
-  backBtn: { width: 40, height: 40, borderWidth: 2, borderColor: DT.colors.text, backgroundColor: DT.colors.surface, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { fontFamily: DT.typography.heading, fontSize: 20, color: DT.colors.text },
+const getStyles = (colors: any) => StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: colors.background },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: DT.spacing.lg, paddingVertical: DT.spacing.md, borderBottomWidth: 2, borderBottomColor: colors.text },
+  backBtn: { width: 40, height: 40, borderWidth: 2, borderColor: colors.text, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
+  headerTitle: { fontFamily: DT.typography.heading, fontSize: 20, color: colors.text },
   scroll: { paddingHorizontal: DT.spacing.lg, paddingTop: DT.spacing.lg, paddingBottom: 40 },
-  sectionLabel: { fontFamily: DT.typography.heading, fontSize: 11, color: DT.colors.muted, letterSpacing: 1.5, marginBottom: DT.spacing.md },
-  group: { borderWidth: 2, borderColor: DT.colors.text, backgroundColor: DT.colors.surface, shadowColor: DT.colors.text, shadowOffset: { width: 3, height: 3 }, shadowOpacity: 1, shadowRadius: 0, elevation: 4 },
+  sectionLabel: { fontFamily: DT.typography.heading, fontSize: 11, color: colors.muted, letterSpacing: 1.5, marginBottom: DT.spacing.md },
+  group: { borderWidth: 2, borderColor: colors.text, backgroundColor: colors.surface, shadowColor: colors.text, shadowOffset: { width: 3, height: 3 }, shadowOpacity: 1, shadowRadius: 0, elevation: 4 },
   settingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: DT.spacing.md },
   settingLeft: { flexDirection: 'row', alignItems: 'center', gap: DT.spacing.md, flex: 1 },
-  icon: { width: 36, height: 36, borderWidth: 2, borderColor: DT.colors.text, alignItems: 'center', justifyContent: 'center' },
-  settingTitle: { fontFamily: DT.typography.bodySemiBold, fontSize: 14, color: DT.colors.text },
-  settingSub: { fontFamily: DT.typography.body, fontSize: 11, color: DT.colors.muted, marginTop: 1 },
-  divider: { height: 2, backgroundColor: DT.colors.text },
+  icon: { width: 36, height: 36, borderWidth: 2, borderColor: colors.text, alignItems: 'center', justifyContent: 'center' },
+  settingTitle: { fontFamily: DT.typography.bodySemiBold, fontSize: 14, color: colors.text },
+  settingSub: { fontFamily: DT.typography.body, fontSize: 11, color: colors.muted, marginTop: 1 },
+  divider: { height: 2, backgroundColor: colors.text },
   linkRow: { flexDirection: 'row', alignItems: 'center', padding: DT.spacing.md },
   linkInfo: { flex: 1 },
-  linkTitle: { fontFamily: DT.typography.bodySemiBold, fontSize: 14, color: DT.colors.text },
-  linkSub: { fontFamily: DT.typography.body, fontSize: 11, color: DT.colors.muted, marginTop: 1 },
-  version: { fontFamily: DT.typography.body, fontSize: 12, color: DT.colors.muted, textAlign: 'center', marginTop: DT.spacing.xl },
+  linkTitle: { fontFamily: DT.typography.bodySemiBold, fontSize: 14, color: colors.text },
+  linkSub: { fontFamily: DT.typography.body, fontSize: 11, color: colors.muted, marginTop: 1 },
+  version: { fontFamily: DT.typography.body, fontSize: 12, color: colors.muted, textAlign: 'center', marginTop: DT.spacing.xl },
 });

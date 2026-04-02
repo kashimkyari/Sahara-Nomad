@@ -6,10 +6,13 @@ import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { ChevronLeft, ShieldCheck, Star } from 'lucide-react-native';
 import { DesignTokens as DT } from '../../constants/design';
+import { useTheme } from '../../hooks/use-theme';
 
 export default function RunnerProfileScreen() {
+  const { colors } = useTheme();
   const router = useRouter();
   const { id } = useLocalSearchParams();
+  const styles = getStyles(colors);
 
   const runner = {
     name: 'Chinedu O.',
@@ -26,7 +29,7 @@ export default function RunnerProfileScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <ChevronLeft size={24} color={DT.colors.text} strokeWidth={2.5} />
+          <ChevronLeft size={24} color={colors.text} strokeWidth={2.5} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Runner Profile</Text>
         <View style={{ width: 40 }} />
@@ -41,7 +44,7 @@ export default function RunnerProfileScreen() {
           <Text style={styles.runnerName}>{runner.name}</Text>
           <View style={styles.ratingRow}>
             {[1, 2, 3, 4, 5].map((i) => (
-              <Star key={i} size={16} color={DT.colors.accent} fill={DT.colors.accent} />
+              <Star key={i} size={16} color={colors.accent} fill={colors.accent} />
             ))}
             <Text style={styles.ratingText}>{runner.rating}</Text>
           </View>
@@ -64,7 +67,7 @@ export default function RunnerProfileScreen() {
         {/* Verified badge */}
         <View style={styles.section}>
           <View style={styles.verifiedBadge}>
-            <ShieldCheck size={20} color={DT.colors.secondary} strokeWidth={2.5} />
+            <ShieldCheck size={20} color={colors.secondary} strokeWidth={2.5} />
             <Text style={styles.verifiedText}>Government ID Verified (NIN)</Text>
           </View>
         </View>
@@ -101,10 +104,10 @@ export default function RunnerProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: DT.colors.background,
+    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -113,39 +116,39 @@ const styles = StyleSheet.create({
     paddingHorizontal: DT.spacing.lg,
     paddingVertical: DT.spacing.md,
     borderBottomWidth: 2,
-    borderBottomColor: DT.colors.text,
-    backgroundColor: DT.colors.background,
+    borderBottomColor: colors.text,
+    backgroundColor: colors.background,
   },
   backBtn: {
     width: 40,
     height: 40,
     borderWidth: 2,
-    borderColor: DT.colors.text,
-    backgroundColor: DT.colors.surface,
+    borderColor: colors.text,
+    backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
     fontFamily: DT.typography.heading,
     fontSize: 18,
-    color: DT.colors.text,
+    color: colors.text,
   },
   flex1: { flex: 1 },
   profileBlock: {
     alignItems: 'center',
     paddingVertical: DT.spacing.xl,
-    backgroundColor: DT.colors.surface,
+    backgroundColor: colors.surface,
     borderBottomWidth: 2,
-    borderBottomColor: DT.colors.text,
+    borderBottomColor: colors.text,
   },
   avatarBox: {
     width: 100,
     height: 100,
     borderWidth: 3,
-    borderColor: DT.colors.text,
+    borderColor: colors.text,
     overflow: 'hidden',
     marginBottom: DT.spacing.md,
-    shadowColor: DT.colors.text,
+    shadowColor: colors.text,
     shadowOffset: { width: 4, height: 4 },
     shadowOpacity: 1,
     shadowRadius: 0,
@@ -155,7 +158,7 @@ const styles = StyleSheet.create({
   runnerName: {
     fontFamily: DT.typography.heading,
     fontSize: 24,
-    color: DT.colors.text,
+    color: colors.text,
     marginBottom: DT.spacing.sm,
   },
   ratingRow: {
@@ -166,32 +169,32 @@ const styles = StyleSheet.create({
   ratingText: {
     fontFamily: DT.typography.bodySemiBold,
     fontSize: 15,
-    color: DT.colors.text,
+    color: colors.text,
     marginLeft: 4,
   },
   statsContainer: {
     flexDirection: 'row',
     borderTopWidth: 0,
     borderBottomWidth: 2,
-    borderBottomColor: DT.colors.text,
-    backgroundColor: DT.colors.background,
+    borderBottomColor: colors.text,
+    backgroundColor: colors.background,
   },
   statItem: {
     flex: 1,
     alignItems: 'center',
     paddingVertical: DT.spacing.md,
     borderRightWidth: 2,
-    borderRightColor: DT.colors.text,
+    borderRightColor: colors.text,
   },
   statValue: {
     fontFamily: DT.typography.heading,
     fontSize: 22,
-    color: DT.colors.text,
+    color: colors.text,
   },
   statLabel: {
     fontFamily: DT.typography.body,
     fontSize: 12,
-    color: DT.colors.muted,
+    color: colors.muted,
     marginTop: 2,
   },
   section: {
@@ -201,27 +204,27 @@ const styles = StyleSheet.create({
   verifiedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: DT.colors.surface,
+    backgroundColor: colors.surface,
     borderWidth: 2,
-    borderColor: DT.colors.secondary,
+    borderColor: colors.secondary,
     padding: DT.spacing.md,
     gap: DT.spacing.sm,
   },
   verifiedText: {
     fontFamily: DT.typography.bodySemiBold,
     fontSize: 14,
-    color: DT.colors.text,
+    color: colors.text,
   },
   sectionTitle: {
     fontFamily: DT.typography.heading,
     fontSize: 18,
-    color: DT.colors.text,
+    color: colors.text,
     marginBottom: DT.spacing.md,
   },
   aboutText: {
     fontFamily: DT.typography.body,
     fontSize: 15,
-    color: DT.colors.text,
+    color: colors.text,
     lineHeight: 24,
   },
   reviewCard: {
@@ -235,17 +238,17 @@ const styles = StyleSheet.create({
   reviewerName: {
     fontFamily: DT.typography.heading,
     fontSize: 15,
-    color: DT.colors.text,
+    color: colors.text,
   },
   reviewTime: {
     fontFamily: DT.typography.body,
     fontSize: 13,
-    color: DT.colors.muted,
+    color: colors.muted,
   },
   reviewText: {
     fontFamily: DT.typography.body,
     fontSize: 14,
-    color: DT.colors.text,
+    color: colors.text,
     lineHeight: 22,
   },
   footer: {
@@ -255,7 +258,7 @@ const styles = StyleSheet.create({
     right: 0,
     padding: DT.spacing.lg,
     borderTopWidth: 2,
-    borderTopColor: DT.colors.text,
-    backgroundColor: DT.colors.background,
+    borderTopColor: colors.text,
+    backgroundColor: colors.background,
   },
 });

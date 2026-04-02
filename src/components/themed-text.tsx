@@ -1,9 +1,9 @@
 import { Platform, StyleSheet, Text, type TextProps } from 'react-native';
 
-import { DesignTokens } from '@/constants/design';
-import { useTheme } from '@/hooks/use-theme';
+import { DesignTokens } from '../constants/design';
+import { useTheme } from '../hooks/use-theme';
 
-export type ThemeColor = keyof typeof DesignTokens.colors;
+export type ThemeColor = keyof typeof DesignTokens.light;
 
 export type ThemedTextProps = TextProps & {
   type?: 'default' | 'title' | 'small' | 'smallBold' | 'subtitle' | 'link' | 'linkPrimary' | 'code';
@@ -13,12 +13,12 @@ export type ThemedTextProps = TextProps & {
 const Fonts = { mono: Platform.select({ ios: 'Courier', default: 'monospace' }) ?? 'monospace' };
 
 export function ThemedText({ style, type = 'default', themeColor, ...rest }: ThemedTextProps) {
-  const theme = useTheme();
+  const { colors } = useTheme();
 
   return (
     <Text
       style={[
-        { color: theme[themeColor ?? 'text'] },
+        { color: colors[themeColor ?? 'text'] },
         type === 'default' && styles.default,
         type === 'title' && styles.title,
         type === 'small' && styles.small,

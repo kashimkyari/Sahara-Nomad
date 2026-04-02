@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ChevronLeft, CreditCard, Trash2, CheckCircle2 } from 'lucide-react-native';
 import { DesignTokens as DT } from '../../../constants/design';
+import { useTheme } from '../../../hooks/use-theme';
 
 const cardData: Record<string, { label: string; number: string; type: string; bank: string; active: boolean; expires: string }> = {
   '1': { label: 'Kuda Bank', number: '•••• •••• •••• 4521', type: 'Bank Transfer', bank: 'Kuda MFB', active: true, expires: 'N/A' },
@@ -11,10 +12,12 @@ const cardData: Record<string, { label: string; number: string; type: string; ba
 };
 
 export default function CardDetailScreen() {
+  const { colors } = useTheme();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const card = cardData[id as string] ?? cardData['1'];
   const [isDefault, setIsDefault] = useState(card.active);
+  const styles = getStyles(colors);
   const isBank = card.type === 'Bank Transfer';
 
   const handleSetDefault = () => setIsDefault(true);
@@ -34,7 +37,7 @@ export default function CardDetailScreen() {
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <ChevronLeft size={24} color={DT.colors.text} strokeWidth={2.5} />
+          <ChevronLeft size={24} color={colors.text} strokeWidth={2.5} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{isBank ? 'Bank Account' : 'Debit Card'}</Text>
         <View style={{ width: 40 }} />
@@ -42,7 +45,7 @@ export default function CardDetailScreen() {
 
       <View style={styles.content}>
         {/* Card visual */}
-        <View style={[styles.cardDisplay, { backgroundColor: isDefault ? DT.colors.primary : DT.colors.text }]}>
+        <View style={[styles.cardDisplay, { backgroundColor: isDefault ? colors.primary : colors.text }]}>
           <View style={styles.cardDisplayTop}>
             <Text style={styles.cardDisplayBank}>{card.bank}</Text>
             {isDefault && (
@@ -70,14 +73,14 @@ export default function CardDetailScreen() {
         {/* Actions */}
         {!isDefault && (
           <TouchableOpacity style={styles.setDefaultBtn} onPress={handleSetDefault}>
-            <CheckCircle2 size={20} color={DT.colors.text} strokeWidth={2.5} />
+            <CheckCircle2 size={20} color={colors.text} strokeWidth={2.5} />
             <Text style={styles.setDefaultText}>Set as Default</Text>
           </TouchableOpacity>
         )}
 
         {isDefault && (
           <View style={styles.defaultNote}>
-            <CheckCircle2 size={16} color={DT.colors.secondary} strokeWidth={2.5} />
+            <CheckCircle2 size={16} color={colors.secondary} strokeWidth={2.5} />
             <Text style={styles.defaultNoteText}>This is your default payment method</Text>
           </View>
         )}
@@ -102,7 +105,7 @@ export default function CardDetailScreen() {
 
         {/* Delete */}
         <TouchableOpacity style={styles.deleteBtn} onPress={handleDelete}>
-          <Trash2 size={18} color={DT.colors.error} strokeWidth={2.5} />
+          <Trash2 size={18} color={colors.error} strokeWidth={2.5} />
           <Text style={styles.deleteText}>Remove {isBank ? 'Account' : 'Card'}</Text>
         </TouchableOpacity>
       </View>
@@ -110,54 +113,54 @@ export default function CardDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: DT.colors.background },
+const getStyles = (colors: any) => StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: colors.background },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: DT.spacing.lg, paddingVertical: DT.spacing.md,
-    borderBottomWidth: 2, borderBottomColor: DT.colors.text,
+    borderBottomWidth: 2, borderBottomColor: colors.text,
   },
   backBtn: {
-    width: 40, height: 40, borderWidth: 2, borderColor: DT.colors.text,
-    backgroundColor: DT.colors.surface, alignItems: 'center', justifyContent: 'center',
+    width: 40, height: 40, borderWidth: 2, borderColor: colors.text,
+    backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center',
   },
-  headerTitle: { fontFamily: DT.typography.heading, fontSize: 20, color: DT.colors.text },
+  headerTitle: { fontFamily: DT.typography.heading, fontSize: 20, color: colors.text },
   content: { paddingHorizontal: DT.spacing.lg, paddingTop: DT.spacing.lg, gap: DT.spacing.md },
   cardDisplay: {
-    padding: DT.spacing.lg, borderWidth: 2, borderColor: DT.colors.text,
-    shadowColor: DT.colors.text, shadowOffset: { width: 4, height: 4 }, shadowOpacity: 1, shadowRadius: 0, elevation: 5,
+    padding: DT.spacing.lg, borderWidth: 2, borderColor: colors.text,
+    shadowColor: colors.text, shadowOffset: { width: 4, height: 4 }, shadowOpacity: 1, shadowRadius: 0, elevation: 5,
   },
   cardDisplayTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  cardDisplayBank: { fontFamily: DT.typography.heading, fontSize: 16, color: DT.colors.surface },
+  cardDisplayBank: { fontFamily: DT.typography.heading, fontSize: 16, color: colors.surface },
   defaultPill: {
-    backgroundColor: DT.colors.accent, borderWidth: 1, borderColor: DT.colors.surface,
+    backgroundColor: colors.accent, borderWidth: 1, borderColor: colors.surface,
     paddingHorizontal: 8, paddingVertical: 2,
   },
-  defaultPillText: { fontFamily: DT.typography.heading, fontSize: 9, color: DT.colors.text, letterSpacing: 1.5 },
-  cardDisplayNum: { fontFamily: DT.typography.heading, fontSize: 20, color: DT.colors.surface, letterSpacing: 4, marginBottom: DT.spacing.md },
+  defaultPillText: { fontFamily: DT.typography.heading, fontSize: 9, color: colors.text, letterSpacing: 1.5 },
+  cardDisplayNum: { fontFamily: DT.typography.heading, fontSize: 20, color: colors.surface, letterSpacing: 4, marginBottom: DT.spacing.md },
   cardDisplayBottom: { flexDirection: 'row', justifyContent: 'space-between' },
   cardDisplaySubLabel: { fontFamily: DT.typography.body, fontSize: 9, color: 'rgba(255,255,255,0.5)', letterSpacing: 1 },
-  cardDisplaySub: { fontFamily: DT.typography.heading, fontSize: 12, color: DT.colors.surface },
+  cardDisplaySub: { fontFamily: DT.typography.heading, fontSize: 12, color: colors.surface },
   setDefaultBtn: {
     flexDirection: 'row', alignItems: 'center', gap: DT.spacing.md, height: 52,
-    borderWidth: 2, borderColor: DT.colors.text, backgroundColor: DT.colors.accent, paddingHorizontal: DT.spacing.md,
-    shadowColor: DT.colors.text, shadowOffset: { width: 3, height: 3 }, shadowOpacity: 1, shadowRadius: 0, elevation: 4,
+    borderWidth: 2, borderColor: colors.text, backgroundColor: colors.accent, paddingHorizontal: DT.spacing.md,
+    shadowColor: colors.text, shadowOffset: { width: 3, height: 3 }, shadowOpacity: 1, shadowRadius: 0, elevation: 4,
   },
-  setDefaultText: { fontFamily: DT.typography.heading, fontSize: 15, color: DT.colors.text },
+  setDefaultText: { fontFamily: DT.typography.heading, fontSize: 15, color: colors.text },
   defaultNote: { flexDirection: 'row', alignItems: 'center', gap: DT.spacing.sm, paddingVertical: 4 },
-  defaultNoteText: { fontFamily: DT.typography.body, fontSize: 13, color: DT.colors.secondary },
+  defaultNoteText: { fontFamily: DT.typography.body, fontSize: 13, color: colors.secondary },
   infoCard: {
-    borderWidth: 2, borderColor: DT.colors.text, backgroundColor: DT.colors.surface,
-    shadowColor: DT.colors.text, shadowOffset: { width: 3, height: 3 }, shadowOpacity: 1, shadowRadius: 0, elevation: 4,
+    borderWidth: 2, borderColor: colors.text, backgroundColor: colors.surface,
+    shadowColor: colors.text, shadowOffset: { width: 3, height: 3 }, shadowOpacity: 1, shadowRadius: 0, elevation: 4,
   },
   infoRow: { flexDirection: 'row', justifyContent: 'space-between', padding: DT.spacing.md },
-  infoLabel: { fontFamily: DT.typography.body, fontSize: 13, color: DT.colors.muted },
-  infoValue: { fontFamily: DT.typography.bodySemiBold, fontSize: 13, color: DT.colors.text },
-  divider: { height: 2, backgroundColor: DT.colors.text },
+  infoLabel: { fontFamily: DT.typography.body, fontSize: 13, color: colors.muted },
+  infoValue: { fontFamily: DT.typography.bodySemiBold, fontSize: 13, color: colors.text },
+  divider: { height: 2, backgroundColor: colors.text },
   deleteBtn: {
     flexDirection: 'row', alignItems: 'center', gap: DT.spacing.md, height: 48,
-    borderWidth: 2, borderColor: DT.colors.error, backgroundColor: DT.colors.surface,
+    borderWidth: 2, borderColor: colors.error, backgroundColor: colors.surface,
     paddingHorizontal: DT.spacing.md,
   },
-  deleteText: { fontFamily: DT.typography.bodySemiBold, fontSize: 14, color: DT.colors.error },
+  deleteText: { fontFamily: DT.typography.bodySemiBold, fontSize: 14, color: colors.error },
 });

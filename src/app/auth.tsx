@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useTheme } from '../hooks/use-theme';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Eye, EyeOff } from 'lucide-react-native';
@@ -18,6 +19,7 @@ import { DesignTokens as DT } from '../constants/design';
 type Tab = 'login' | 'signup';
 
 export default function AuthScreen() {
+  const { colors } = useTheme();
   const router = useRouter();
   const [tab, setTab] = useState<Tab>('login');
   const [phone, setPhone] = useState('');
@@ -39,6 +41,8 @@ export default function AuthScreen() {
       router.replace('/(tabs)');
     }, 1500);
   };
+
+  const styles = getStyles(colors);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -145,10 +149,10 @@ export default function AuthScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: DT.colors.background,
+    backgroundColor: colors.background,
   },
   flex1: { flex: 1 },
   scrollContent: {
@@ -163,48 +167,48 @@ const styles = StyleSheet.create({
   appName: {
     fontFamily: DT.typography.heading,
     fontSize: 36,
-    color: DT.colors.primary,
+    color: colors.primary,
     letterSpacing: -1,
-    textShadowColor: DT.colors.text,
+    textShadowColor: colors.text,
     textShadowOffset: { width: 2, height: 2 },
     textShadowRadius: 0,
   },
   subtitle: {
     fontFamily: DT.typography.body,
     fontSize: 15,
-    color: DT.colors.muted,
+    color: colors.muted,
     marginTop: 4,
   },
   tabBar: {
     flexDirection: 'row',
     borderWidth: 2,
-    borderColor: DT.colors.text,
+    borderColor: colors.text,
     marginBottom: DT.spacing.lg,
-    backgroundColor: DT.colors.surface,
+    backgroundColor: colors.surface,
   },
   tab: {
     flex: 1,
     height: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: DT.colors.surface,
+    backgroundColor: colors.surface,
   },
   tabActive: {
-    backgroundColor: DT.colors.primary,
+    backgroundColor: colors.primary,
   },
   tabLabel: {
     fontFamily: DT.typography.heading,
     fontSize: 15,
-    color: DT.colors.text,
+    color: colors.text,
   },
   tabLabelActive: {
-    color: DT.colors.surface,
+    color: colors.surface,
   },
   form: {},
   inputLabel: {
     fontFamily: DT.typography.body,
     fontSize: 13,
-    color: DT.colors.text,
+    color: colors.text,
     fontWeight: '600',
     marginBottom: 6,
   },
@@ -215,9 +219,9 @@ const styles = StyleSheet.create({
   prefix: {
     height: 48,
     paddingHorizontal: DT.spacing.md,
-    backgroundColor: DT.colors.secondary,
+    backgroundColor: colors.secondary,
     borderWidth: 2,
-    borderColor: DT.colors.text,
+    borderColor: colors.text,
     borderRightWidth: 0,
     alignItems: 'center',
     justifyContent: 'center',
@@ -225,7 +229,7 @@ const styles = StyleSheet.create({
   prefixText: {
     fontFamily: DT.typography.bodySemiBold,
     fontSize: 15,
-    color: DT.colors.surface,
+    color: colors.surface,
   },
   phoneInputWrapper: {
     flex: 1,
@@ -239,7 +243,7 @@ const styles = StyleSheet.create({
   showToggle: {
     fontFamily: DT.typography.body,
     fontSize: 14,
-    color: DT.colors.primary,
+    color: colors.primary,
     textDecorationLine: 'underline',
   },
   footer: {
@@ -247,14 +251,14 @@ const styles = StyleSheet.create({
     paddingBottom: DT.spacing.lg,
     paddingTop: DT.spacing.md,
     borderTopWidth: 2,
-    borderTopColor: DT.colors.text,
-    backgroundColor: DT.colors.background,
+    borderTopColor: colors.text,
+    backgroundColor: colors.background,
     gap: 10,
   },
   disclaimer: {
     fontFamily: DT.typography.body,
     fontSize: 11,
-    color: DT.colors.muted,
+    color: colors.muted,
     textAlign: 'center',
   },
 });

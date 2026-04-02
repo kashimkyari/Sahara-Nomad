@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Button } from '../components/ui/Button';
 import { DesignTokens as DT } from '../constants/design';
+import { useTheme } from '../hooks/use-theme';
 
 const { width } = Dimensions.get('window');
 
@@ -35,9 +36,11 @@ const slides = [
 ];
 
 export default function OnboardingScreen() {
+  const { colors } = useTheme();
   const router = useRouter();
   const scrollRef = useRef<ScrollView>(null);
   const [activeSlide, setActiveSlide] = useState(0);
+  const styles = getStyles(colors);
 
   const handleScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const idx = Math.round(e.nativeEvent.contentOffset.x / width);
@@ -110,10 +113,10 @@ export default function OnboardingScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: DT.colors.background,
+    backgroundColor: colors.background,
   },
   slider: {
     flex: 1,
@@ -123,9 +126,9 @@ const styles = StyleSheet.create({
   },
   heroBox: {
     height: '62%',
-    backgroundColor: DT.colors.accent,
+    backgroundColor: colors.accent,
     borderBottomWidth: 2,
-    borderBottomColor: DT.colors.text,
+    borderBottomColor: colors.text,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
@@ -138,33 +141,33 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: 140,
     height: 140,
-    backgroundColor: DT.colors.primary,
+    backgroundColor: colors.primary,
     top: -30,
     right: -30,
     borderWidth: 2,
-    borderColor: DT.colors.text,
+    borderColor: colors.text,
     transform: [{ rotate: '15deg' }],
   },
   heroDecor2: {
     position: 'absolute',
     width: 80,
     height: 80,
-    backgroundColor: DT.colors.secondary,
+    backgroundColor: colors.secondary,
     bottom: -20,
     left: 30,
     borderWidth: 2,
-    borderColor: DT.colors.text,
+    borderColor: colors.text,
     transform: [{ rotate: '-10deg' }],
   },
   heroDecor3: {
     position: 'absolute',
     width: 60,
     height: 60,
-    backgroundColor: DT.colors.surface,
+    backgroundColor: colors.surface,
     top: 60,
     left: -15,
     borderWidth: 2,
-    borderColor: DT.colors.text,
+    borderColor: colors.text,
     transform: [{ rotate: '25deg' }],
   },
   copy: {
@@ -175,14 +178,14 @@ const styles = StyleSheet.create({
   headline: {
     fontFamily: DT.typography.heading,
     fontSize: 32,
-    color: DT.colors.text,
+    color: colors.text,
     lineHeight: 36,
     marginBottom: DT.spacing.sm,
   },
   body: {
     fontFamily: DT.typography.body,
     fontSize: 15,
-    color: DT.colors.muted,
+    color: colors.muted,
     lineHeight: 22,
   },
   dots: {
@@ -194,13 +197,13 @@ const styles = StyleSheet.create({
   dot: {
     width: 8,
     height: 8,
-    backgroundColor: DT.colors.muted,
+    backgroundColor: colors.muted,
     borderRadius: 0,
     borderWidth: 1,
-    borderColor: DT.colors.text,
+    borderColor: colors.text,
   },
   dotActive: {
-    backgroundColor: DT.colors.primary,
+    backgroundColor: colors.primary,
     width: 24,
   },
   actions: {
@@ -215,7 +218,7 @@ const styles = StyleSheet.create({
   loginText: {
     fontFamily: DT.typography.body,
     fontSize: 16,
-    color: DT.colors.text,
+    color: colors.text,
     textDecorationLine: 'underline',
   },
 });

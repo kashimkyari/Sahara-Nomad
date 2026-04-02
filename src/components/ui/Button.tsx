@@ -7,6 +7,7 @@ import {
   Animated,
   View,
 } from 'react-native';
+import { useTheme } from '../../hooks/use-theme';
 import { DesignTokens as DT } from '../../constants/design';
 
 interface ButtonProps {
@@ -26,6 +27,7 @@ export function Button({
   variant = 'primary',
   style,
 }: ButtonProps) {
+  const { colors } = useTheme();
   const shadowAnim = useRef(new Animated.Value(1)).current;
 
   const handlePressIn = () => {
@@ -52,11 +54,12 @@ export function Button({
   });
 
   const isPrimary = variant === 'primary';
+  const dynamicStyles = getStyles(colors);
 
   return (
     <Animated.View
       style={[
-        styles.shadow,
+        dynamicStyles.shadow,
         {
           shadowOffset: { width: shadowOffset as any, height: shadowOffset as any },
         },
@@ -70,15 +73,15 @@ export function Button({
         disabled={disabled || loading}
         activeOpacity={1}
         style={[
-          styles.button,
-          isPrimary ? styles.primary : styles.outline,
-          (disabled || loading) && styles.disabled,
+          dynamicStyles.button,
+          isPrimary ? dynamicStyles.primary : dynamicStyles.outline,
+          (disabled || loading) && dynamicStyles.disabled,
         ]}
       >
         {loading ? (
-          <View style={styles.loadingSquare} />
+          <View style={dynamicStyles.loadingSquare} />
         ) : (
-          <Text style={[styles.label, !isPrimary && styles.outlineLabel]}>
+          <Text style={[dynamicStyles.label, !isPrimary && dynamicStyles.outlineLabel]}>
             {title}
           </Text>
         )}
@@ -87,9 +90,9 @@ export function Button({
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   shadow: {
-    shadowColor: DT.colors.text,
+    shadowColor: colors.text,
     shadowOpacity: 1,
     shadowRadius: 0,
     elevation: 4,
@@ -97,17 +100,17 @@ const styles = StyleSheet.create({
   button: {
     height: 56,
     borderWidth: 2,
-    borderColor: DT.colors.text,
+    borderColor: colors.text,
     borderRadius: 0,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: DT.spacing.lg,
   },
   primary: {
-    backgroundColor: DT.colors.primary,
+    backgroundColor: colors.primary,
   },
   outline: {
-    backgroundColor: DT.colors.surface,
+    backgroundColor: colors.surface,
   },
   disabled: {
     opacity: 0.5,
@@ -115,18 +118,18 @@ const styles = StyleSheet.create({
   label: {
     fontFamily: DT.typography.heading,
     fontSize: 18,
-    color: DT.colors.surface,
+    color: colors.surface,
     letterSpacing: 0.3,
   },
   outlineLabel: {
-    color: DT.colors.text,
+    color: colors.text,
   },
   loadingSquare: {
     width: 18,
     height: 18,
-    backgroundColor: DT.colors.surface,
+    backgroundColor: colors.surface,
     borderWidth: 2,
-    borderColor: DT.colors.surface,
+    borderColor: colors.surface,
     borderRadius: 0,
   },
 });

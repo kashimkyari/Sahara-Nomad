@@ -1,5 +1,6 @@
-import { DesignTokens } from '@/constants/design';
+import { useThemeContext } from '../context/ThemeContext';
 
 export function useTheme() {
-  return DesignTokens.colors;
+  const { colors, isDarkMode, toggleTheme } = useThemeContext();
+  return { colors, isDarkMode, toggleTheme };
 }

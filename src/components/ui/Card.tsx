@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { DesignTokens as DT } from '../../constants/design';
+import { useTheme } from '../../hooks/use-theme';
 
 interface CardProps {
   children: React.ReactNode;
@@ -9,6 +10,9 @@ interface CardProps {
 }
 
 export function Card({ children, variant = 'surface', style }: CardProps) {
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
+
   return (
     <View
       style={[
@@ -22,26 +26,26 @@ export function Card({ children, variant = 'surface', style }: CardProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   base: {
     borderWidth: 2,
-    borderColor: DT.colors.text,
+    borderColor: colors.text,
     borderRadius: 0,
     padding: DT.spacing.md,
-    shadowColor: DT.colors.text,
+    shadowColor: colors.text,
     shadowOffset: { width: 4, height: 4 },
     shadowOpacity: 1,
     shadowRadius: 0,
     elevation: 5,
   },
   surface: {
-    backgroundColor: DT.colors.surface,
+    backgroundColor: colors.surface,
   },
   active: {
-    backgroundColor: DT.colors.secondary,
+    backgroundColor: colors.secondary,
   },
   plain: {
-    backgroundColor: DT.colors.background,
+    backgroundColor: colors.background,
     shadowOpacity: 0,
     elevation: 0,
   },

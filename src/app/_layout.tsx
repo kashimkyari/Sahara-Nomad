@@ -11,6 +11,7 @@ import {
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { DesignTokens } from '../constants/design';
+import { ThemeProvider } from '../context/ThemeContext';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -32,16 +33,18 @@ export default function RootLayout() {
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
-      <Stack.Screen name="index" />
-      <Stack.Screen name="onboarding" />
-      <Stack.Screen name="auth" />
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="new-errand" />
-      <Stack.Screen name="waka/[id]" />
-      <Stack.Screen name="runner/[id]" />
-      <Stack.Screen name="conversation/[id]" />
-      <Stack.Screen name="profile" />
-    </Stack>
+    <ThemeProvider>
+      <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="onboarding" />
+        <Stack.Screen name="auth" />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="new-errand" />
+        <Stack.Screen name="waka/[id]" />
+        <Stack.Screen name="runner/[id]" />
+        <Stack.Screen name="conversation/[id]" />
+        <Stack.Screen name="profile" />
+      </Stack>
+    </ThemeProvider>
   );
 }

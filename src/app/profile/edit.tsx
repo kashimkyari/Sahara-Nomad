@@ -5,10 +5,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useTheme } from '../../hooks/use-theme';
 import { ChevronLeft, Camera } from 'lucide-react-native';
 import { DesignTokens as DT } from '../../constants/design';
 
 export default function EditProfileScreen() {
+  const { colors } = useTheme();
   const router = useRouter();
   const [name, setName] = useState('Chidi Amaechi');
   const [email, setEmail] = useState('chidi@example.com');
@@ -20,11 +22,13 @@ export default function EditProfileScreen() {
     router.back();
   };
 
+  const styles = getStyles(colors);
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <ChevronLeft size={24} color={DT.colors.text} strokeWidth={2.5} />
+          <ChevronLeft size={24} color={colors.text} strokeWidth={2.5} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Edit Profile</Text>
         <TouchableOpacity style={styles.saveHeaderBtn} onPress={handleSave}>
@@ -41,7 +45,7 @@ export default function EditProfileScreen() {
               style={styles.avatar}
             />
             <TouchableOpacity style={styles.cameraBtn}>
-              <Camera size={16} color={DT.colors.surface} strokeWidth={2.5} />
+              <Camera size={16} color={colors.surface} strokeWidth={2.5} />
             </TouchableOpacity>
           </View>
           <Text style={styles.avatarHint}>Tap to change photo</Text>
@@ -56,7 +60,7 @@ export default function EditProfileScreen() {
               value={name}
               onChangeText={setName}
               placeholder="Your full name"
-              placeholderTextColor={DT.colors.muted}
+              placeholderTextColor={colors.muted}
             />
           </View>
           <View style={styles.fieldDivider} />
@@ -69,7 +73,7 @@ export default function EditProfileScreen() {
               keyboardType="email-address"
               autoCapitalize="none"
               placeholder="your@email.com"
-              placeholderTextColor={DT.colors.muted}
+              placeholderTextColor={colors.muted}
             />
           </View>
           <View style={styles.fieldDivider} />
@@ -80,7 +84,7 @@ export default function EditProfileScreen() {
               value={location}
               onChangeText={setLocation}
               placeholder="Area, City"
-              placeholderTextColor={DT.colors.muted}
+              placeholderTextColor={colors.muted}
             />
           </View>
         </View>
@@ -92,7 +96,7 @@ export default function EditProfileScreen() {
             value={bio}
             onChangeText={setBio}
             placeholder="Tell runners a bit about yourself..."
-            placeholderTextColor={DT.colors.muted}
+            placeholderTextColor={colors.muted}
             multiline
             numberOfLines={4}
             textAlignVertical="top"
@@ -108,45 +112,44 @@ export default function EditProfileScreen() {
   );
 }
 
-const S = StyleSheet.create;
-const styles = S({
-  safeArea: { flex: 1, backgroundColor: DT.colors.background },
+const getStyles = (colors: any) => StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: colors.background },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: DT.spacing.lg, paddingVertical: DT.spacing.md,
-    borderBottomWidth: 2, borderBottomColor: DT.colors.text,
+    borderBottomWidth: 2, borderBottomColor: colors.text,
   },
   backBtn: {
-    width: 40, height: 40, borderWidth: 2, borderColor: DT.colors.text,
-    backgroundColor: DT.colors.surface, alignItems: 'center', justifyContent: 'center',
+    width: 40, height: 40, borderWidth: 2, borderColor: colors.text,
+    backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center',
   },
-  headerTitle: { fontFamily: DT.typography.heading, fontSize: 20, color: DT.colors.text },
+  headerTitle: { fontFamily: DT.typography.heading, fontSize: 20, color: colors.text },
   saveHeaderBtn: {
-    backgroundColor: DT.colors.primary, borderWidth: 2, borderColor: DT.colors.text,
+    backgroundColor: colors.primary, borderWidth: 2, borderColor: colors.text,
     paddingHorizontal: DT.spacing.md, paddingVertical: 6,
-    shadowColor: DT.colors.text, shadowOffset: { width: 2, height: 2 }, shadowOpacity: 1, shadowRadius: 0, elevation: 3,
+    shadowColor: colors.text, shadowOffset: { width: 2, height: 2 }, shadowOpacity: 1, shadowRadius: 0, elevation: 3,
   },
-  saveHeaderText: { fontFamily: DT.typography.heading, fontSize: 13, color: DT.colors.surface },
+  saveHeaderText: { fontFamily: DT.typography.heading, fontSize: 13, color: colors.surface },
   scroll: { paddingHorizontal: DT.spacing.lg, paddingTop: DT.spacing.lg, paddingBottom: 40 },
   avatarSection: { alignItems: 'center', marginBottom: DT.spacing.xl },
   avatarWrapper: { position: 'relative', marginBottom: 8 },
   avatar: {
-    width: 88, height: 88, borderWidth: 3, borderColor: DT.colors.text,
-    shadowColor: DT.colors.text, shadowOffset: { width: 4, height: 4 }, shadowOpacity: 1, shadowRadius: 0, elevation: 5,
+    width: 88, height: 88, borderWidth: 3, borderColor: colors.text,
+    shadowColor: colors.text, shadowOffset: { width: 4, height: 4 }, shadowOpacity: 1, shadowRadius: 0, elevation: 5,
   },
   cameraBtn: {
     position: 'absolute', bottom: -4, right: -4, width: 28, height: 28,
-    backgroundColor: DT.colors.primary, borderWidth: 2, borderColor: DT.colors.text,
+    backgroundColor: colors.primary, borderWidth: 2, borderColor: colors.text,
     alignItems: 'center', justifyContent: 'center',
   },
-  avatarHint: { fontFamily: DT.typography.body, fontSize: 12, color: DT.colors.muted },
+  avatarHint: { fontFamily: DT.typography.body, fontSize: 12, color: colors.muted },
   sectionLabel: {
-    fontFamily: DT.typography.heading, fontSize: 11, color: DT.colors.muted,
+    fontFamily: DT.typography.heading, fontSize: 11, color: colors.muted,
     letterSpacing: 1.5, marginBottom: DT.spacing.md,
   },
   group: {
-    borderWidth: 2, borderColor: DT.colors.text, backgroundColor: DT.colors.surface,
-    shadowColor: DT.colors.text, shadowOffset: { width: 3, height: 3 }, shadowOpacity: 1, shadowRadius: 0, elevation: 4,
+    borderWidth: 2, borderColor: colors.text, backgroundColor: colors.surface,
+    shadowColor: colors.text, shadowOffset: { width: 3, height: 3 }, shadowOpacity: 1, shadowRadius: 0, elevation: 4,
   },
   fieldRow: {
     flexDirection: 'row', alignItems: 'center',
@@ -154,26 +157,26 @@ const styles = S({
     minHeight: 52,
   },
   fieldLabel: {
-    fontFamily: DT.typography.bodySemiBold, fontSize: 13, color: DT.colors.muted,
+    fontFamily: DT.typography.bodySemiBold, fontSize: 13, color: colors.muted,
     width: 80, flexShrink: 0,
   },
   fieldInput: {
-    flex: 1, fontFamily: DT.typography.body, fontSize: 15, color: DT.colors.text,
+    flex: 1, fontFamily: DT.typography.body, fontSize: 15, color: colors.text,
     paddingVertical: DT.spacing.sm,
   },
-  fieldDivider: { height: 2, backgroundColor: DT.colors.text, marginHorizontal: 0 },
+  fieldDivider: { height: 2, backgroundColor: colors.text, marginHorizontal: 0 },
   bioInput: {
     padding: DT.spacing.md, fontFamily: DT.typography.body, fontSize: 15,
-    color: DT.colors.text, minHeight: 100,
+    color: colors.text, minHeight: 100,
   },
   charCount: {
-    fontFamily: DT.typography.body, fontSize: 11, color: DT.colors.muted,
+    fontFamily: DT.typography.body, fontSize: 11, color: colors.muted,
     alignSelf: 'flex-end', marginTop: 4, marginBottom: DT.spacing.lg,
   },
   saveBtn: {
-    height: 56, backgroundColor: DT.colors.primary, borderWidth: 2, borderColor: DT.colors.text,
+    height: 56, backgroundColor: colors.primary, borderWidth: 2, borderColor: colors.text,
     alignItems: 'center', justifyContent: 'center',
-    shadowColor: DT.colors.text, shadowOffset: { width: 4, height: 4 }, shadowOpacity: 1, shadowRadius: 0, elevation: 5,
+    shadowColor: colors.text, shadowOffset: { width: 4, height: 4 }, shadowOpacity: 1, shadowRadius: 0, elevation: 5,
   },
-  saveBtnText: { fontFamily: DT.typography.heading, fontSize: 17, color: DT.colors.surface },
+  saveBtnText: { fontFamily: DT.typography.heading, fontSize: 17, color: colors.surface },
 });

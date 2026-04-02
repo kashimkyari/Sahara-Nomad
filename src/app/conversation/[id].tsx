@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ChevronLeft, Send, Paperclip, Image as ImageIcon } from 'lucide-react-native';
 import { DesignTokens as DT } from '../../constants/design';
+import { useTheme } from '../../hooks/use-theme';
 
 type Message = {
   id: string;
@@ -55,10 +56,12 @@ const mockConversations: Record<string, { name: string; img: string; messages: M
 };
 
 export default function ConversationScreen() {
+  const { colors } = useTheme();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [message, setMessage] = useState('');
   const scrollRef = useRef<ScrollView>(null);
+  const styles = getStyles(colors);
 
   const convo = mockConversations[id as string] ?? mockConversations['1'];
   const [messages, setMessages] = useState<Message[]>(convo.messages);
@@ -78,7 +81,7 @@ export default function ConversationScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <ChevronLeft size={24} color={DT.colors.text} strokeWidth={2.5} />
+          <ChevronLeft size={24} color={colors.text} strokeWidth={2.5} />
         </TouchableOpacity>
         <Image source={{ uri: convo.img }} style={styles.headerAvatar} />
         <View style={styles.headerInfo}>
@@ -131,7 +134,7 @@ export default function ConversationScreen() {
           <TextInput
             style={styles.textInput}
             placeholder="Type a message..."
-            placeholderTextColor={DT.colors.muted}
+            placeholderTextColor={colors.muted}
             value={message}
             onChangeText={setMessage}
             multiline
@@ -140,7 +143,7 @@ export default function ConversationScreen() {
           <TouchableOpacity style={styles.sendBtn} onPress={sendMessage}>
             <Send
               size={20}
-              color={message.trim() ? DT.colors.surface : DT.colors.muted}
+              color={message.trim() ? colors.surface : colors.muted}
               strokeWidth={2.5}
             />
           </TouchableOpacity>
@@ -150,8 +153,8 @@ export default function ConversationScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: DT.colors.background },
+const getStyles = (colors: any) => StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: colors.background },
   flex1: { flex: 1 },
   header: {
     flexDirection: 'row',
@@ -159,16 +162,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: DT.spacing.lg,
     paddingVertical: DT.spacing.md,
     borderBottomWidth: 2,
-    borderBottomColor: DT.colors.text,
-    backgroundColor: DT.colors.background,
+    borderBottomColor: colors.text,
+    backgroundColor: colors.background,
     gap: DT.spacing.md,
   },
   backBtn: {
     width: 40,
     height: 40,
     borderWidth: 2,
-    borderColor: DT.colors.text,
-    backgroundColor: DT.colors.surface,
+    borderColor: colors.text,
+    backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -176,25 +179,25 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderWidth: 2,
-    borderColor: DT.colors.text,
+    borderColor: colors.text,
   },
   headerInfo: { flex: 1 },
   headerName: {
     fontFamily: DT.typography.heading,
     fontSize: 16,
-    color: DT.colors.text,
+    color: colors.text,
   },
   onlineRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
   onlineDot: {
     width: 7,
     height: 7,
-    backgroundColor: DT.colors.secondary,
+    backgroundColor: colors.secondary,
     borderRadius: 0,
   },
   onlineText: {
     fontFamily: DT.typography.body,
     fontSize: 11,
-    color: DT.colors.secondary,
+    color: colors.secondary,
   },
   messagesContent: {
     paddingHorizontal: DT.spacing.md,
@@ -213,33 +216,33 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderWidth: 2,
-    borderColor: DT.colors.text,
+    borderColor: colors.text,
     flexShrink: 0,
   },
   bubble: {
     maxWidth: '75%',
     borderWidth: 2,
-    borderColor: DT.colors.text,
+    borderColor: colors.text,
     padding: DT.spacing.sm,
-    shadowColor: DT.colors.text,
+    shadowColor: colors.text,
     shadowOffset: { width: 2, height: 2 },
     shadowOpacity: 1,
     shadowRadius: 0,
     elevation: 3,
   },
-  myBubble: { backgroundColor: DT.colors.primary },
-  theirBubble: { backgroundColor: DT.colors.surface },
+  myBubble: { backgroundColor: colors.primary },
+  theirBubble: { backgroundColor: colors.surface },
   bubbleText: {
     fontFamily: DT.typography.body,
     fontSize: 14,
-    color: DT.colors.text,
+    color: colors.text,
     lineHeight: 20,
   },
-  myBubbleText: { color: DT.colors.surface },
+  myBubbleText: { color: colors.surface },
   bubbleTime: {
     fontFamily: DT.typography.body,
     fontSize: 10,
-    color: DT.colors.muted,
+    color: colors.muted,
     marginTop: 4,
     alignSelf: 'flex-end',
   },
@@ -250,8 +253,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: DT.spacing.lg,
     paddingVertical: DT.spacing.md,
     borderTopWidth: 2,
-    borderTopColor: DT.colors.text,
-    backgroundColor: DT.colors.background,
+    borderTopColor: colors.text,
+    backgroundColor: colors.background,
     gap: DT.spacing.sm,
   },
   textInput: {
@@ -259,23 +262,23 @@ const styles = StyleSheet.create({
     minHeight: 44,
     maxHeight: 120,
     borderWidth: 2,
-    borderColor: DT.colors.text,
-    backgroundColor: DT.colors.surface,
+    borderColor: colors.text,
+    backgroundColor: colors.surface,
     paddingHorizontal: DT.spacing.md,
     paddingVertical: DT.spacing.sm,
     fontFamily: DT.typography.body,
     fontSize: 15,
-    color: DT.colors.text,
+    color: colors.text,
   },
   sendBtn: {
     width: 44,
     height: 44,
-    backgroundColor: DT.colors.primary,
+    backgroundColor: colors.primary,
     borderWidth: 2,
-    borderColor: DT.colors.text,
+    borderColor: colors.text,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: DT.colors.text,
+    shadowColor: colors.text,
     shadowOffset: { width: 2, height: 2 },
     shadowOpacity: 1,
     shadowRadius: 0,

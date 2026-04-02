@@ -8,6 +8,7 @@ import {
   TextInputProps,
 } from 'react-native';
 import { DesignTokens as DT } from '../../constants/design';
+import { useTheme } from '../../hooks/use-theme';
 
 interface InputProps extends TextInputProps {
   label?: string;
@@ -25,7 +26,9 @@ export function Input({
   style,
   ...props
 }: InputProps) {
+  const { colors } = useTheme();
   const hasError = !!error;
+  const styles = getStyles(colors);
 
   return (
     <View style={[styles.container, containerStyle]}>
@@ -33,7 +36,7 @@ export function Input({
       <View style={[styles.inputWrapper, hasError && styles.inputError]}>
         <TextInput
           style={[styles.input, style]}
-          placeholderTextColor={DT.colors.muted}
+          placeholderTextColor={colors.muted}
           {...props}
         />
         {rightElement ? <View style={styles.right}>{rightElement}</View> : null}
@@ -45,14 +48,14 @@ export function Input({
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     marginBottom: DT.spacing.md,
   },
   label: {
     fontFamily: DT.typography.body,
     fontSize: 13,
-    color: DT.colors.text,
+    color: colors.text,
     marginBottom: 6,
     fontWeight: '600',
   },
@@ -61,12 +64,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: DT.colors.text,
+    borderColor: colors.text,
     borderRadius: 0,
-    backgroundColor: DT.colors.surface,
+    backgroundColor: colors.surface,
   },
   inputError: {
-    borderColor: DT.colors.error,
+    borderColor: colors.error,
   },
   input: {
     flex: 1,
@@ -74,7 +77,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: DT.spacing.md,
     fontFamily: DT.typography.body,
     fontSize: 16,
-    color: DT.colors.text,
+    color: colors.text,
   },
   right: {
     paddingRight: DT.spacing.md,
@@ -82,7 +85,7 @@ const styles = StyleSheet.create({
   errorText: {
     fontFamily: DT.typography.body,
     fontSize: 12,
-    color: DT.colors.error,
+    color: colors.error,
     marginTop: 4,
   },
 });
