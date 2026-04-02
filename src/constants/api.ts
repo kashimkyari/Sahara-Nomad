@@ -43,11 +43,12 @@ export default {
         GET: (id: string) => `${API_URL}/runners/${id}`,
     },
     SEARCH: {
-        RUNNERS: (q?: string, filter?: string, market?: string) => {
+        RUNNERS: (q?: string, filter?: string, market?: string, sort?: string) => {
             let url = `${API_URL}/search/runners?`;
             if (q) url += `q=${encodeURIComponent(q)}&`;
             if (filter) url += `filter=${filter}&`;
             if (market) url += `market=${encodeURIComponent(market)}&`;
+            if (sort) url += `sort=${sort}&`;
             return url.slice(0, -1);
         },
         RECORD: `${API_URL}/search/record`

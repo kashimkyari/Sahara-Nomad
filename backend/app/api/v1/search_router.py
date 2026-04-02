@@ -36,6 +36,7 @@ async def search_runners(
     q: str = None, 
     filter: str = "available_now",
     market: str = None,
+    sort: str = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -44,6 +45,8 @@ async def search_runners(
     if not user_location:
          # Fallback to Lagos center if not set
          user_location = func.ST_SetSRID(func.ST_MakePoint(3.3792, 6.5244), 4326)
+
+    city = current_user.city
 
     # Subquery for active waka count
     active_waka_sq = (
@@ -66,10 +69,25 @@ async def search_runners(
     elif filter == "5_star":
         stmt = stmt.where(User.stats_rating >= 4.8)
     elif filter == "nearby":
+        if city:
+            stmt = stmt.where(User.city.ilike(f"%{city}%"))
+    
+    # Sorting logic
+    if sort == "rating":
+        stmt = stmt.order_by(User.stats_rating.desc())
+    elif sort == "distance":
         stmt = stmt.order_by("distance_m")
+    elif sort == "price":
+        stmt = stmt.order_by(User.hourly_rate.asc())
+    elif sort == "trips":
+        stmt = stmt.order_by(User.stats_trips.desc())
+    elif filter == "nearby":
+        stmt = stmt.order_by("distance_m")
+    else:
+        # Default sort
+        stmt = stmt.order_by(User.is_online.desc(), "distance_m")
         
     # Get dynamic markets for user's city
-    city = current_user.city
     markets = MarketService.get_popular_markets(city)
     
     # Get real trending searches for the city (last 7 days)

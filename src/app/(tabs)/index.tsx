@@ -18,6 +18,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  ActivityIndicator,
 } from 'react-native';
 import * as ExpoLocation from 'expo-location';
 import { Image } from 'expo-image';
@@ -29,12 +30,7 @@ import { useTheme } from '../../hooks/use-theme';
 import { useBrutalistRefresh } from '../../components/ui/BrutalistRefreshControl';
 import { MotiView } from 'moti';
 
-const runners = [
-  { id: '1', name: 'Chinedu O.', rating: 4.9, km: '0.8km', img: 'https://i.pravatar.cc/150?u=chinedu', online: true, jobs: 142 },
-  { id: '2', name: 'Amina B.', rating: 4.8, km: '1.2km', img: 'https://i.pravatar.cc/150?u=amina', online: true, jobs: 89 },
-  { id: '3', name: 'Tunde S.', rating: 5.0, km: '2.1km', img: 'https://i.pravatar.cc/150?u=tunde', online: false, jobs: 310 },
-  { id: '4', name: 'Ngozi A.', rating: 4.7, km: '3.0km', img: 'https://i.pravatar.cc/150?u=ngozi', online: true, jobs: 45 },
-];
+const RUNNERS_LIMIT = 5;
 
 // Moved static data to state inside HomeScreen
 
@@ -50,6 +46,8 @@ export default function HomeScreen() {
   const [isLoadingWakas, setIsLoadingWakas] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [activeRunnersCount, setActiveRunnersCount] = useState<number | null>(null);
+  const [nearbyRunners, setNearbyRunners] = useState<any[]>([]);
+  const [isNearbyLoading, setIsNearbyLoading] = useState(false);
 
   const getStatusText = (step: number, status: string) => {
     if (status === 'finding_runner') return 'Finding Runner...';
@@ -95,32 +93,28 @@ export default function HomeScreen() {
     }
   };
 
-  const fetchActiveRunnersCount = async () => {
+  const fetchNearbyRunners = async () => {
+    if (!token) return;
     try {
-      let lat, lng;
-      const { status } = await ExpoLocation.requestForegroundPermissionsAsync();
-      if (status === 'granted') {
-        const loc = await ExpoLocation.getCurrentPositionAsync({});
-        lat = loc.coords.latitude;
-        lng = loc.coords.longitude;
-      }
-      
-      const res = await fetch(API.RUNNER.ACTIVE_COUNT(lat, lng), {
+      setIsNearbyLoading(true);
+      const res = await fetch(API.SEARCH.RUNNERS(undefined, 'nearby'), {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
         const data = await res.json();
-        setActiveRunnersCount(data.count);
+        setNearbyRunners(data.runners.slice(0, RUNNERS_LIMIT));
       }
     } catch (e) {
-      console.error('Fetch active runners count failed:', e);
+      console.error('Fetch nearby runners failed:', e);
+    } finally {
+      setIsNearbyLoading(false);
     }
   };
 
   useEffect(() => {
     fetchActiveWakas();
     fetchUnreadCount();
-    fetchActiveRunnersCount();
+    fetchNearbyRunners();
   }, [token]);
 
   const { refreshControl, refreshBanner, onScroll, refreshing } = useBrutalistRefresh({
@@ -129,7 +123,7 @@ export default function HomeScreen() {
         refreshUser(), 
         fetchActiveWakas(), 
         fetchUnreadCount(),
-        fetchActiveRunnersCount()
+        fetchNearbyRunners()
       ]);
     },
   });
@@ -287,8 +281,8 @@ export default function HomeScreen() {
         {/* ── Runners Carousel ── */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionLabel}>RUNNERS NEARBY</Text>
-            <TouchableOpacity onPress={() => router.push('/(tabs)/search')}>
+            <Text style={styles.sectionLabel}>RUNNERS IN {user?.city?.toUpperCase() || 'YOUR AREA'}</Text>
+            <TouchableOpacity onPress={() => router.push('/runners/all')}>
               <Text style={styles.seeAll}>See all</Text>
             </TouchableOpacity>
           </View>
@@ -298,42 +292,62 @@ export default function HomeScreen() {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.horizontalList}
           >
-            {runners.map((runner) => (
-              <TouchableOpacity
-                key={runner.id}
-                style={styles.runnerCard}
-                onPress={() => router.push(`/runner/${runner.id}` as any)}
-              >
-                <View style={styles.runnerCardHeader}>
-                  <View style={styles.runnerImageWrap}>
-                    <Image source={{ uri: runner.img }} style={styles.runnerImageFull} />
-                    {runner.online && <View style={styles.onlineDot} />}
-                  </View>
+            {isNearbyLoading ? (
+              [1, 2, 3].map((i) => (
+                <View key={i} style={[styles.runnerCard, { opacity: 0.5, justifyContent: 'center', alignItems: 'center' }]}>
+                   <ActivityIndicator color={colors.primary} />
                 </View>
-
-                <View style={styles.runnerCardBody}>
-                  <Text style={styles.runnerNameFull}>{runner.name}</Text>
-
-                  <View style={styles.runnerStatsRow}>
-                    <View style={styles.runnerStatItem}>
-                      <Star size={14} color={colors.accent} fill={colors.accent} />
-                      <Text style={styles.runnerStatText}>{runner.rating}</Text>
-                    </View>
-                    <View style={styles.dot} />
-                    <View style={styles.runnerStatItem}>
-                      <MapPin size={14} color={colors.text} />
-                      <Text style={styles.runnerStatText}>{runner.km}</Text>
+              ))
+            ) : nearbyRunners.length > 0 ? (
+              nearbyRunners.map((runner) => (
+                <TouchableOpacity
+                  key={runner.id}
+                  style={styles.runnerCard}
+                  onPress={() => router.push(`/runner/${runner.id}` as any)}
+                >
+                  <View style={styles.runnerCardHeader}>
+                    <View style={styles.runnerImageWrap}>
+                      <Image 
+                        source={runner.image.startsWith('http') 
+                          ? { uri: runner.image } 
+                          : { uri: `${API.API_URL}${runner.image}`, headers: { Authorization: `Bearer ${token}` } }
+                        } 
+                        style={styles.runnerImageFull} 
+                      />
+                      {runner.is_online && <View style={styles.onlineDot} />}
                     </View>
                   </View>
 
-                  <Text style={styles.jobsCompletedText}>{runner.jobs} trips completed</Text>
-                </View>
+                  <View style={styles.runnerCardBody}>
+                    <Text style={styles.runnerNameFull}>{runner.name}</Text>
 
-                <View style={styles.runnerCardFooter}>
-                  <Text style={styles.hireBtnTextSmall}>HIRE RUNNER</Text>
-                </View>
-              </TouchableOpacity>
-            ))}
+                    <View style={styles.runnerStatsRow}>
+                      <View style={styles.runnerStatItem}>
+                        <Star size={14} color={colors.accent} fill={colors.accent} />
+                        <Text style={styles.runnerStatText}>{runner.rating}</Text>
+                      </View>
+                      <View style={styles.dot} />
+                      <View style={styles.runnerStatItem}>
+                        <MapPin size={14} color={colors.text} />
+                        <Text style={styles.runnerStatText}>{runner.distance_km}km</Text>
+                      </View>
+                    </View>
+
+                    <Text style={styles.jobsCompletedText}>{runner.active_waka_count} active trips</Text>
+                  </View>
+
+                  <View style={styles.runnerCardFooter}>
+                    <Text style={styles.hireBtnTextSmall}>HIRE — ₦{runner.hourly_rate?.toLocaleString()}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))
+            ) : (
+              <View style={[styles.runnerCard, { width: 300, padding: 20, justifyContent: 'center' }]}>
+                <Text style={{ fontFamily: DT.typography.body, color: colors.muted, textAlign: 'center' }}>
+                  No runners available in your area yet.
+                </Text>
+              </View>
+            )}
           </ScrollView>
         </View>
 
