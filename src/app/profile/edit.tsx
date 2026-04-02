@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
-  ScrollView, Image, StyleSheet, Alert,
+  ScrollView, StyleSheet, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../hooks/use-theme';
 import { ChevronLeft, Camera } from 'lucide-react-native';
 import { DesignTokens as DT } from '../../constants/design';
+import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
 
 import { useAuth } from '../../context/AuthContext';
 import API from '../../constants/api';
@@ -22,6 +24,55 @@ export default function EditProfileScreen() {
   const [bio, setBio] = useState(user?.runner_profile?.bio || '');
   const [location, setLocation] = useState('Lagos, Nigeria');
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+
+  const pickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled) {
+      handleUpload(result.assets[0].uri);
+    }
+  };
+
+  const handleUpload = async (uri: string) => {
+    if (!token) return;
+    setUploading(true);
+
+    const formData = new FormData();
+    const uriParts = uri.split('.');
+    const fileType = uriParts[uriParts.length - 1];
+
+    formData.append('file', {
+      uri,
+      name: `avatar.${fileType}`,
+      type: `image/${fileType}`,
+    } as any);
+
+    try {
+      const response = await fetch(`${API.API_URL}/auth/me/avatar`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+        },
+        body: formData,
+      });
+
+      if (!response.ok) throw new Error('Upload failed');
+      
+      await refreshUser();
+      Alert.alert('Success', 'Profile photo updated!');
+    } catch (error: any) {
+      Alert.alert('Error', 'Failed to upload image');
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!token) return;
@@ -75,14 +126,22 @@ export default function EditProfileScreen() {
         <View style={styles.avatarSection}>
           <View style={styles.avatarWrapper}>
             <Image
-              source={{ uri: 'https://i.pravatar.cc/150?u=chidi' }}
+              source={user?.avatar_url ? { uri: `${API.API_URL}${user.avatar_url}?t=${new Date().getTime()}` } : { uri: 'https://i.pravatar.cc/150?u=chidi' }}
               style={styles.avatar}
+              contentFit="cover"
+              transition={200}
             />
-            <TouchableOpacity style={styles.cameraBtn}>
+            <TouchableOpacity 
+              style={styles.cameraBtn} 
+              onPress={pickImage}
+              disabled={uploading}
+            >
               <Camera size={16} color={colors.surface} strokeWidth={2.5} />
             </TouchableOpacity>
           </View>
-          <Text style={styles.avatarHint}>Tap to change photo</Text>
+          <Text style={styles.avatarHint}>
+            {uploading ? 'Uploading...' : 'Tap to change photo'}
+          </Text>
         </View>
 
         <Text style={styles.sectionLabel}>PERSONAL INFO</Text>

@@ -34,6 +34,7 @@ class UserResponse(UserBase):
     is_verified: bool
     loyalty_badge: Optional[str] = None
     created_at: datetime
+    avatar_url: Optional[str] = None
     runner_profile: Optional[RunnerProfileResponse] = None
 
     class Config:

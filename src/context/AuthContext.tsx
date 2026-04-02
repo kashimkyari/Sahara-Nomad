@@ -10,6 +10,7 @@ interface User {
   email: string | null;
   loyalty_badge: string | null;
   is_verified: boolean;
+  avatar_url: string | null;
   runner_profile?: {
     bio?: string;
     hourly_rate?: number;

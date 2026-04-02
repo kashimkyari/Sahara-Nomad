@@ -11,12 +11,14 @@ import {
   Plus
 } from 'lucide-react-native';
 import React from 'react';
-import { Image, StyleSheet, Text, TouchableOpacity, View, ScrollView } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View, ScrollView } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../hooks/use-theme';
 import { useAuth } from '../../context/AuthContext';
 import { DesignTokens as DT } from '../../constants/design';
+import API from '../../constants/api';
 
 const menuItems = [
   { icon: CreditCard, label: 'Payment Methods', route: '/profile/payment' },
@@ -43,12 +45,14 @@ export default function ProfileScreen() {
         <View style={styles.profileCard}>
           <View style={styles.profileHeader}>
             <View style={styles.avatarWrap}>
-              <View style={styles.avatarBox}>
-                <Image
-                  source={{ uri: 'https://i.pravatar.cc/150?u=chidi' }}
-                  style={styles.avatar}
-                />
-              </View>
+            <View style={styles.avatarBox}>
+              <Image
+                source={user?.avatar_url ? { uri: `${API.API_URL}${user.avatar_url}` } : { uri: 'https://i.pravatar.cc/150?u=chidi' }}
+                style={styles.avatar}
+                contentFit="cover"
+                transition={200}
+              />
+            </View>
               {/* Loyalty Badge */}
               {user?.loyalty_badge && (
                 <View style={styles.loyaltyBadge}>

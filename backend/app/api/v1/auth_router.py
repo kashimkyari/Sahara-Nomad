@@ -11,6 +11,14 @@ from fastapi.security import OAuth2PasswordRequestForm
 
 from datetime import datetime, timedelta
 import random
+import os
+import shutil
+from fastapi import File, UploadFile
+from fastapi.responses import FileResponse
+
+UPLOAD_DIR = "uploads/avatars"
+if not os.path.exists(UPLOAD_DIR):
+    os.makedirs(UPLOAD_DIR)
 
 router = APIRouter()
 
@@ -130,3 +138,29 @@ async def update_me(
     await db.commit()
     await db.refresh(current_user)
     return current_user
+
+@router.post("/me/avatar")
+async def upload_avatar(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    file_ext = os.path.splitext(file.filename)[1]
+    file_name = f"{current_user.id}{file_ext}"
+    file_path = os.path.join(UPLOAD_DIR, file_name)
+    
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+    
+    current_user.avatar_url = "/auth/me/avatarurl"
+    await db.commit()
+    return {"status": "ok", "avatar_url": current_user.avatar_url}
+
+@router.get("/me/avatarurl")
+async def get_avatar(current_user: User = Depends(get_current_user)):
+    # Find the file that starts with user id
+    for f in os.listdir(UPLOAD_DIR):
+        if f.startswith(str(current_user.id)):
+            return FileResponse(os.path.join(UPLOAD_DIR, f))
+    
+    raise HTTPException(status_code=404, detail="Avatar not found")
