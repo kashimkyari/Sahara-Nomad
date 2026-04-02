@@ -78,7 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(null);
     setRefreshTokenState(null);
     setUser(null);
-    router.replace('/onboarding');
+    // Explicitly navigate NO. Let the guard handle it.
   };
 
   const refreshAccessToken = async (currentRefreshToken: string) => {
@@ -188,12 +188,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (isLoading) return;
 
-    const inAuthGroup = segments[0] === 'auth' || segments[0] === 'onboarding';
+    // Determine current group (auth/onboarding vs protected)
+    const firstSegment = segments[0] as any;
+    const isAuthGroup = firstSegment === 'auth' || firstSegment === 'onboarding' || firstSegment === 'index' || !firstSegment;
 
-    if (!token && !inAuthGroup) {
+    if (!token && !isAuthGroup) {
       // Redirect to login if NOT authenticated and NOT in auth group
       router.replace('/onboarding');
-    } else if (token && inAuthGroup) {
+    } else if (token && isAuthGroup) {
       // Redirect to home if authenticated and currently in auth group
       router.replace('/(tabs)');
     }

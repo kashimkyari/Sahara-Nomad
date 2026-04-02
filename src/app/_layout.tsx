@@ -1,18 +1,17 @@
-import { Stack } from 'expo-router';
 import {
-  useFonts,
   Outfit_700Bold,
+  useFonts,
 } from '@expo-google-fonts/outfit';
 import {
-  useFonts as usePlusJakartaSans,
   PlusJakartaSans_500Medium,
   PlusJakartaSans_600SemiBold,
+  useFonts as usePlusJakartaSans,
 } from '@expo-google-fonts/plus-jakarta-sans';
+import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
-import { DesignTokens } from '../constants/design';
-import { ThemeProvider } from '../context/ThemeContext';
 import { AuthProvider } from '../context/AuthContext';
+import { ThemeProvider } from '../context/ThemeContext';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -36,7 +35,7 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <ThemeProvider>
-        <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+        <Stack screenOptions={{ headerShown: false, animation: 'ios_from_right' }}>
           <Stack.Screen name="index" />
           <Stack.Screen name="onboarding" />
           <Stack.Screen name="auth" />
