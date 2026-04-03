@@ -268,8 +268,9 @@ export default function WakaStatusScreen() {
     );
   }
 
-  const isUserRunner = user?.id === waka.runner_id;
-  const displayUser = isUserRunner ? waka.employer : waka.runner;
+  // Determine if the user should view this as a Runner or Nomad
+  const actingAsRunner = user?.is_runner && user?.id !== waka.employer_id;
+  const displayUser = actingAsRunner ? waka.employer : waka.runner;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -369,7 +370,7 @@ export default function WakaStatusScreen() {
               <View style={styles.runnerInfo}>
                 <Text style={styles.runnerName}>{displayUser.full_name}</Text>
                 <Text style={styles.runnerRating}>
-                  {isUserRunner ? '★ 4.8 · Nomad' : '★ 4.9 · Runner'}
+                  {actingAsRunner ? '★ 4.8 · Nomad' : '★ 4.9 · Runner'}
                 </Text>
               </View>
             </View>

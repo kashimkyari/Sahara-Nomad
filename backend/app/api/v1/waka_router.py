@@ -13,6 +13,16 @@ from typing import List
 
 router = APIRouter()
 
+async def get_hydrated_waka(db: AsyncSession, waka_id: uuid.UUID) -> Waka:
+    """Fetch waka with employer and runner relationships loaded."""
+    stmt = (
+        select(Waka)
+        .options(selectinload(Waka.employer), selectinload(Waka.runner))
+        .where(Waka.id == waka_id)
+    )
+    result = await db.execute(stmt)
+    return result.scalars().first()
+
 @router.post("/", response_model=WakaResponse)
 async def create_waka(
     waka_in: WakaCreate, 
@@ -183,8 +193,7 @@ async def complete_waka(
                 )
 
     await db.commit()
-    await db.refresh(waka)
-    return waka
+    return await get_hydrated_waka(db, waka_id)
 
 @router.patch("/{waka_id}/step", response_model=WakaResponse)
 async def update_waka_step(
@@ -209,8 +218,7 @@ async def update_waka_step(
     elif step == 4: waka.status = "delivering"
     
     await db.commit()
-    await db.refresh(waka)
-    return waka
+    return await get_hydrated_waka(db, waka_id)
 
 @router.get("/mine", response_model=List[WakaResponse])
 async def get_my_wakas(
@@ -323,7 +331,11 @@ async def accept_waka(
             linked_entity_type="waka"
         )
     await db.commit()
-    return waka
+    
+    # Return hydrated waka
+    stmt = select(Waka).options(selectinload(Waka.employer), selectinload(Waka.runner)).where(Waka.id == waka_id)
+    result = await db.execute(stmt)
+    return result.scalars().first()
 
 @router.post("/{waka_id}/decline", response_model=WakaResponse)
 async def decline_waka(
@@ -362,5 +374,4 @@ async def decline_waka(
             )
     
     await db.commit()
-    await db.refresh(waka)
-    return waka
+    return await get_hydrated_waka(db, waka_id)
