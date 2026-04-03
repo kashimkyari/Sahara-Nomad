@@ -170,18 +170,6 @@ async def get_my_wakas(
     )
     return result.scalars().all()
 
-@router.get("/{waka_id}", response_model=WakaResponse)
-async def get_waka(
-    waka_id: uuid.UUID, 
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    result = await db.execute(select(Waka).where(Waka.id == waka_id, Waka.is_deleted == False))
-    waka = result.scalars().first()
-    if not waka:
-        raise HTTPException(status_code=404, detail="Waka not found")
-    return waka
-
 @router.get("/available", response_model=List[WakaResponse])
 async def get_available_wakas(
     db: AsyncSession = Depends(get_db),
@@ -216,6 +204,19 @@ async def get_runner_active_wakas(
         .order_by(Waka.created_at.desc())
     )
     return result.scalars().all()
+
+@router.get("/{waka_id}", response_model=WakaResponse)
+async def get_waka(
+    waka_id: uuid.UUID, 
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    result = await db.execute(select(Waka).where(Waka.id == waka_id, Waka.is_deleted == False))
+    waka = result.scalars().first()
+    if not waka:
+        raise HTTPException(status_code=404, detail="Waka not found")
+    return waka
+
 
 @router.post("/{waka_id}/accept", response_model=WakaResponse)
 async def accept_waka(
