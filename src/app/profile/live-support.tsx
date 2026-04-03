@@ -29,6 +29,8 @@ export default function LiveSupportScreen() {
   const [messages, setMessages] = useState<any[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(true);
+  const [isLive, setIsLive] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const ws = useRef<WebSocket | null>(null);
   const styles = getStyles(colors);
@@ -65,18 +67,34 @@ export default function LiveSupportScreen() {
   useEffect(() => {
     if (ticketId && token) {
       const wsUrl = API.SUPPORT.WS(ticketId, token);
+      setIsConnecting(true);
       ws.current = new WebSocket(wsUrl);
+
+      ws.current.onopen = () => {
+        setIsConnecting(false);
+        setIsLive(true);
+      };
 
       ws.current.onmessage = (e) => {
         const msg = JSON.parse(e.data);
         setMessages((prev) => {
-          // Avoid duplicates
           if (prev.find(m => m.id === msg.id)) return prev;
           return [...prev, msg];
         });
         if (msg.sender_id !== user?.id) {
           setIsTyping(false);
         }
+      };
+
+      ws.current.onerror = (e) => {
+        console.error('WS Support Error', e);
+        setIsConnecting(false);
+        setIsLive(false);
+      };
+
+      ws.current.onclose = () => {
+        setIsConnecting(false);
+        setIsLive(false);
       };
 
       return () => {
@@ -100,12 +118,46 @@ export default function LiveSupportScreen() {
   };
 
   const sendMessage = () => {
-    if (!chatInput.trim() || !ws.current || ws.current.readyState !== WebSocket.OPEN) return;
+    if (!chatInput.trim()) return;
+    
+    if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
+      // If WS is not ready, we could use the REST fallback
+      sendViaRest();
+      return;
+    }
     
     const payload = { content_text: chatInput };
     ws.current.send(JSON.stringify(payload));
     setChatInput('');
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+
+  const sendViaRest = async () => {
+    if (!ticketId) return;
+    const content = chatInput;
+    setChatInput(''); // Clear optimistically
+    
+    try {
+      const response = await fetch(API.SUPPORT.SEND, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ ticket_id: ticketId, content_text: content })
+      });
+      
+      if (!response.ok) {
+        setChatInput(content); // Restore if failed
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      } else {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        // history will update via interval or manually if needed, 
+        // but usually sending via REST triggers a broadcast on the backend too.
+      }
+    } catch (e) {
+      setChatInput(content);
+    }
   };
 
   return (
@@ -125,7 +177,9 @@ export default function LiveSupportScreen() {
           </View>
           <View>
             <Text style={styles.headerName}>SendAm Support</Text>
-            <Text style={styles.headerStatus}>Always online</Text>
+            <Text style={[styles.headerStatus, isLive && { color: colors.secondary }]}>
+              {isConnecting ? 'Connecting...' : isLive ? 'Live Support Online' : 'Offline'}
+            </Text>
           </View>
         </View>
       </View>
