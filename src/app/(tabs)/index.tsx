@@ -259,16 +259,36 @@ export default function HomeScreen() {
                     params: { initialStatus: getStatusText(waka.step, waka.status) }
                   } as any)}
                 >
-                  <View style={[styles.wakaCard, user?.is_runner && { backgroundColor: colors.primary }]}>
-                    <View style={[styles.wakaLive, user?.is_runner && { backgroundColor: colors.secondary }]}>
-                      <Text style={[styles.wakaLiveText, user?.is_runner && { color: colors.surface }]}>LIVE</Text>
+                  <MotiView
+                    from={{ scale: 0.95, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ type: 'spring', damping: 15 }}
+                    style={[
+                      styles.wakaCard, 
+                      user?.is_runner 
+                        ? { backgroundColor: colors.secondary, borderColor: colors.text } 
+                        : { backgroundColor: colors.primary, borderColor: colors.text }
+                    ]}
+                  >
+                    <View style={styles.wakaHeaderRow}>
+                      <MotiView 
+                        animate={{ opacity: [1, 0.4, 1] }} 
+                        transition={{ loop: true, duration: 1500, type: 'timing' }}
+                        style={[styles.wakaLive, { backgroundColor: colors.accent }]}
+                      >
+                        <Text style={styles.wakaLiveText}>LIVE</Text>
+                      </MotiView>
+                      <Text style={[styles.wakaPrice, { color: colors.surface }]}>₦{(waka.total_price || 0).toLocaleString()}</Text>
                     </View>
                     <Text style={styles.wakaTitle} numberOfLines={2}>{waka.item_description}</Text>
-                    <View style={styles.wakaFooter}>
-                      <Text style={styles.wakaStatus}>{getStatusText(waka.step, waka.status)}</Text>
+                    <View style={[styles.wakaFooter, { borderTopColor: 'rgba(255,255,255,0.2)' }]}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Zap size={14} color={colors.accent} fill={colors.accent} />
+                        <Text style={[styles.wakaStatus, { color: colors.surface }]}>{getStatusText(waka.step, waka.status)}</Text>
+                      </View>
                       <ArrowRight size={16} color={colors.surface} />
                     </View>
-                  </View>
+                  </MotiView>
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -438,6 +458,17 @@ export default function HomeScreen() {
 }
 
 const getStyles = (colors: any) => StyleSheet.create({
+  wakaHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  wakaPrice: {
+    fontFamily: DT.typography.heading,
+    fontSize: 14,
+    color: colors.surface,
+  },
   safeArea: {
     flex: 1,
     backgroundColor: colors.background,
@@ -570,7 +601,6 @@ const getStyles = (colors: any) => StyleSheet.create({
     paddingVertical: 2,
     borderWidth: 2,
     borderColor: colors.text,
-    marginBottom: 8,
   },
   wakaLiveText: {
     fontFamily: DT.typography.heading,

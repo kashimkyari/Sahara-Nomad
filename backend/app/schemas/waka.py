@@ -40,6 +40,8 @@ class WakaResponse(BaseModel):
     step: int
     status: str
     is_completed: bool
+    completed_by_runner: bool
+    completed_by_employer: bool
     created_at: datetime
     
     employer: Optional[WakaUser] = None

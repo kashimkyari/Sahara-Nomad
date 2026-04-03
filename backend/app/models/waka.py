@@ -35,7 +35,16 @@ class Waka(AuditableBase):
     status: Mapped[Optional[str]] = mapped_column(String(50), default="finding_runner", nullable=True)
     
     is_completed: Mapped[bool] = mapped_column(Boolean, default=False)
+    completed_by_runner: Mapped[bool] = mapped_column(Boolean, default=False)
+    completed_by_employer: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # Relationships
     employer: Mapped["User"] = relationship("User", foreign_keys=[employer_id])
     runner: Mapped[Optional["User"]] = relationship("User", foreign_keys=[runner_id])
+
+class WakaDecline(AuditableBase):
+    __tablename__ = "waka_declines"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    waka_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("wakas.id"))
+    runner_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"))

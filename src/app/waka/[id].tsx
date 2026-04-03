@@ -159,13 +159,52 @@ export default function WakaStatusScreen() {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.detail || 'Failed to decline waka');
       }
-      showAlert('Declined', 'You have declined this direct booking.', [
-        { text: 'OK', onPress: () => router.replace('/(tabs)') }
-      ]);
+      showAlert('Success', 'Errand removed from your view.');
+      router.replace('/(tabs)');
     } catch (e: any) {
       showAlert('Error', e.message);
     } finally {
       setIsDeclining(false);
+    }
+  };
+
+  const handleUpdateStep = async (newStep: number) => {
+    if (!token || !id) return;
+    try {
+      setLoading(true);
+      const res = await fetch(`${API.WAKA.GET(id)}/step?step=${newStep}`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('Failed to update progress');
+      fetchWakaDetails();
+    } catch (e: any) {
+      showAlert('Error', e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleComplete = async () => {
+    if (!token || !id) return;
+    try {
+      setIsAccepting(true); // Re-use indicator
+      const res = await fetch(`${API.WAKA.GET(id)}/complete`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('Failed to mark as complete');
+      const data = await res.json();
+      if (data.is_completed) {
+        showAlert('Success', 'Errand fully finalized! Thank you.');
+      } else {
+        showAlert('Updated', 'Confirmation recorded. Awaiting other party.');
+      }
+      fetchWakaDetails();
+    } catch (e: any) {
+      showAlert('Error', e.message);
+    } finally {
+      setIsAccepting(false);
     }
   };
 
@@ -360,26 +399,9 @@ export default function WakaStatusScreen() {
         )}
 
         {/* Actions for Runner */}
-        {user?.is_runner && waka.employer_id !== user.id && (
-          <View style={{ marginTop: DT.spacing.lg }}>
+        {user?.is_runner && waka.employer_id !== user.id && !waka.is_completed && (
+          <View style={{ marginTop: DT.spacing.lg, gap: DT.spacing.md }}>
             {waka.status === 'finding_runner' && (
-              <TouchableOpacity 
-                style={[styles.primaryAction, isAccepting && { opacity: 0.7 }]} 
-                onPress={handleAccept}
-                disabled={isAccepting}
-              >
-                {isAccepting ? (
-                  <ActivityIndicator color={colors.surface} />
-                ) : (
-                  <>
-                    <Zap size={20} color={colors.surface} strokeWidth={2.5} />
-                    <Text style={styles.primaryActionText}>ACCEPT WAKA</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            )}
-
-            {waka.status === 'assigned' && waka.runner_id === user.id && waka.step === 1 && (
               <View style={{ gap: DT.spacing.md }}>
                 <TouchableOpacity 
                   style={[styles.primaryAction, isAccepting && { opacity: 0.7 }]} 
@@ -390,8 +412,8 @@ export default function WakaStatusScreen() {
                     <ActivityIndicator color={colors.surface} />
                   ) : (
                     <>
-                      <CheckCircle2 size={20} color={colors.surface} strokeWidth={2.5} />
-                      <Text style={styles.primaryActionText}>CONFIRM ACCEPTANCE</Text>
+                      <Zap size={20} color={colors.surface} strokeWidth={2.5} />
+                      <Text style={styles.primaryActionText}>ACCEPT WAKA</Text>
                     </>
                   )}
                 </TouchableOpacity>
@@ -403,27 +425,78 @@ export default function WakaStatusScreen() {
                   {isDeclining ? (
                     <ActivityIndicator color={colors.error} />
                   ) : (
-                    <Text style={styles.cancelText}>Decline Booking</Text>
+                    <Text style={styles.cancelText}>Decline / Hide</Text>
                   )}
                 </TouchableOpacity>
+              </View>
+            )}
+
+            {waka.runner_id === user.id && waka.status !== 'finding_runner' && (
+              <View style={{ gap: DT.spacing.md }}>
+                {waka.step === 2 && (
+                  <TouchableOpacity 
+                    style={styles.primaryAction} 
+                    onPress={() => handleUpdateStep(3)}
+                  >
+                    <Truck size={20} color={colors.surface} strokeWidth={2.5} />
+                    <Text style={styles.primaryActionText}>START ERRAND / SOURCING</Text>
+                  </TouchableOpacity>
+                )}
+                {waka.step === 3 && (
+                  <TouchableOpacity 
+                    style={styles.primaryAction} 
+                    onPress={() => handleUpdateStep(4)}
+                  >
+                    <MapPin size={20} color={colors.surface} strokeWidth={2.5} />
+                    <Text style={styles.primaryActionText}>OUT FOR DELIVERY</Text>
+                  </TouchableOpacity>
+                )}
+                {waka.step === 4 && !waka.completed_by_runner && (
+                  <TouchableOpacity 
+                    style={[styles.primaryAction, { backgroundColor: colors.secondary }]} 
+                    onPress={handleComplete}
+                  >
+                    <CheckCircle2 size={20} color={colors.surface} strokeWidth={2.5} />
+                    <Text style={styles.primaryActionText}>MARK AS FINISHED</Text>
+                  </TouchableOpacity>
+                )}
+                {waka.completed_by_runner && !waka.is_completed && (
+                  <View style={[styles.infoBanner, { backgroundColor: colors.surface, borderColor: colors.secondary }]}>
+                    <Clock size={16} color={colors.secondary} />
+                    <Text style={[styles.infoText, { color: colors.secondary }]}>Awaiting Nomad Confirmation...</Text>
+                  </View>
+                )}
               </View>
             )}
           </View>
         )}
 
-        {/* Cancel (Employer Only) */}
-        {user?.id === waka.employer_id && waka.status !== 'cancelled' && !waka.is_completed && (
-          <TouchableOpacity 
-            style={[styles.cancelBtn, isCancelling && { opacity: 0.5 }]} 
-            onPress={handleCancel}
-            disabled={isCancelling}
-          >
-            {isCancelling ? (
-              <ActivityIndicator color={colors.error} />
-            ) : (
-              <Text style={styles.cancelText}>Cancel Waka</Text>
+        {/* Actions for Nomad (Employer) */}
+        {user?.id === waka.employer_id && !waka.is_completed && waka.status !== 'cancelled' && (
+          <View style={{ marginTop: DT.spacing.lg, gap: DT.spacing.md }}>
+            {waka.step >= 4 && !waka.completed_by_employer && (
+              <TouchableOpacity 
+                style={[styles.primaryAction, { backgroundColor: colors.secondary }]} 
+                onPress={handleComplete}
+              >
+                <CheckCircle2 size={20} color={colors.surface} strokeWidth={2.5} />
+                <Text style={styles.primaryActionText}>CONFIRM COMPLETION</Text>
+              </TouchableOpacity>
             )}
-          </TouchableOpacity>
+            {waka.completed_by_employer && !waka.is_completed && (
+              <View style={[styles.infoBanner, { backgroundColor: colors.surface, borderColor: colors.primary }]}>
+                <Clock size={16} color={colors.primary} />
+                <Text style={[styles.infoText, { color: colors.primary }]}>Awaiting Runner Confirmation...</Text>
+              </View>
+            )}
+            <TouchableOpacity 
+              style={[styles.cancelBtn, isCancelling && { opacity: 0.5 }]} 
+              onPress={handleCancel}
+              disabled={isCancelling}
+            >
+              <Text style={styles.cancelText}>Cancel Waka</Text>
+            </TouchableOpacity>
+          </View>
         )}
 
         {waka.status === 'cancelled' && (
@@ -655,6 +728,14 @@ const getStyles = (colors: any) => StyleSheet.create({
     shadowRadius: 0,
     elevation: 5,
     gap: DT.spacing.md,
+  },
+  infoBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    padding: 12,
+    borderWidth: 2,
+    backgroundColor: colors.surface,
   },
   runnerHeaderRow: {
     flexDirection: 'row',

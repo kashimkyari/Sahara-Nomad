@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 from ...database import get_db
-from ...models.waka import Waka
+from ...models.waka import Waka, WakaDecline
 from ...models.user import User
 from ...schemas.waka import WakaCreate, WakaResponse
 from .deps import get_current_user
@@ -132,32 +132,84 @@ async def complete_waka(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Mark a waka as completed."""
-    result = await db.execute(
-        select(Waka).where(Waka.id == waka_id, Waka.employer_id == current_user.id)
-    )
+    """Mark a waka as completed. Requires BOTH runner and employer to confirm."""
+    result = await db.execute(select(Waka).where(Waka.id == waka_id))
     waka = result.scalars().first()
     if not waka:
         raise HTTPException(status_code=404, detail="Waka not found")
     
-    waka.status = "completed"
-    waka.is_completed = True
-    waka.step = 4
+    if current_user.id == waka.employer_id:
+        waka.completed_by_employer = True
+    elif current_user.id == waka.runner_id:
+        waka.completed_by_runner = True
+    else:
+        raise HTTPException(status_code=403, detail="Not a participant in this errand")
+    
+    # If both confirmed, mark as fully completed
+    if waka.completed_by_runner and waka.completed_by_employer:
+        waka.is_completed = True
+        waka.status = "completed"
+        waka.step = 5 # Success state
+        
+        # Notify Both
+        for uid in [waka.employer_id, waka.runner_id]:
+            user_res = await db.execute(select(User).where(User.id == uid))
+            recipient = user_res.scalars().first()
+            if recipient:
+                await notify_user(
+                    db=db,
+                    user=recipient,
+                    title="Errand Fully Finalized",
+                    body=f"Both parties have confirmed completion for '{waka.item_description[:30]}...'",
+                    type="success",
+                    linked_entity_id=waka.id,
+                    linked_entity_type="waka"
+                )
+    else:
+        # Notify the other party that one person finished
+        other_id = waka.runner_id if current_user.id == waka.employer_id else waka.employer_id
+        if other_id:
+            user_res = await db.execute(select(User).where(User.id == other_id))
+            recipient = user_res.scalars().first()
+            if recipient:
+                await notify_user(
+                    db=db,
+                    user=recipient,
+                    title="Awaiting Your Confirmation",
+                    body=f"{current_user.full_name} marked the errand as complete. Please confirm to finalize.",
+                    type="info",
+                    linked_entity_id=waka.id,
+                    linked_entity_type="waka"
+                )
+
     await db.commit()
     await db.refresh(waka)
+    return waka
 
-    # Completion Notification
-    await notify_user(
-        db=db,
-        user=current_user,
-        title="Errand Completed",
-        body=f"Your errand for '{waka.category}' is finished. Thanks for using SendAm!",
-        type="success",
-        linked_entity_id=waka.id,
-        linked_entity_type="waka"
-    )
+@router.patch("/{waka_id}/step", response_model=WakaResponse)
+async def update_waka_step(
+    waka_id: uuid.UUID,
+    step: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Update errand progress step (Runner only)."""
+    result = await db.execute(select(Waka).where(Waka.id == waka_id))
+    waka = result.scalars().first()
+    if not waka:
+        raise HTTPException(status_code=404, detail="Waka not found")
+    
+    if waka.runner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Only the assigned runner can update steps")
+    
+    waka.step = step
+    # Map steps to status strings
+    if step == 2: waka.status = "assigned"
+    elif step == 3: waka.status = "sourcing"
+    elif step == 4: waka.status = "delivering"
+    
     await db.commit()
-
+    await db.refresh(waka)
     return waka
 
 @router.get("/mine", response_model=List[WakaResponse])
@@ -179,8 +231,12 @@ async def get_available_wakas(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Return all wakas that are broadcasted and looking for a runner."""
-    result = await db.execute(
+    # Exclude wakas that this runner has declined
+    declined_stmt = select(WakaDecline.waka_id).where(WakaDecline.runner_id == current_user.id)
+    declined_res = await db.execute(declined_stmt)
+    declined_ids = declined_res.scalars().all()
+
+    stmt = (
         select(Waka)
         .options(selectinload(Waka.employer), selectinload(Waka.runner))
         .where(
@@ -188,8 +244,12 @@ async def get_available_wakas(
             Waka.runner_id == None,
             Waka.is_deleted == False
         )
-        .order_by(Waka.created_at.desc())
     )
+    
+    if declined_ids:
+        stmt = stmt.where(~Waka.id.in_(declined_ids))
+        
+    result = await db.execute(stmt.order_by(Waka.created_at.desc()))
     return result.scalars().all()
 
 @router.get("/runner/active", response_model=List[WakaResponse])
@@ -271,33 +331,36 @@ async def decline_waka(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Decline a waka (mostly for direct bookings)."""
+    """Decline a waka (Hides from available for runner, unassigns if assigned)."""
     result = await db.execute(select(Waka).where(Waka.id == waka_id))
     waka = result.scalars().first()
     if not waka:
         raise HTTPException(status_code=404, detail="Waka not found")
     
-    if waka.runner_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not assigned to you")
+    # Store decline record so it stays hidden from /available
+    decline = WakaDecline(waka_id=waka_id, runner_id=current_user.id)
+    db.add(decline)
+
+    if waka.runner_id == current_user.id:
+        # Re-broadcast if they were already assigned
+        waka.runner_id = None
+        waka.status = "finding_runner"
+        waka.step = 1
+        
+        # Notify Employer
+        employer_res = await db.execute(select(User).where(User.id == waka.employer_id))
+        employer = employer_res.scalars().first()
+        if employer:
+            await notify_user(
+                db=db,
+                user=employer,
+                title="Runner Unavailable",
+                body=f"{current_user.full_name} declined the errand. We're finding a new runner.",
+                type="warning",
+                linked_entity_id=waka.id,
+                linked_entity_type="waka"
+            )
     
-    # Reset to finding_runner if it was a direct hire
-    waka.runner_id = None
-    waka.status = "finding_runner"
     await db.commit()
     await db.refresh(waka)
-
-    # Notify Employer
-    employer_res = await db.execute(select(User).where(User.id == waka.employer_id))
-    employer = employer_res.scalars().first()
-    if employer:
-        await notify_user(
-            db=db,
-            user=employer,
-            title="Runner Declined",
-            body=f"{current_user.full_name} is unavailable for your '{waka.category}' errand. We're looking for another runner.",
-            type="warning",
-            linked_entity_id=waka.id,
-            linked_entity_type="waka"
-        )
-    await db.commit()
     return waka
