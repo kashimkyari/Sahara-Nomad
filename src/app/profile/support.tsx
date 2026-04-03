@@ -15,13 +15,16 @@ const faqs = [
   { q: 'How do I become a runner?', a: 'Tap "Become a Runner" in your profile settings. You will need to complete BVN verification and an address check before going live.' },
 ];
 
+const chatHistory = [
+  { id: 'T-842', status: 'Active', date: 'Today, 10:45 AM', lastMsg: 'Our team is reviewing your request...' },
+  { id: 'T-721', status: 'Resolved', date: 'Mar 28, 2026', lastMsg: 'Glad we could help! Feel free to reach out again.' },
+];
+
 export default function SupportScreen() {
   const { colors } = useTheme();
   const { user } = useAuth();
   const router = useRouter();
   const [expanded, setExpanded] = useState<number | null>(null);
-  const [subject, setSubject] = useState('');
-  const [body, setBody] = useState('');
   const styles = getStyles(colors);
 
   return (
@@ -84,28 +87,27 @@ export default function SupportScreen() {
           </TouchableOpacity>
         ))}
 
-        {/* Contact form */}
-        <Text style={[styles.sectionLabel, { marginTop: DT.spacing.lg }]}>SEND A TICKET</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Subject"
-          placeholderTextColor={colors.muted}
-          value={subject}
-          onChangeText={setSubject}
-        />
-        <TextInput
-          style={[styles.input, styles.textArea]}
-          placeholder="Describe your issue in detail..."
-          placeholderTextColor={colors.muted}
-          value={body}
-          onChangeText={setBody}
-          multiline
-          numberOfLines={5}
-          textAlignVertical="top"
-        />
-        <TouchableOpacity style={styles.submitBtn}>
-          <Text style={styles.submitBtnText}>Submit Ticket</Text>
-        </TouchableOpacity>
+        {/* Chat History */}
+        <Text style={[styles.sectionLabel, { marginTop: DT.spacing.lg }]}>LIVE SUPPORT HISTORY</Text>
+        {chatHistory.map((item) => (
+          <TouchableOpacity 
+            key={item.id} 
+            style={styles.historyCard}
+            onPress={() => router.push('/profile/live-support' as any)}
+          >
+            <View style={styles.historyHeader}>
+              <Text style={styles.historyId}>{item.id}</Text>
+              <View style={[styles.statusTag, { backgroundColor: item.status === 'Active' ? colors.primary : colors.secondary }]}>
+                <Text style={styles.statusText}>{item.status.toUpperCase()}</Text>
+              </View>
+            </View>
+            <Text style={styles.historyMsg} numberOfLines={1}>{item.lastMsg}</Text>
+            <View style={styles.historyFooter}>
+              <Text style={styles.historyDate}>{item.date}</Text>
+              <ChevronRight size={16} color={colors.muted} />
+            </View>
+          </TouchableOpacity>
+        ))}
       </ScrollView>
     </SafeAreaView>
   );
@@ -150,16 +152,16 @@ const getStyles = (colors: any) => StyleSheet.create({
     fontFamily: DT.typography.body, fontSize: 13, color: colors.muted,
     marginTop: DT.spacing.sm, lineHeight: 20,
   },
-  input: {
-    height: 48, borderWidth: 2, borderColor: colors.text, backgroundColor: colors.surface,
-    paddingHorizontal: DT.spacing.md, fontFamily: DT.typography.body, fontSize: 15,
-    color: colors.text, marginBottom: DT.spacing.md,
+  historyCard: {
+    borderWidth: 3, borderColor: colors.text, backgroundColor: colors.surface,
+    padding: DT.spacing.md, marginBottom: DT.spacing.md,
+    shadowColor: colors.text, shadowOffset: { width: 3, height: 3 }, shadowOpacity: 1, shadowRadius: 0,
   },
-  textArea: { height: 120, paddingTop: DT.spacing.md, textAlignVertical: 'top' },
-  submitBtn: {
-    height: 56, backgroundColor: colors.primary, borderWidth: 2, borderColor: colors.text,
-    alignItems: 'center', justifyContent: 'center',
-    shadowColor: colors.text, shadowOffset: { width: 4, height: 4 }, shadowOpacity: 1, shadowRadius: 0, elevation: 5,
-  },
-  submitBtnText: { fontFamily: DT.typography.heading, fontSize: 17, color: colors.surface },
+  historyHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  historyId: { fontFamily: DT.typography.heading, fontSize: 13, color: colors.text },
+  statusTag: { paddingHorizontal: 8, paddingVertical: 4, borderWidth: 2, borderColor: colors.text },
+  statusText: { fontFamily: DT.typography.heading, fontSize: 10, color: colors.surface },
+  historyMsg: { fontFamily: DT.typography.body, fontSize: 14, color: colors.muted, marginBottom: 12 },
+  historyFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  historyDate: { fontFamily: DT.typography.bodySemiBold, fontSize: 11, color: colors.muted },
 });
