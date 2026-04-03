@@ -30,6 +30,7 @@ export default function MessagesScreen() {
   }, [token]);
 
   const fetchConversations = async () => {
+    if (!token) return;
     try {
       const res = await fetch(API.MESSAGES.CONVERSATIONS, {
         headers: {
