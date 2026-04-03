@@ -58,6 +58,12 @@ const AudioPlayer = ({ uri, isMe, colors, styles }: { uri: string; isMe: boolean
   };
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+  
+  // Simulate waveform bars (since we don't have real PCM data for remote URI)
+  const bars = useMemo(() => Array.from({ length: 24 }).map((_, i) => ({
+    id: i,
+    height: 10 + Math.random() * 25
+  })), []);
 
   return (
     <TouchableOpacity 
@@ -67,25 +73,30 @@ const AudioPlayer = ({ uri, isMe, colors, styles }: { uri: string; isMe: boolean
     >
       <View style={styles.audioIconBox}>
         {playing ? (
-          <Pause 
-            size={20} 
-            color={colors.text} 
-            fill={colors.text} 
-            strokeWidth={3}
-          />
+          <Pause size={20} color={colors.text} fill={colors.text} strokeWidth={3} />
         ) : (
-          <Play 
-            size={20} 
-            color={colors.text} 
-            fill={colors.text} 
-            strokeWidth={3}
-          />
+          <Play size={20} color={colors.text} fill={colors.text} strokeWidth={3} />
         )}
       </View>
-      <View style={{ flex: 1, gap: 4 }}>
-        <View style={styles.audioWaveform}>
-          <View style={[styles.audioProgress, { width: `${progress}%`, backgroundColor: isMe ? colors.surface : colors.primary }]} />
-          <View style={styles.audioTrack} />
+      <View style={{ flex: 1, gap: 8 }}>
+        <View style={styles.waveformRow}>
+          {bars.map((bar, i) => {
+            const isFilled = (i / bars.length) * 100 <= progress;
+            return (
+              <View 
+                key={bar.id} 
+                style={[
+                  styles.waveformBar, 
+                  { 
+                    height: bar.height,
+                    backgroundColor: isFilled ? (isMe ? colors.surface : colors.primary) : 'rgba(0,0,0,0.1)',
+                    borderColor: colors.text,
+                    borderWidth: 1.5,
+                  }
+                ]} 
+              />
+            );
+          })}
         </View>
         <Text style={[styles.audioTimeText, isMe && styles.myBubbleText]}>
           {formatTime(currentTime)} / {formatTime(duration)}
@@ -589,16 +600,16 @@ const getStyles = (colors: any) => StyleSheet.create({
   },
   fileText: { fontFamily: DT.typography.bodySemiBold, fontSize: 13, color: colors.text },
   audioContainer: {
-    flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, 
-    minWidth: 200, marginBottom: 4,
+    flexDirection: 'row', alignItems: 'center', padding: 16, 
+    minWidth: 240, maxWidth: '90%', marginBottom: 4,
     borderWidth: 3, borderColor: colors.text,
     shadowColor: colors.text, shadowOffset: { width: 4, height: 4 }, shadowOpacity: 1, shadowRadius: 0,
   },
   myAudio: { backgroundColor: colors.primary },
   theirAudio: { backgroundColor: colors.surface },
   audioIconBox: {
-    width: 38, height: 38, borderWidth: 2, borderColor: colors.text,
-    backgroundColor: colors.background,
+    width: 44, height: 44, borderWidth: 3, borderColor: colors.text,
+    backgroundColor: colors.background, marginRight: 12,
     alignItems: 'center', justifyContent: 'center'
   },
   audioWaveform: { 
@@ -607,5 +618,10 @@ const getStyles = (colors: any) => StyleSheet.create({
   },
   audioTrack: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0.1 },
   audioProgress: { height: '100%' },
-  audioTimeText: { fontFamily: DT.typography.bodySemiBold, fontSize: 10, color: colors.muted, marginTop: 2 },
+  audioTimeText: { fontFamily: DT.typography.bodySemiBold, fontSize: 10, color: colors.muted, marginTop: 4 },
+  waveformRow: { 
+    flexDirection: 'row', alignItems: 'center', gap: 3, 
+    height: 48, justifyContent: 'flex-start', overflow: 'hidden' 
+  },
+  waveformBar: { width: 4, minHeight: 4, borderRadius: 1 },
 });
