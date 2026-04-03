@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { ChevronLeft, MapPin, Phone, MessageCircle, CheckCircle2, Truck, Clock } from 'lucide-react-native';
+import { ChevronLeft, MapPin, Phone, MessageCircle, CheckCircle2, Truck, Clock, Zap } from 'lucide-react-native';
 import { DesignTokens as DT } from '../../constants/design';
 import { useTheme } from '../../hooks/use-theme';
 import { useAuth } from '../../context/AuthContext';
@@ -29,13 +29,15 @@ const STEPS = [
 
 export default function WakaStatusScreen() {
   const { colors } = useTheme();
-  const { token } = useAuth();
+  const { user, token } = useAuth();
   const router = useRouter();
   const { id, initialStatus } = useLocalSearchParams<{ id: string, initialStatus: string }>();
   
   const [waka, setWaka] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
   const [isCancelling, setIsCancelling] = React.useState(false);
+  const [isAccepting, setIsAccepting] = React.useState(false);
+  const [isDeclining, setIsDeclining] = React.useState(false);
   const pulseAnim = React.useRef(new Animated.Value(1)).current;
   
   // Alert State
@@ -121,6 +123,50 @@ export default function WakaStatusScreen() {
         },
       ]
     );
+  };
+
+  const handleAccept = async () => {
+    if (!id || !token) return;
+    try {
+      setIsAccepting(true);
+      const res = await fetch(API.WAKA.ACCEPT(id), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Failed to accept waka');
+      }
+      const updated = await res.json();
+      setWaka(updated);
+      showAlert('Waka Accepted', 'You have successfully joined this errand.');
+    } catch (e: any) {
+      showAlert('Error', e.message);
+    } finally {
+      setIsAccepting(false);
+    }
+  };
+
+  const handleDecline = async () => {
+    if (!id || !token) return;
+    try {
+      setIsDeclining(true);
+      const res = await fetch(API.WAKA.DECLINE(id), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Failed to decline waka');
+      }
+      showAlert('Declined', 'You have declined this direct booking.', [
+        { text: 'OK', onPress: () => router.replace('/(tabs)') }
+      ]);
+    } catch (e: any) {
+      showAlert('Error', e.message);
+    } finally {
+      setIsDeclining(false);
+    }
   };
 
   useEffect(() => {
@@ -271,8 +317,60 @@ export default function WakaStatusScreen() {
           </View>
         )}
 
-        {/* Cancel */}
-        {waka.status !== 'cancelled' && !waka.is_completed && (
+        {/* Actions for Runner */}
+        {user?.is_runner && waka.employer_id !== user.id && (
+          <View style={{ marginTop: DT.spacing.lg }}>
+            {waka.status === 'finding_runner' && (
+              <TouchableOpacity 
+                style={[styles.primaryAction, isAccepting && { opacity: 0.7 }]} 
+                onPress={handleAccept}
+                disabled={isAccepting}
+              >
+                {isAccepting ? (
+                  <ActivityIndicator color={colors.surface} />
+                ) : (
+                  <>
+                    <Zap size={20} color={colors.surface} strokeWidth={2.5} />
+                    <Text style={styles.primaryActionText}>ACCEPT WAKA</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
+
+            {waka.status === 'assigned' && waka.runner_id === user.id && waka.step === 1 && (
+              <View style={{ gap: DT.spacing.md }}>
+                <TouchableOpacity 
+                  style={[styles.primaryAction, isAccepting && { opacity: 0.7 }]} 
+                  onPress={handleAccept}
+                  disabled={isAccepting}
+                >
+                  {isAccepting ? (
+                    <ActivityIndicator color={colors.surface} />
+                  ) : (
+                    <>
+                      <CheckCircle2 size={20} color={colors.surface} strokeWidth={2.5} />
+                      <Text style={styles.primaryActionText}>CONFIRM ACCEPTANCE</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.cancelBtn, isDeclining && { opacity: 0.7 }]} 
+                  onPress={handleDecline}
+                  disabled={isDeclining}
+                >
+                  {isDeclining ? (
+                    <ActivityIndicator color={colors.error} />
+                  ) : (
+                    <Text style={styles.cancelText}>Decline Booking</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* Cancel (Employer Only) */}
+        {user?.id === waka.employer_id && waka.status !== 'cancelled' && !waka.is_completed && (
           <TouchableOpacity 
             style={[styles.cancelBtn, isCancelling && { opacity: 0.5 }]} 
             onPress={handleCancel}
@@ -589,5 +687,26 @@ const getStyles = (colors: any) => StyleSheet.create({
     fontSize: 18,
     letterSpacing: 1,
     color: colors.error,
+  },
+  primaryAction: {
+    height: 64,
+    backgroundColor: colors.primary,
+    borderWidth: 3,
+    borderColor: colors.text,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    shadowColor: colors.text,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 5,
+  },
+  primaryActionText: {
+    fontFamily: DT.typography.heading,
+    fontSize: 18,
+    color: colors.surface,
+    letterSpacing: 1,
   },
 });

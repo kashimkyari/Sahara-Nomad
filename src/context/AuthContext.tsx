@@ -16,6 +16,7 @@ interface User {
   loyalty_badge: string | null;
   is_otp_verified: boolean;
   is_verified: boolean;
+  is_runner: boolean;
   stats_rating: number;
   avatar_url: string | null;
   push_notifications_enabled: boolean;

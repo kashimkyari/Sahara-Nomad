@@ -47,7 +47,9 @@ export default function HomeScreen() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [activeRunnersCount, setActiveRunnersCount] = useState<number | null>(null);
   const [nearbyRunners, setNearbyRunners] = useState<any[]>([]);
+  const [availableWakas, setAvailableWakas] = useState<any[]>([]);
   const [isNearbyLoading, setIsNearbyLoading] = useState(false);
+  const [isLoadingAvailable, setIsLoadingAvailable] = useState(false);
 
   const getStatusText = (step: number, status: string) => {
     if (status === 'finding_runner') return 'Finding Runner...';
@@ -75,6 +77,24 @@ export default function HomeScreen() {
       console.error('Fetch active wakas failed:', e);
     } finally {
       setIsLoadingWakas(false);
+    }
+  };
+
+  const fetchAvailableWakas = async () => {
+    if (!token || !user?.is_runner) return;
+    try {
+      setIsLoadingAvailable(true);
+      const res = await fetch(API.WAKA.AVAILABLE, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setAvailableWakas(data);
+      }
+    } catch (e) {
+      console.error('Fetch available wakas failed:', e);
+    } finally {
+      setIsLoadingAvailable(false);
     }
   };
 
@@ -116,7 +136,8 @@ export default function HomeScreen() {
     fetchActiveWakas();
     fetchUnreadCount();
     fetchNearbyRunners();
-  }, [token]);
+    if (user?.is_runner) fetchAvailableWakas();
+  }, [token, user?.is_runner]);
 
   const { refreshControl, refreshBanner, onScroll, refreshing } = useBrutalistRefresh({
     onRefresh: async () => { 
@@ -124,7 +145,8 @@ export default function HomeScreen() {
         refreshUser(), 
         fetchActiveWakas(), 
         fetchUnreadCount(),
-        fetchNearbyRunners()
+        fetchNearbyRunners(),
+        user?.is_runner ? fetchAvailableWakas() : Promise.resolve()
       ]);
     },
   });
@@ -219,9 +241,9 @@ export default function HomeScreen() {
           >
 
         {/* ── Active Wakas ── */}
-        {activeWakas.length > 0 && (
+        {(activeWakas.length > 0) && (
           <View style={styles.section}>
-            <Text style={styles.sectionLabel}>ACTIVE WAKA</Text>
+            <Text style={styles.sectionLabel}>{user?.is_runner ? 'YOUR ACTIVE ERRANDS' : 'ACTIVE WAKA'}</Text>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -236,14 +258,45 @@ export default function HomeScreen() {
                     params: { initialStatus: getStatusText(waka.step, waka.status) }
                   } as any)}
                 >
-                  <View style={styles.wakaCard}>
-                    <View style={styles.wakaLive}>
-                      <Text style={styles.wakaLiveText}>LIVE</Text>
+                  <View style={[styles.wakaCard, user?.is_runner && { backgroundColor: colors.primary }]}>
+                    <View style={[styles.wakaLive, user?.is_runner && { backgroundColor: colors.secondary }]}>
+                      <Text style={[styles.wakaLiveText, user?.is_runner && { color: colors.surface }]}>LIVE</Text>
                     </View>
                     <Text style={styles.wakaTitle} numberOfLines={2}>{waka.item_description}</Text>
                     <View style={styles.wakaFooter}>
                       <Text style={styles.wakaStatus}>{getStatusText(waka.step, waka.status)}</Text>
                       <ArrowRight size={16} color={colors.surface} />
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
+        {/* ── Available Wakas (Runner Only) ── */}
+        {user?.is_runner && availableWakas.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>OPEN WAKAS NEAR YOU</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.horizontalList}
+            >
+              {availableWakas.map((waka) => (
+                <TouchableOpacity
+                  key={waka.id}
+                  style={styles.wakaCardWrapper}
+                  onPress={() => router.push(`/waka/${waka.id}` as any)}
+                >
+                  <View style={[styles.wakaCard, { backgroundColor: colors.accent }]}>
+                    <View style={styles.wakaLive}>
+                      <Text style={styles.wakaLiveText}>NEW</Text>
+                    </View>
+                    <Text style={[styles.wakaTitle, { color: colors.text }]} numberOfLines={2}>{waka.item_description}</Text>
+                    <View style={[styles.wakaFooter, { borderTopColor: colors.text + '20' }]}>
+                      <Text style={[styles.wakaStatus, { color: colors.text }]}>₦{waka.total_price?.toLocaleString()}</Text>
+                      <ArrowRight size={16} color={colors.text} />
                     </View>
                   </View>
                 </TouchableOpacity>

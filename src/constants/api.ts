@@ -11,8 +11,12 @@ export default {
         GET: (id: string) => `${API_URL}/waka/${id}`,
         MY_WAKAS: `${API_URL}/waka/mine`,
         ACTIVE: `${API_URL}/waka/active`,
+        AVAILABLE: `${API_URL}/waka/available`,
+        RUNNER_ACTIVE: `${API_URL}/waka/runner/active`,
         CANCEL: (id: string) => `${API_URL}/waka/${id}/cancel`,
         COMPLETE: (id: string) => `${API_URL}/waka/${id}/complete`,
+        ACCEPT: (id: string) => `${API_URL}/waka/${id}/accept`,
+        DECLINE: (id: string) => `${API_URL}/waka/${id}/decline`,
     },
     WALLET: {
         BALANCE: (userId: string) => `${API_URL}/wallet/${userId}/balance`,
