@@ -42,6 +42,37 @@ async def get_notifications(
         
     return formatted_notes
 
+@router.get("/unread-count")
+async def get_unread_count(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    from sqlalchemy import func
+    result = await db.execute(
+        select(func.count(InAppNotification.id))
+        .where(
+            InAppNotification.user_id == current_user.id,
+            InAppNotification.is_unread == True,
+            InAppNotification.is_deleted == False
+        )
+    )
+    count = result.scalar()
+    return {"unread_count": count}
+
+@router.post("/clear-all")
+async def clear_all_notifications(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    from sqlalchemy import update
+    await db.execute(
+        update(InAppNotification)
+        .where(InAppNotification.user_id == current_user.id)
+        .values(is_deleted=True, deleted_at=arrow.now().datetime)
+    )
+    await db.commit()
+    return {"status": "success"}
+
 @router.get("/{notification_id}", response_model=NotificationRead)
 async def get_notification(
     notification_id: uuid.UUID,
@@ -90,32 +121,4 @@ async def mark_as_read(
     await db.commit()
     return {"status": "success"}
 
-@router.post("/clear-all")
-async def clear_all_notifications(
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    await db.execute(
-        update(InAppNotification)
-        .where(InAppNotification.user_id == current_user.id)
-        .values(is_deleted=True, deleted_at=arrow.now().datetime)
-    )
-    await db.commit()
     return {"status": "success"}
-
-@router.get("/unread-count")
-async def get_unread_count(
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    from sqlalchemy import func
-    result = await db.execute(
-        select(func.count(InAppNotification.id))
-        .where(
-            InAppNotification.user_id == current_user.id,
-            InAppNotification.is_unread == True,
-            InAppNotification.is_deleted == False
-        )
-    )
-    count = result.scalar()
-    return {"unread_count": count}

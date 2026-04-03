@@ -96,6 +96,18 @@ class OTPVerify(BaseModel):
 class RoleUpdate(BaseModel):
     role: str
 
+class AdminUserResponse(BaseModel):
+    id: UUID
+    full_name: str
+    phone_number: str
+    email: Optional[EmailStr] = None
+    role: str
+    is_runner: bool
+    is_verified: bool
+    created_at: datetime
+    
+    model_config = ConfigDict(from_attributes=True)
+
 class RunnerApplicationResponse(BaseModel):
     id: UUID
     user_id: UUID

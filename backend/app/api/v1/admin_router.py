@@ -4,7 +4,7 @@ from sqlalchemy import select, update
 from sqlalchemy.orm import joinedload
 from ...database import get_db
 from ...models.user import User, UserRole, RunnerApplication
-from ...schemas.user import UserResponse, RunnerApplicationResponse, RoleUpdate
+from ...schemas.user import UserResponse, RunnerApplicationResponse, RoleUpdate, AdminUserResponse
 from ...api.v1.deps import get_current_user
 from typing import List
 import uuid
@@ -27,7 +27,7 @@ def require_super_admin(current_user: User = Depends(get_current_user)):
         )
     return current_user
 
-@router.get("/users", response_model=List[UserResponse])
+@router.get("/users", response_model=List[AdminUserResponse])
 async def get_all_users(
     db: AsyncSession = Depends(get_db),
     admin: User = Depends(require_admin)
