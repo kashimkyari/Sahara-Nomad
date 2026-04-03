@@ -37,7 +37,7 @@ export default function SupportScreen() {
         <Text style={styles.sectionLabel}>REACH US</Text>
         {[
           { icon: MessageSquare, label: 'Live Support', sub: 'Avg. 3 min response', color: colors.primary, action: () => router.push('/profile/live-support' as any) },
-          { icon: Phone, label: 'Call Support', sub: '9am – 6pm Mon–Sat', color: colors.secondary },
+          { icon: Phone, label: 'Call Support', sub: '9am – 6pm Mon–Sat', color: colors.secondary, action: () => router.push('/profile/call-support' as any) },
           { icon: Mail, label: 'Email Us', sub: 'support@sendam.ng', color: colors.accent },
         ].map((ch) => (
           <TouchableOpacity key={ch.label} style={styles.channelRow} onPress={ch.action}>
