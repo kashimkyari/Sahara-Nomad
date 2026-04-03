@@ -5,6 +5,7 @@ from geoalchemy2 import Geography
 from ...database import get_db
 from ...models.user import User
 from ...models.review import Review
+from ...models.waka import Waka
 from .deps import get_current_user
 import uuid
 
