@@ -17,6 +17,7 @@ interface User {
   is_otp_verified: boolean;
   is_verified: boolean;
   is_runner: boolean;
+  role: 'user' | 'support_admin' | 'super_admin';
   stats_rating: number;
   avatar_url: string | null;
   push_notifications_enabled: boolean;
@@ -54,6 +55,8 @@ interface AuthContextType {
   signIn: (accessToken: string, refreshToken: string) => Promise<void>;
   signOut: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  isAdmin: boolean;
+  isSuperAdmin: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -302,8 +305,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [token, user?.location_services_enabled]);
 
+  const isAdmin = user?.role === 'support_admin' || user?.role === 'super_admin';
+  const isSuperAdmin = user?.role === 'super_admin';
+
   return (
-    <AuthContext.Provider value={{ token, refreshToken, user, isLoading, signIn, signOut, refreshUser }}>
+    <AuthContext.Provider value={{ token, refreshToken, user, isLoading, signIn, signOut, refreshUser, isAdmin, isSuperAdmin }}>
       {children}
     </AuthContext.Provider>
   );

@@ -70,5 +70,11 @@ export default {
     },
     MEDIA: {
         UPLOAD: `${API_URL}/media/upload`,
+    },
+    ADMIN: {
+        USERS: `${API_URL}/admin/users`,
+        RUNNER_APPS: (status: string) => `${API_URL}/admin/runner-applications?status_filter=${status}`,
+        APP_REVIEW: (id: string) => `${API_URL}/admin/runner-applications/${id}/review`,
+        UPDATE_ROLE: (id: string) => `${API_URL}/admin/users/${id}/role`,
     }
 };

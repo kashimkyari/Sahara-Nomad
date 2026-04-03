@@ -7,7 +7,9 @@ import {
   Edit3, 
   CheckCircle2, 
   Wallet,
-  Plus
+  Plus,
+  ShieldCheck,
+  ArrowRight
 } from 'lucide-react-native';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View, ScrollView } from 'react-native';
@@ -28,7 +30,7 @@ const menuItems = [
 
 export default function ProfileScreen() {
   const { colors } = useTheme();
-  const { user, token } = useAuth();
+  const { user, token, isAdmin } = useAuth();
   const router = useRouter();
 
   const styles = getStyles(colors);
@@ -104,6 +106,23 @@ export default function ProfileScreen() {
             <Plus size={20} color={colors.surface} strokeWidth={3} />
           </TouchableOpacity>
         </View>
+
+        {/* Admin Console Entry (Only for Admins) */}
+        {isAdmin && (
+          <TouchableOpacity 
+            style={[styles.adminBanner, { backgroundColor: DT.admin.primary }]}
+            onPress={() => router.push('/admin' as any)}
+          >
+            <View style={styles.adminIconBox}>
+                <ShieldCheck size={20} color={DT.admin.accent} strokeWidth={2.5} />
+            </View>
+            <View style={styles.adminTextWrap}>
+                <Text style={styles.adminLabel}>ADMIN CONSOLE</Text>
+                <Text style={styles.adminSublabel}>Manage users, runners & support</Text>
+            </View>
+            <ArrowRight size={20} color={colors.surface} />
+          </TouchableOpacity>
+        )}
 
         {/* Individual Chunky Stats */}
         <View style={styles.statsContainer}>
@@ -435,5 +454,41 @@ const getStyles = (colors: any) => StyleSheet.create({
     fontFamily: DT.typography.body,
     fontSize: 10,
     color: colors.muted,
+  },
+  adminBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: DT.spacing.lg,
+    marginBottom: DT.spacing.lg,
+    padding: DT.spacing.md,
+    borderWidth: 3,
+    borderColor: '#0F0F0F',
+    shadowColor: '#0F0F0F',
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
+    gap: 12,
+  },
+  adminIconBox: {
+    width: 44,
+    height: 44,
+    backgroundColor: '#0F0F0F',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: DT.admin.accent,
+  },
+  adminTextWrap: { flex: 1 },
+  adminLabel: { 
+    fontFamily: DT.typography.heading, 
+    fontSize: 14, 
+    color: '#FFFFFF',
+    letterSpacing: 1
+  },
+  adminSublabel: { 
+    fontFamily: DT.typography.body, 
+    fontSize: 11, 
+    color: 'rgba(255,255,255,0.7)' 
   },
 });

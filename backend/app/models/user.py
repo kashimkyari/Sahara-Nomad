@@ -5,7 +5,13 @@ from geoalchemy2 import Geography
 import uuid
 from datetime import datetime
 from typing import Optional
+import enum
 from .base import AuditableBase
+
+class UserRole(str, enum.Enum):
+    USER = "user"
+    SUPPORT_ADMIN = "support_admin"
+    SUPER_ADMIN = "super_admin"
 
 class User(AuditableBase):
     __tablename__ = "users"
@@ -28,6 +34,7 @@ class User(AuditableBase):
     is_otp_verified: Mapped[bool] = mapped_column(Boolean, default=False)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
     is_runner: Mapped[bool] = mapped_column(Boolean, default=False)
+    role: Mapped[UserRole] = mapped_column(String(20), default=UserRole.USER)
     government_id_nin: Mapped[Optional[str]] = mapped_column(String(11), unique=True, nullable=True)
     loyalty_badge: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     stats_rating: Mapped[float] = mapped_column(Numeric(3, 2), default=5.0)

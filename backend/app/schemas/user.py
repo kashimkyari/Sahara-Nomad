@@ -51,6 +51,7 @@ class UserResponse(UserBase):
     is_otp_verified: bool
     is_verified: bool
     is_runner: bool
+    role: str
     loyalty_badge: Optional[str] = None
     stats_rating: float = 2.5
     created_at: datetime
@@ -91,3 +92,19 @@ class TokenRefresh(BaseModel):
 class OTPVerify(BaseModel):
     phone_number: str
     otp_code: str
+
+class RoleUpdate(BaseModel):
+    role: str
+
+class RunnerApplicationResponse(BaseModel):
+    id: UUID
+    user_id: UUID
+    full_name: str
+    bvn: Optional[str]
+    home_address: str
+    transport_mode: str
+    verification_method: str
+    status: str
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)

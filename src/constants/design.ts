@@ -21,6 +21,18 @@ export const DesignTokens = {
     error: '#FF3B30',
     border: '#F5F5F5',
   },
+  admin: {
+    primary: '#6200EE', // Deep Purple
+    secondary: '#00E5FF', // Electric Blue
+    background: '#0F0F0B', // Darker background
+    surface: '#1A1A1A',
+    text: '#F5F5F5',
+    muted: '#9E9E9E',
+    accent: '#FF00FF', // Magenta
+    error: '#FF3B30',
+    border: '#F5F5F5',
+    card: '#222222',
+  },
   typography: {
     heading: 'Outfit_700Bold',
     body: 'PlusJakartaSans_500Medium',
