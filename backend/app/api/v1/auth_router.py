@@ -392,7 +392,7 @@ async def upload_avatar(
     return {"status": "ok", "avatar_url": current_user.avatar_url}
 
 @router.get("/users/{user_id}/avatar")
-async def get_user_avatar(user_id: uuid.UUID, current_user: User = Depends(get_current_user)):
+async def get_user_avatar(user_id: uuid.UUID):
     # Find the file that starts with user id
     for f in os.listdir(UPLOAD_DIR):
         if f.startswith(str(user_id)):

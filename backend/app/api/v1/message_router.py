@@ -251,6 +251,7 @@ async def send_message_http(
     # Notify recipient
     recipient_id = conv.runner_id if current_user.id == conv.employer_id else conv.employer_id
     recipient = await db.get(User, recipient_id)
+    print(f"Message Notification Flow: Sender={current_user.id} -> Recipient={recipient_id}")
     if recipient:
         await notify_user(
             db=db,
@@ -263,7 +264,8 @@ async def send_message_http(
             send_in_app=False,
             category_id="message",
             extra_data={
-                "sender_avatar_url": current_user.avatar_url
+                "sender_avatar_url": current_user.avatar_url,
+                "recipient_id": str(recipient_id)
             }
         )
         await db.commit()
@@ -385,8 +387,9 @@ async def websocket_endpoint(
             await manager.broadcast(json.dumps(msg_data), convo_id)
             
             # Notify recipient
-            recipient_id = conv.runner_id if sender_id == conv.employer_id else conv.employer_id
+            recipient_id = conv.runner_id if current_user.id == conv.employer_id else conv.employer_id
             recipient = await db.get(User, recipient_id)
+            print(f"WS Message Notification Flow: Sender={current_user.id} -> Recipient={recipient_id}")
             if recipient:
                 await notify_user(
                     db=db,
@@ -399,7 +402,8 @@ async def websocket_endpoint(
                     send_in_app=False,
                     category_id="message",
                     extra_data={
-                        "sender_avatar_url": current_user.avatar_url
+                        "sender_avatar_url": current_user.avatar_url,
+                        "recipient_id": str(recipient_id)
                     }
                 )
                 await db.commit()

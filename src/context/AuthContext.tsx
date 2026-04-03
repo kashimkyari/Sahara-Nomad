@@ -234,7 +234,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Slight delay to ensure environment is ready
       const timer = setTimeout(syncPushToken, 1000);
       
-      // Also register notification listeners if needed
+      // Also register notification listeners
       const notificationListener = Notifications.addNotificationReceivedListener(notification => {
         console.log('Notification Received:', notification);
       });
@@ -246,22 +246,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const userText = (response as any).userText;
 
         if (actionIdentifier === 'reply' && userText && data?.linked_entity_id) {
-          // Handle Quick Reply
+          // Handle Quick Reply - needs token
+          const currentToken = await SecureStore.getItemAsync('userToken');
+          if (!currentToken) {
+            console.error('Quick Reply: No token available');
+            return;
+          }
+
+          console.log('Processing Quick Reply:', userText);
+          console.log('Intended Recipient:', data?.recipient_id);
+          console.log('Current User (Replying as):', user?.id);
+
           try {
-            await fetch(`${API.API_URL}/chat/messages`, {
+            const replyResponse = await fetch(`${API.API_URL}/chat/messages`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
+                'Authorization': `Bearer ${currentToken}`
               },
               body: JSON.stringify({
                 conversation_id: data.linked_entity_id,
                 content_text: userText
               })
             });
-            console.log('Quick Reply Sent:', userText);
+            
+            if (replyResponse.ok) {
+              console.log('Quick Reply Sent Successfully:', userText);
+            } else {
+              const errData = await replyResponse.text();
+              console.error('Quick Reply Failed:', replyResponse.status, errData);
+            }
           } catch (e) {
-            console.error('Failed to send quick reply:', e);
+            console.error('Failed to send quick reply error:', e);
           }
           return;
         }

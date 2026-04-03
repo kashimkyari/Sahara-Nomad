@@ -1,26 +1,54 @@
-from exponent_server_sdk import PushClient, PushMessage, PushServerError
 from typing import List, Optional
 from ..core.config import settings
 from ..models.notification import InAppNotification
 from sqlalchemy.ext.asyncio import AsyncSession
 import uuid
+import requests
+import json
 
 def send_push_notification(token: str, title: str, body: str, data: Optional[dict] = None, category_id: Optional[str] = None):
     try:
-        response = PushClient().publish(
-            PushMessage(to=token,
-                        title=title,
-                        body=body,
-                        data=data,
-                        category=category_id,
-                        mutable_content=True if category_id else False)
-        )
+        # Expo Push API URL
+        url = "https://exp.host/--/api/v2/push/send"
+        
+        # Prepare payload
+        payload = {
+            "to": token,
+            "title": title,
+            "body": body,
+            "data": data,
+            "sound": "default"
+        }
+        
+        if category_id:
+            payload["categoryId"] = category_id
+            payload["mutableContent"] = True
+            
+        # Support image/avatar
+        if data and "sender_avatar_url" in data:
+            avatar_url = data["sender_avatar_url"]
+            if avatar_url:
+                # Prepend API URL if it's a relative path
+                full_avatar_url = avatar_url if avatar_url.startswith('http') else f"{settings.API_BASE_URL}{avatar_url}"
+                payload["image"] = full_avatar_url
+                # iOS requires 'attachments' for rich notifications
+                payload["attachments"] = [{"url": full_avatar_url}]
+        
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "Accept-Encoding": "gzip, deflate",
+        }
+        
+        response = requests.post(url, headers=headers, data=json.dumps(payload))
+        response.raise_for_status()
+        
         print(f"Push Notification Sent Success: {title} -> {token}")
-    except PushServerError as exc:
-        # Enforce error logging in production
-        print(f"Push Notification Error: {exc}")
+        return response.json()
+
     except Exception as exc:
-        print(f"Unknown Push Error: {exc}")
+        print(f"Push Notification Dispatch Error: {exc}")
+        return None
 
 def broadcast_to_runners(tokens: List[str], title: str, body: str, waka_id: str):
     for token in tokens:
