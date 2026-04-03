@@ -36,11 +36,11 @@ export default function SupportScreen() {
         {/* Contact channels */}
         <Text style={styles.sectionLabel}>REACH US</Text>
         {[
-          { icon: MessageSquare, label: 'Live Chat', sub: 'Avg. 3 min response', color: colors.primary },
+          { icon: MessageSquare, label: 'Live Support', sub: 'Avg. 3 min response', color: colors.primary, action: () => router.push('/profile/live-support' as any) },
           { icon: Phone, label: 'Call Support', sub: '9am – 6pm Mon–Sat', color: colors.secondary },
           { icon: Mail, label: 'Email Us', sub: 'support@sendam.ng', color: colors.accent },
         ].map((ch) => (
-          <TouchableOpacity key={ch.label} style={styles.channelRow}>
+          <TouchableOpacity key={ch.label} style={styles.channelRow} onPress={ch.action}>
             <View style={[styles.channelIcon, { backgroundColor: ch.color }]}>
               <ch.icon size={20} color={colors.surface} strokeWidth={2.5} />
             </View>
