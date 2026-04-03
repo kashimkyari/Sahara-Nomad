@@ -10,6 +10,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { DesignTokens as DT } from '../../constants/design';
 import { useTheme } from '../../hooks/use-theme';
 
@@ -151,6 +152,11 @@ export const BrutalistAlert: React.FC<BrutalistAlertProps> = ({
         style={styles.overlay}
         pointerEvents={visible ? 'auto' : 'none'}
       >
+        <BlurView
+          intensity={25}
+          style={StyleSheet.absoluteFill}
+          tint="dark"
+        />
         {/* Dialog wrapper — shadow + face stacked */}
         <View style={styles.dialogWrapper}>
           {/* Black shadow — static, always offset */}
