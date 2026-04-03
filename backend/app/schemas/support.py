@@ -33,6 +33,4 @@ class SupportTicketRead(SupportTicketBase):
     last_message_at: Optional[datetime] = None
     created_at: datetime
     
-    messages: Optional[List[SupportMessageRead]] = []
-    
     model_config = ConfigDict(from_attributes=True)

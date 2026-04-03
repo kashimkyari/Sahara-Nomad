@@ -173,12 +173,14 @@ async def support_websocket_endpoint(
             
             # User sending message
             content_text = data.get("content_text")
-            if not content_text: continue
+            attachment_url = data.get("attachment_url")
+            if not content_text and not attachment_url: continue
             
             new_msg = SupportMessage(
                 ticket_id=uuid.UUID(ticket_id),
                 sender_id=current_user.id,
-                content_text=content_text
+                content_text=content_text,
+                attachment_url=attachment_url
             )
             db.add(new_msg)
             

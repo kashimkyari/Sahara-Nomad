@@ -44,7 +44,7 @@ export default function LiveSupportScreen() {
   // Initialize or fetch ticket
   useEffect(() => {
     const initSupport = async () => {
-      if (!ticketId) {
+      if (!ticketId && token) {
         try {
           const response = await fetch(API.SUPPORT.INIT, {
             method: 'POST',
@@ -57,21 +57,24 @@ export default function LiveSupportScreen() {
           if (response.ok) {
             const ticket = await response.json();
             setTicketId(ticket.id);
+            fetchHistory(ticket.id);
           }
         } catch (e) {
           console.error('Failed to init support ticket', e);
         }
-      } else {
+      } else if (ticketId && token) {
         fetchHistory(ticketId);
       }
     };
 
-    if (token) initSupport();
-  }, [ticketId, token]);
+    initSupport();
+  }, [token]);
 
-  // Handle WebSocket connection
+  // Handle WebSocket connection - only if an agent has responded or ticket is active
   useEffect(() => {
-    if (ticketId && token) {
+    const hasAgentMessage = messages.some(m => m.sender_id !== user?.id);
+    
+    if (ticketId && token && hasAgentMessage) {
       const wsUrl = API.SUPPORT.WS(ticketId, token);
       setIsConnecting(true);
       ws.current = new WebSocket(wsUrl);
@@ -92,8 +95,7 @@ export default function LiveSupportScreen() {
         }
       };
 
-      ws.current.onerror = (e) => {
-        console.error('WS Support Error', e);
+      ws.current.onerror = () => {
         setIsConnecting(false);
         setIsLive(false);
       };
@@ -107,7 +109,7 @@ export default function LiveSupportScreen() {
         ws.current?.close();
       };
     }
-  }, [ticketId, token]);
+  }, [ticketId, token, messages.length > 0]);
 
   const fetchHistory = async (id: string) => {
     try {
@@ -123,23 +125,39 @@ export default function LiveSupportScreen() {
     }
   };
 
-  const sendMessage = (contentText?: string, attachmentUrl?: string) => {
-    const text = contentText || chatInput;
-    if (!text.trim() && !attachmentUrl) return;
+  const sendMessage = async (contentText?: string, attachmentUrl?: string) => {
+    const text = (contentText || chatInput || '').trim();
+    if (!text && !attachmentUrl) return;
     
-    if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
-      sendViaRest(text, attachmentUrl);
-      return;
-    }
-    
-    const payload = { content_text: text, attachment_url: attachmentUrl };
-    ws.current.send(JSON.stringify(payload));
-    setChatInput('');
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    // Always use REST for sending as it's more reliable and triggers broadcast
+    await sendViaRest(text, attachmentUrl);
   };
 
   const sendViaRest = async (contentText?: string, attachmentUrl?: string) => {
-    if (!ticketId) return;
+    // If ticketId is missing, try to initialize first
+    let currentTicketId = ticketId;
+    if (!currentTicketId) {
+      try {
+        const response = await fetch(API.SUPPORT.INIT, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ subject: 'Live Support Session' })
+        });
+        if (response.ok) {
+          const ticket = await response.json();
+          currentTicketId = ticket.id;
+          setTicketId(ticket.id);
+        } else {
+          return;
+        }
+      } catch (e) {
+        return;
+      }
+    }
+
     const text = contentText || chatInput;
     setChatInput(''); 
     
@@ -151,7 +169,7 @@ export default function LiveSupportScreen() {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ 
-          ticket_id: ticketId, 
+          ticket_id: currentTicketId, 
           content_text: text,
           attachment_url: attachmentUrl 
         })
@@ -161,10 +179,16 @@ export default function LiveSupportScreen() {
         setChatInput(text);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       } else {
+        const newMsg = await response.json();
+        setMessages(prev => {
+          if (prev.find(m => m.id === newMsg.id)) return prev;
+          return [...prev, newMsg];
+        });
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       }
     } catch (e) {
       setChatInput(text);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
   };
 
@@ -246,7 +270,7 @@ export default function LiveSupportScreen() {
           <View>
             <Text style={styles.headerName}>SendAm Support</Text>
             <Text style={[styles.headerStatus, isLive && { color: colors.secondary }]}>
-              {isConnecting ? 'Connecting...' : isLive ? 'Live Support Online' : 'Offline'}
+              {!ticketId ? 'Initializing...' : isConnecting ? 'Connecting...' : isLive ? 'Live Support Online' : 'Waiting for Agent'}
             </Text>
           </View>
         </View>
