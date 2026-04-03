@@ -255,11 +255,12 @@ async def send_message_http(
         await notify_user(
             db=db,
             user=recipient,
-            title=f"New Message from {current_user.full_name}",
+            title=current_user.full_name,
             body=msg_in.content_text or "Sent an attachment",
-            type="info",
+            type="message",
             linked_entity_id=conv.id,
-            linked_entity_type="conversation"
+            linked_entity_type="conversation",
+            send_in_app=False
         )
         await db.commit()
     
@@ -386,11 +387,12 @@ async def websocket_endpoint(
                 await notify_user(
                     db=db,
                     user=recipient,
-                    title=f"New Message from {current_user.full_name}",
+                    title=current_user.full_name,
                     body=content_text or "Sent a message",
-                    type="info",
+                    type="message",
                     linked_entity_id=conv.id,
-                    linked_entity_type="conversation"
+                    linked_entity_type="conversation",
+                    send_in_app=False
                 )
                 await db.commit()
             

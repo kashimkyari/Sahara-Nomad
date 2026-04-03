@@ -54,13 +54,15 @@ async def notify_user(
     type: str = "info",
     linked_entity_id: uuid.UUID = None,
     linked_entity_type: str = None,
-    send_push: bool = True
+    send_push: bool = True,
+    send_in_app: bool = True
 ):
     """Unified notification dispatcher. Creates in-app record and optionally sends push."""
-    # 1. Always create in-app notification
-    await create_in_app_notification(
-        db, user.id, title, body, type, linked_entity_id, linked_entity_type
-    )
+    # 1. Conditionally create in-app notification
+    if send_in_app:
+        await create_in_app_notification(
+            db, user.id, title, body, type, linked_entity_id, linked_entity_type
+        )
     
     # 2. Conditional Push Notification
     if send_push and user.push_notifications_enabled and user.expo_push_token:
