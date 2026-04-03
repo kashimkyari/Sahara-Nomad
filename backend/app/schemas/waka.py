@@ -19,6 +19,12 @@ class WakaCreate(BaseModel):
     total_price: float
     target_runner_id: Optional[UUID] = None
 
+class WakaUser(BaseModel):
+    id: UUID
+    full_name: str
+    avatar_url: Optional[str] = None
+    phone_number: Optional[str] = None
+
 class WakaResponse(BaseModel):
     id: UUID
     employer_id: UUID
@@ -35,6 +41,9 @@ class WakaResponse(BaseModel):
     status: str
     is_completed: bool
     created_at: datetime
+    
+    employer: Optional[WakaUser] = None
+    runner: Optional[WakaUser] = None
 
     class Config:
         from_attributes = True

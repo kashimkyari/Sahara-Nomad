@@ -1,10 +1,13 @@
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import String, Boolean, Numeric, ForeignKey, Text, Integer
 from sqlalchemy.dialects.postgresql import UUID
 from geoalchemy2 import Geography
 import uuid
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 from .base import AuditableBase
+
+if TYPE_CHECKING:
+    from .user import User
 
 class Waka(AuditableBase):
     __tablename__ = "wakas"
@@ -32,3 +35,7 @@ class Waka(AuditableBase):
     status: Mapped[Optional[str]] = mapped_column(String(50), default="finding_runner", nullable=True)
     
     is_completed: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    # Relationships
+    employer: Mapped["User"] = relationship("User", foreign_keys=[employer_id])
+    runner: Mapped[Optional["User"]] = relationship("User", foreign_keys=[runner_id])

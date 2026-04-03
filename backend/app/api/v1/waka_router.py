@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
+from sqlalchemy.orm import selectinload
 from ...database import get_db
 from ...models.waka import Waka
 from ...models.user import User
@@ -40,6 +41,7 @@ async def create_waka(
     db.add(db_obj)
     await db.commit()
     await db.refresh(db_obj)
+    db_obj.employer = current_user
 
     # Initial Notification for Employer
     await notify_user(
@@ -78,6 +80,7 @@ async def get_active_wakas(
     """Return non-completed, non-cancelled wakas created by the current user."""
     result = await db.execute(
         select(Waka)
+        .options(selectinload(Waka.employer), selectinload(Waka.runner))
         .where(
             Waka.employer_id == current_user.id, 
             Waka.is_completed == False,
@@ -165,6 +168,7 @@ async def get_my_wakas(
     """Return all wakas created by the current user (as employer)."""
     result = await db.execute(
         select(Waka)
+        .options(selectinload(Waka.employer), selectinload(Waka.runner))
         .where(Waka.employer_id == current_user.id, Waka.is_deleted == False)
         .order_by(Waka.created_at.desc())
     )
@@ -178,6 +182,7 @@ async def get_available_wakas(
     """Return all wakas that are broadcasted and looking for a runner."""
     result = await db.execute(
         select(Waka)
+        .options(selectinload(Waka.employer), selectinload(Waka.runner))
         .where(
             Waka.status == "finding_runner",
             Waka.runner_id == None,
@@ -195,6 +200,7 @@ async def get_runner_active_wakas(
     """Return non-completed wakas where the current user is the runner."""
     result = await db.execute(
         select(Waka)
+        .options(selectinload(Waka.employer), selectinload(Waka.runner))
         .where(
             Waka.runner_id == current_user.id,
             Waka.is_completed == False,
@@ -211,7 +217,11 @@ async def get_waka(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    result = await db.execute(select(Waka).where(Waka.id == waka_id, Waka.is_deleted == False))
+    result = await db.execute(
+        select(Waka)
+        .options(selectinload(Waka.employer), selectinload(Waka.runner))
+        .where(Waka.id == waka_id, Waka.is_deleted == False)
+    )
     waka = result.scalars().first()
     if not waka:
         raise HTTPException(status_code=404, detail="Waka not found")

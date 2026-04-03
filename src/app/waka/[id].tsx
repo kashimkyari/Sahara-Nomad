@@ -169,6 +169,35 @@ export default function WakaStatusScreen() {
     }
   };
 
+  const handleChat = async () => {
+    if (!waka || !token || !user) return;
+    try {
+      const otherUser = user.id === waka.runner_id ? waka.employer : waka.runner;
+      if (!otherUser) return;
+
+      const res = await fetch(API.MESSAGES.CONVERSATIONS, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          employer_id: waka.employer_id,
+          runner_id: waka.runner_id,
+          waka_id: waka.id,
+        }),
+      });
+
+      if (!res.ok) throw new Error('Failed to start conversation');
+      const conv = await res.json();
+      router.push(`/conversation/${conv.id}`);
+    } catch (e: any) {
+      showAlert('Error', e.message);
+    }
+  };
+
+
+
   useEffect(() => {
     fetchWakaDetails();
   }, [id, token]);
@@ -199,6 +228,9 @@ export default function WakaStatusScreen() {
       </SafeAreaView>
     );
   }
+
+  const isUserRunner = user?.id === waka.runner_id;
+  const displayUser = isUserRunner ? waka.employer : waka.runner;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -279,21 +311,23 @@ export default function WakaStatusScreen() {
           </View>
         )}
 
-        {/* Runner Card */}
-        {waka.runner_id ? (
+        {/* Participant (Runner/Nomad) Card */}
+        {displayUser ? (
           <View style={styles.runnerCard}>
             <View style={styles.runnerHeaderRow}>
               <Image 
-                source={{ uri: `https://i.pravatar.cc/150?u=${waka.runner_id}` }} 
+                source={{ uri: displayUser.avatar_url || `https://i.pravatar.cc/150?u=${displayUser.id}` }} 
                 style={styles.runnerAvatar} 
               />
               <View style={styles.runnerInfo}>
-                <Text style={styles.runnerName}>Runner #{waka.runner_id.slice(0, 8)}</Text>
-                <Text style={styles.runnerRating}>★ 4.9 · Your runner</Text>
+                <Text style={styles.runnerName}>{displayUser.full_name}</Text>
+                <Text style={styles.runnerRating}>
+                  {isUserRunner ? '★ 4.8 · Nomad' : '★ 4.9 · Runner'}
+                </Text>
               </View>
             </View>
             <View style={styles.runnerActions}>
-              <TouchableOpacity style={styles.actionBtn}>
+              <TouchableOpacity style={styles.actionBtn} onPress={handleChat}>
                 <MessageCircle size={20} color={colors.text} strokeWidth={2.5} />
                 <Text style={styles.actionBtnText}>MESSAGE</Text>
               </TouchableOpacity>
