@@ -1,52 +1,153 @@
 # SendAm
 
-SendAm is a mobile marketplace for same-city errands, market runs, and on-demand delivery coordination. It connects people who need items sourced or transported with local runners who know the city, understand the markets, and can fulfill errands quickly. This app is the customer-facing and operations-facing mobile client built with Expo, React Native, and Expo Router.
+SendAm is a mobile marketplace and logistics coordination app for same-city errands, market runs, and on-demand delivery. It connects users who need goods sourced or transported with local runners who understand the city, know the markets, and can fulfill errands quickly.
 
-At a product level, SendAm sits at the intersection of commerce, logistics, and trusted neighborhood labor. A user can discover runners, post a job, fund a wallet, track the errand as it progresses, chat with the assigned runner, and receive notifications throughout the lifecycle of the request.
+This repository contains the frontend client, built with Expo, React Native, TypeScript, and Expo Router. The backend for this app lives in [backend](/home/kashim/nite-personal/sahara-nomad/backend) and is implemented with FastAPI. Together, the frontend and backend support authentication, runner discovery, errand creation, live tracking, chat, wallet operations, and notifications.
 
-This repository contains the frontend client. It expects a separate backend for auth, runner discovery, wallet operations, notifications, chat, and errand lifecycle management.
+This README is written as both:
 
-## Why This Product Exists
+- a product overview for someone evaluating the business and user experience
+- a portfolio and engineering overview for recruiters, hiring managers, and developers reviewing the codebase
 
-In dense urban markets, getting something done often means knowing who to call, where to source from, which market to trust, and how to coordinate delivery under time pressure. SendAm packages that informal network into software.
+## Why This Project Matters
 
-The value proposition visible in this codebase is straightforward:
+In many cities, especially dense urban markets, getting something done still depends on fragmented offline coordination. A person may know what they need, but not who to call, where to source it, or how to move it across town efficiently. SendAm turns that informal network into a structured software workflow.
 
-- Consumers get a faster way to source and move goods across town.
-- Runners get a structured way to monetize local knowledge and availability.
-- The platform gets transaction visibility, communication tooling, and a repeatable operational workflow.
+At the product level, the app demonstrates a complete service loop:
 
-For an investor or product stakeholder, the app demonstrates a credible service loop:
+1. Acquire demand through onboarding and authentication.
+2. Let users discover available supply through runner search and market filters.
+3. Convert intent into structured errands with pickup, dropoff, price, and urgency.
+4. Keep users engaged during fulfillment through live tracking, messaging, and alerts.
+5. Support repeat usage through wallet history, payment methods, and account persistence.
 
-1. Acquire users through a simple onboarding and auth funnel.
-2. Convert demand into structured errands.
-3. Route demand toward available runners.
-4. Keep both sides engaged through live status, messaging, and notifications.
-5. Capture wallet activity and repeat usage through stored methods and transaction history.
+For hiring purposes, this is not just a UI clone or isolated demo screen set. It is a real application-shaped codebase with:
 
-## Product Snapshot
+- authenticated routing
+- persistent session state
+- backend-driven data flows
+- real-time messaging via WebSocket
+- push notifications
+- location-assisted form workflows
+- wallet and transaction surfaces
+- reusable UI primitives and design tokens
 
-### Core user value
+## What This Project Says About Me
 
-- Post errands for goods pickup, market sourcing, food delivery, or custom requests.
-- Discover nearby runners by market, proximity, and availability.
-- Track live errand progress through clearly defined delivery states.
-- Chat directly with runners inside the job context.
-- Manage wallet balance, saved payment methods, and transaction history.
-- Receive push notifications and in-app alerts for important updates.
+This project demonstrates the ability to:
 
-### Business-facing signals already present in the app
+- design and ship an end-to-end product, not just isolated components
+- build production-shaped mobile interfaces in React Native
+- work with authenticated APIs and session lifecycle management
+- connect frontend state to real backend workflows
+- implement route guards and protected navigation flows
+- integrate mobile capabilities such as notifications, secure storage, and location
+- structure a codebase around reusable UI and shared context
+- think in terms of user journey, platform behavior, and business logic at the same time
 
-- Marketplace structure with two-sided participation.
-- Geo-aware logistics flow through pickup and dropoff coordinates.
-- Runner discovery and hire intent.
-- Wallet and payment primitives that support monetization.
-- Notification and messaging infrastructure that supports retention.
-- Branded visual identity instead of raw prototype scaffolding.
+If you are a recruiter or hiring manager, the strongest signal here is that this app combines product thinking with implementation depth. It is not only visually designed, it is operationally wired.
+
+## Elevator Pitch
+
+SendAm helps people get things done across the city by turning local runner networks into a structured marketplace. Users can post errands, discover nearby runners, track live delivery progress, chat in context, manage payment methods, and receive status updates throughout the transaction.
+
+## Core Product Value
+
+### For users
+
+- Post errands for packages, market sourcing, food delivery, or custom requests
+- Discover nearby runners using location and market-aware search
+- Track active errands through clear fulfillment steps
+- Chat directly with runners within the context of an errand
+- Receive alerts for operational updates
+- Manage wallet balance and transaction history
+
+### For runners
+
+- Gain access to demand from nearby users
+- Turn local knowledge into income
+- Operate within a structured fulfillment flow instead of ad hoc coordination
+
+### For the platform
+
+- Structured demand capture
+- Repeatable order lifecycle
+- In-app communication
+- Financial activity surfaces
+- Retention hooks via notifications, chats, and history
+
+## Product Features
+
+### Authentication and onboarding
+
+- Branded splash screen
+- Multi-step onboarding experience
+- Login and signup
+- OTP verification support
+- Session persistence using secure device storage
+- Protected route guards that separate public and authenticated navigation
+
+### Marketplace home dashboard
+
+- Personalized greeting
+- Active errand overview
+- Nearby runner discovery
+- Unread notification count
+- Fast navigation to profile and activity surfaces
+- Pull-to-refresh interaction
+
+### Runner discovery
+
+- Search by market and free text
+- Filter by availability, proximity, and rating-related states
+- Trending and recent search behavior
+- Runner profile deep-links
+
+### Errand creation
+
+- Category selection
+- Pickup and dropoff entry
+- Location autofill using device GPS
+- Base fee and urgency logic
+- Payload structure that supports targeted runner assignment
+
+### Errand tracking
+
+- Step-based progress mapping
+- Live status card
+- Runner summary
+- Cancellation handling
+- Route and price visibility
+
+### Messaging
+
+- Conversation list
+- Unread filtering
+- HTTP-backed send and history
+- WebSocket-backed live updates
+- Errand-aware chat context
+
+### Notifications
+
+- Expo push token registration
+- Android notification channel setup
+- Push-token sync to backend
+- In-app alerts inbox
+- Mark-as-read and clear-all behavior
+- Deep-link style navigation from alerts
+
+### Wallet and profile tools
+
+- Wallet balance view
+- Funding flow
+- Payment method management
+- Transaction history
+- Transaction detail screens
+- Settings, support, safety, language, and profile update screens
 
 ## Screenshots
 
-Replace these placeholders with real product images when available. The placeholders currently use the provided asset.
+The sections below use the provided placeholder image. Replace them with real product screenshots when available.
 
 ### Onboarding
 
@@ -56,13 +157,13 @@ Replace these placeholders with real product images when available. The placehol
 
 ![Authentication placeholder](assets/images/tutorial-web.png)
 
-### Home
+### Home Dashboard
 
-![Home placeholder](assets/images/tutorial-web.png)
+![Home dashboard placeholder](assets/images/tutorial-web.png)
 
-### Runner Discovery
+### Runner Search
 
-![Runner discovery placeholder](assets/images/tutorial-web.png)
+![Runner search placeholder](assets/images/tutorial-web.png)
 
 ### Errand Creation
 
@@ -76,240 +177,250 @@ Replace these placeholders with real product images when available. The placehol
 
 ![Messaging placeholder](assets/images/tutorial-web.png)
 
-### Wallet
+### Wallet and Payments
 
 ![Wallet placeholder](assets/images/tutorial-web.png)
 
-## Experience Overview
+## User Journey
 
-The current app flow reads like this:
+The app flow, as implemented today, looks like this:
 
-1. A user lands on a branded splash screen and onboarding sequence.
-2. The user signs up, logs in, or completes OTP verification.
-3. The authenticated user enters a tab-based dashboard.
-4. From there they can search runners, post a new errand, review alerts, or manage their profile.
-5. Once an errand is created, they can track its status, contact the runner, and review financial activity.
+1. The user lands on a branded splash route.
+2. They move through onboarding and into authentication.
+3. Auth state is loaded from secure storage and route guards decide access.
+4. Authenticated users enter a tab-based dashboard.
+5. The user can search runners, view profiles, or post a new errand.
+6. Once an errand exists, they can track progress and communicate with the runner.
+7. Notifications, wallet state, and transaction history remain available through the account area.
 
-This is already more than a static showcase. The app contains the wiring for a real operational product.
+This is important in a portfolio context because it shows complete flow thinking, not isolated page-building.
 
-## Technical Overview
-
-### Stack
+## Tech Stack
 
 - Expo SDK `55`
 - React `19`
 - React Native `0.83`
 - TypeScript
-- Expo Router for file-based navigation
-- Expo Secure Store for token persistence
-- AsyncStorage for lightweight local caching
-- Expo Notifications for push registration and alert handling
-- Expo Location for coordinate capture and address autofill
-- Expo Image for performant image rendering
-- Moti for motion and refresh interactions
-- Lucide React Native for iconography
+- Expo Router
+- Expo Secure Store
+- AsyncStorage
+- Expo Notifications
+- Expo Location
+- Expo Image
+- Moti
+- Lucide React Native
 
-### Product architecture in plain terms
+## Architecture Overview
 
-- `src/context/AuthContext.tsx`
-  Handles session boot, token storage, profile hydration, refresh-token flow, and route guards.
-- `src/context/ThemeContext.tsx`
-  Applies light or dark mode based on the signed-in user's preference.
-- `src/constants/api.ts`
-  Centralizes backend endpoint construction for auth, errands, wallet, chat, notifications, runner profiles, and search.
+### Frontend
+
+The frontend is organized around file-based routing under `src/app`, with context-based global state and shared design primitives.
+
+Main architecture pieces:
+
 - `src/app`
-  Contains all file-based routes.
-- `src/components/ui`
-  Houses shared primitives such as buttons, alerts, cards, inputs, custom tab bar, and refresh behavior.
-
-## What the App Already Supports
-
-### 1. Authentication and session management
-
-The app supports:
-
-- Signup
-- Login
-- OTP verification
-- Refresh-token recovery
-- Session persistence across app restarts
-- Protected routing
-- Sign-out cleanup
-
-This matters because it moves the app beyond brochureware. There is real account-state handling and gated navigation.
-
-### 2. Marketplace home dashboard
-
-The home experience in `src/app/(tabs)/index.tsx` pulls together:
-
-- Active errands
-- Nearby runners
-- Unread notifications
-- Profile entry
-- Pull-to-refresh account and marketplace state
-
-This is the operational center of the app and the strongest signal that the product is being designed around repeat usage, not one-off transactions.
-
-### 3. Runner discovery
-
-`src/app/(tabs)/search.tsx` supports:
-
-- Query-based runner search
-- Market-based filtering
-- Proximity-style filtering
-- Search trend recording
-- Recent local searches saved to storage
-- Navigation into runner profiles
-
-This is an important marketplace layer because demand quality improves when users can browse supply with context.
-
-### 4. Errand creation
-
-`src/app/new-errand.tsx` includes:
-
-- Category selection for package, market, food, or custom jobs
-- Pickup and dropoff capture
-- GPS-assisted autofill using `expo-location`
-- Base fee and urgency logic
-- Optional targeted runner support in the request payload
-- Broadcast submission to the backend
-
-This is the monetizable action in the product. It is the main conversion event.
-
-### 5. Live errand tracking
-
-`src/app/waka/[id].tsx` provides:
-
-- Server-backed errand detail retrieval
-- Step-based status mapping
-- Runner summary display
-- Price and route visibility
-- Cancellation flow
-
-This gives users transparency after checkout or booking, which is critical for trust in a logistics product.
-
-### 6. Messaging
-
-Messaging is implemented through:
-
-- `src/app/(tabs)/messages.tsx`
-- `src/app/conversation/[id].tsx`
-
-The implementation uses:
-
-- HTTP for conversation list and message history
-- HTTP for send actions
-- WebSocket for live message delivery
-
-That hybrid approach is practical and product-appropriate. It supports persistence while still enabling real-time interaction.
-
-### 7. Notifications
-
-Notification functionality is visible in:
-
-- `src/utils/notifications.ts`
+  File-based screens and layouts using Expo Router
 - `src/context/AuthContext.tsx`
-- `src/app/notifications.tsx`
-- `src/app/notification/[id].tsx`
+  Central auth/session logic, token persistence, user hydration, route protection, and push sync
+- `src/context/ThemeContext.tsx`
+  Theme selection driven by user preference
+- `src/constants/api.ts`
+  Central API endpoint definitions
+- `src/constants/design.ts`
+  Shared design tokens for color, spacing, typography, borders, and shadows
+- `src/components/ui`
+  Shared visual building blocks such as buttons, alerts, cards, inputs, refresh controls, and custom tab behavior
 
-The app already handles:
+### Backend
 
-- Push permission requests
-- Expo push token registration
-- Notification channel setup on Android
-- Push-token sync to the backend
-- In-app alert listing
-- Mark-as-read and clear-all actions
-- Navigation from alerts into relevant screens
+The backend lives in [backend](/home/kashim/nite-personal/sahara-nomad/backend) and is a FastAPI application. The frontend is designed to work with that service for:
 
-### 8. Wallet and payments
+- auth and token refresh
+- user profile reads and updates
+- runner discovery
+- errand creation and tracking
+- wallet operations
+- payment method handling
+- notifications
+- messaging and WebSocket chat
 
-Profile and finance tooling under `src/app/profile` includes:
+### Data and state strategy
 
-- Wallet balance display
-- Funding flow
-- Payment method listing and deletion
-- Transaction history
-- Transaction detail views
-- Dispute entry points
+- Tokens are stored in `expo-secure-store`
+- Cached user data and recent searches use `AsyncStorage`
+- Screen-specific UI state is kept local to route components
+- Cross-cutting state like auth and theme is stored in React context
+- Real-time chat updates are handled through WebSocket alongside standard REST fetches
 
-This is notable from an investor perspective because it shows the beginnings of a closed-loop transaction system, and from a developer perspective because the API integration surface is already shaped.
+## Important Engineering Decisions
 
-## Route Map
+### 1. Centralized auth and navigation control
+
+`src/context/AuthContext.tsx` is the most important architectural file in the app.
+
+It is responsible for:
+
+- loading tokens on app boot
+- caching and restoring user data
+- refreshing tokens when needed
+- exposing `signIn`, `signOut`, and `refreshUser`
+- redirecting users based on authentication state
+- syncing push tokens after login
+
+Why this matters:
+
+- It prevents auth logic from leaking into every screen
+- It keeps the route protection strategy consistent
+- It makes the app easier to reason about during onboarding or debugging
+
+### 2. Hybrid real-time messaging approach
+
+Messaging is implemented with both REST and WebSocket:
+
+- REST for history and sends
+- WebSocket for incoming real-time events
+
+Why this matters:
+
+- history stays easy to fetch and persist
+- live updates remain responsive
+- the architecture avoids forcing every interaction through one protocol
+
+### 3. Mobile-native capability integration
+
+The app uses mobile platform features in meaningful ways:
+
+- secure credential storage
+- push notification registration
+- Android notification channel configuration
+- location permission and reverse geocoding
+
+Why this matters:
+
+- it shows comfort with mobile runtime constraints
+- it demonstrates work beyond ordinary CRUD screens
+
+### 4. Shared design tokens and UI primitives
+
+The visual system is not improvised per screen. The app uses shared tokens and reusable components to keep the UI coherent.
+
+Why this matters:
+
+- faster iteration on product surfaces
+- more consistent theming
+- lower UI duplication across a growing app
+
+## Route and Screen Map
 
 ### Public routes
 
 - `src/app/index.tsx`
-  Splash screen that transitions into onboarding.
+  Splash route that transitions to onboarding
 - `src/app/onboarding.tsx`
-  Brand and product education flow.
+  Product intro and conversion into auth
 - `src/app/auth.tsx`
-  Login, signup, OTP verification, and resend logic.
+  Login, signup, OTP verification, and resend flow
 
-### Protected tab routes
+### Protected tabs
 
 - `src/app/(tabs)/index.tsx`
-  Dashboard and active marketplace overview.
+  Dashboard, active errands, nearby runners, and notification awareness
 - `src/app/(tabs)/search.tsx`
-  Runner search and market discovery.
+  Runner discovery, filters, markets, recent searches, and trending behavior
 - `src/app/(tabs)/messages.tsx`
-  Conversation list and unread filtering.
+  Conversation list and unread filtering
 - `src/app/(tabs)/profile.tsx`
-  User identity, wallet snapshot, and settings entry.
+  Profile summary, wallet snapshot, settings entry, and account navigation
 
 ### Protected stack routes
 
 - `src/app/new-errand.tsx`
+  Errand creation and broadcast submission
 - `src/app/waka/[id].tsx`
+  Live errand status, price, route, and cancellation
 - `src/app/waka/history.tsx`
+  Historical errands
 - `src/app/runner/[id].tsx`
+  Runner profile, rating, reviews, and hire entry
 - `src/app/runners/all.tsx`
+  Expanded runner listing
 - `src/app/conversation/[id].tsx`
+  Live chat thread
 - `src/app/notifications.tsx`
+  Notification inbox
 - `src/app/notification/[id].tsx`
+  Notification detail route
 - `src/app/profile/*`
+  Wallet, settings, support, payments, disputes, and account tools
 - `src/app/dispute/create.tsx`
+  Dispute entry workflow
 - `src/app/privacy.tsx`
+  Privacy policy
 - `src/app/terms.tsx`
+  Terms of service
 
-## Design and UX Direction
+## Key Screens and What They Demonstrate
 
-The app does not look like an untouched Expo scaffold. It has a clear visual system defined in `src/constants/design.ts`.
+### `src/app/(tabs)/index.tsx`
 
-Notable traits:
+Demonstrates:
 
-- Heavy borders and hard shadows
-- Square corners
-- High-contrast orange, green, yellow, and black palette
-- Strong heading typography through `Outfit`
-- Clean body typography through `Plus Jakarta Sans`
+- pulling together multiple backend resources on one dashboard
+- unread state handling
+- active marketplace state
+- pull-to-refresh UX
+- authenticated app shell behavior
 
-That matters for two reasons:
+### `src/app/(tabs)/search.tsx`
 
-- Investors can see deliberate brand direction rather than raw utility screens.
-- Developers can see where the design tokens live and how to extend them consistently.
+Demonstrates:
 
-## Backend Contract Surface
+- search UX
+- filter application
+- persisted recent searches
+- backend query integration
+- marketplace discovery thinking
 
-The client currently points to a hard-coded local backend in `src/constants/api.ts`:
+### `src/app/new-errand.tsx`
 
-```ts
-const API_URL = 'http://172.20.10.9:8000/api/v1';
-```
+Demonstrates:
 
-The app expects backend support for these domains:
+- complex form management
+- mobile permission handling
+- reverse geocoding
+- pricing logic
+- backend payload construction
+- conversion-focused product flow
 
-- Auth
-- User profile
-- Runner discovery
-- Errand creation and status updates
-- Wallet balances and transactions
-- Payment methods
-- Notifications
-- Chat history and real-time messaging
-- Search recording and trending responses
+### `src/app/waka/[id].tsx`
 
-### Endpoint groups represented in the client
+Demonstrates:
+
+- turning backend state into a user-readable progress experience
+- cancellation flow integration
+- operational trust-building UI
+
+### `src/app/conversation/[id].tsx`
+
+Demonstrates:
+
+- real-time updates
+- hybrid REST and WebSocket communication
+- errand-contextual messaging
+
+### `src/app/profile/payment.tsx`
+
+Demonstrates:
+
+- multi-endpoint aggregation
+- financial UI presentation
+- CRUD operations on saved payment methods
+
+## Backend Integration Surface
+
+The frontend currently points to a local API host defined in `src/constants/api.ts`.
+
+The API surface represented in the client includes:
 
 - `AUTH`
 - `WAKA`
@@ -320,27 +431,41 @@ The app expects backend support for these domains:
 - `RUNNER`
 - `SEARCH`
 
-For a developer joining the project, `src/constants/api.ts` is the fastest place to understand the backend surface area.
+From the frontend code, the FastAPI backend is expected to support:
 
-## Developer Notes
+- login and signup
+- OTP verification
+- refresh token flow
+- authenticated profile retrieval and updates
+- errand creation, retrieval, cancellation, and completion
+- wallet balance and transaction retrieval
+- payment method listing, creation, and deletion
+- notification listing, unread count, read state, and clear-all
+- conversation listing, history, send, unread count, and WebSocket delivery
+- runner discovery and search recording
 
-### Local setup
+## Developer Setup
 
-Prerequisites:
+### Prerequisites
 
 - Node.js 18 or newer
 - npm
-- Expo-compatible simulator or device
-- Access to the matching backend instance
+- Expo-compatible simulator or physical device
+- Access to the matching FastAPI backend in [backend](/home/kashim/nite-personal/sahara-nomad/backend)
 
-Install and run:
+### Install
 
 ```bash
 npm install
+```
+
+### Run
+
+```bash
 npm run start
 ```
 
-Useful scripts:
+Useful commands:
 
 ```bash
 npm run android
@@ -349,16 +474,9 @@ npm run web
 npm run lint
 ```
 
-### Important implementation notes
+## What To Read First As A Reviewer
 
-- Auth state is global and context-driven.
-- Tokens are stored in `expo-secure-store`.
-- Cached user and search state use `AsyncStorage`.
-- WebSocket chat depends on the backend host being reachable from the device.
-- Push notifications require a valid Expo project ID in `app.json`.
-- Location-based autofill requires foreground location permission.
-
-### Files worth reading first
+If you want the fastest understanding of the codebase, start here:
 
 - `src/context/AuthContext.tsx`
 - `src/constants/api.ts`
@@ -368,28 +486,75 @@ npm run lint
 - `src/app/waka/[id].tsx`
 - `src/app/conversation/[id].tsx`
 - `src/app/profile/payment.tsx`
+- `src/constants/design.ts`
 
-## Current Strengths
+## Design System
 
-- The app is already organized around a coherent service loop.
-- Core marketplace surfaces are implemented, not just mocked in isolation.
-- Session handling and navigation guards are in place.
-- Real-time communication primitives exist.
-- Wallet and payment concepts are already part of the user experience.
-- The visual system is strong enough to communicate product identity.
+The app uses a bold, neobrutalist-inspired interface language.
 
-## Current Gaps and Opportunities
+Defined in `src/constants/design.ts`, it includes:
 
-- API configuration is hard-coded instead of environment-driven.
-- The repository does not yet document backend setup or response contracts.
-- There is no formal automated test suite configured.
-- Some routes still rely on partial placeholder assumptions or backend-specific response shapes.
-- The direct runner-hire route can be tightened further by passing target runner params end-to-end.
+- high-contrast color palettes for light and dark mode
+- square corners
+- heavy borders
+- hard shadows
+- `Outfit` for headings
+- `Plus Jakarta Sans` for body text
 
-These are normal next-stage product engineering tasks, not signs of an empty codebase.
+This is relevant in a hiring context because it shows that the project is not only technically wired but visually intentional.
+
+## Challenges Solved In This Project
+
+This codebase demonstrates practical solutions to common product engineering problems:
+
+- keeping users authenticated across app restarts
+- redirecting users correctly between public and protected routes
+- handling token refresh without collapsing the user session
+- combining REST and WebSocket communication in a single feature area
+- using device location to reduce form friction
+- syncing push tokens to backend user state
+- structuring a growing app around reusable UI instead of duplicated screen code
+- aggregating multiple backend resources into one operational dashboard
+
+## Resume-Ready Summary
+
+If you want short bullets that describe this project well, these are accurate to the codebase:
+
+- Built a full-stack logistics marketplace app with an Expo React Native frontend and FastAPI backend for runner discovery, errand posting, live tracking, messaging, wallet flows, and notifications.
+- Implemented authenticated mobile navigation with secure token persistence, refresh-token recovery, protected routes, and user session restoration.
+- Integrated real-time chat using a hybrid REST plus WebSocket architecture for conversation history, message send, and live delivery.
+- Added mobile-native platform features including push notification registration, Android notification channels, secure storage, and GPS-assisted location autofill.
+- Designed a reusable UI system with shared tokens, brutalist-inspired components, and a scalable Expo Router screen architecture.
+
+## How To Talk About This In Interviews
+
+If you discuss this project in an interview, the strongest angles are:
+
+- product thinking
+  You built around a real operational workflow, not just isolated screens.
+- architecture
+  You centralized auth, route protection, and API integration in ways that scale.
+- mobile experience
+  You used secure storage, notifications, and location in meaningful ways.
+- systems thinking
+  You integrated frontend flows with a FastAPI backend and a WebSocket-based real-time channel.
+- UX pragmatism
+  You designed around trust, transparency, and friction reduction in a logistics product.
+
+## Current Gaps and Next Steps
+
+The project is already substantial, but there are clear next improvements:
+
+- move API configuration to environment-based settings
+- add automated tests for auth, routing, and critical flows
+- document backend response contracts more formally
+- tighten the targeted runner hire path end-to-end
+- add production analytics, error tracking, and stronger offline handling
+
+These are normal next-stage improvements for a real app, and calling them out directly helps communicate engineering maturity.
 
 ## Bottom Line
 
-For an investor, this repository shows a product with a real marketplace thesis, visible logistics workflow, embedded payments direction, and retention-oriented surfaces like messaging and notifications.
+SendAm is a strong portfolio project because it shows end-to-end product engineering: mobile UI, backend integration, authenticated state management, location-aware workflows, real-time communication, notifications, and financial surfaces inside one coherent experience.
 
-For a developer, it shows a workable Expo Router codebase with clear route boundaries, centralized auth and API wiring, reusable UI primitives, and a backend integration surface that is already broad enough to support a meaningful service.
+For a hiring manager, the key takeaway should be simple: this repository reflects someone who can build more than screens. It reflects someone who can shape a product, wire it to a backend, make the experience feel intentional, and handle the messy parts of application development that usually separate demos from real software.
