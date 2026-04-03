@@ -59,6 +59,7 @@ export default {
         INIT: `${API_URL}/support/`,
         MESSAGES: (id: string) => `${API_URL}/support/${id}/messages`,
         SEND: `${API_URL}/support/messages`,
+        DELETE_MESSAGE: (id: string) => `${API_URL}/support/messages/${id}`,
         WS: (id: string, token: string) => `ws://172.20.10.9:8000/api/v1/support/ws/${id}?token=${token}`,
     },
     MEDIA: {

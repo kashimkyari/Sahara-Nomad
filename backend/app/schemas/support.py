@@ -6,6 +6,7 @@ from typing import Optional, List
 class SupportMessageBase(BaseModel):
     content_text: str
     attachment_url: Optional[str] = None
+    attachment_metadata: Optional[dict] = None
 
 class SupportMessageCreate(SupportMessageBase):
     ticket_id: uuid.UUID
@@ -13,6 +14,7 @@ class SupportMessageCreate(SupportMessageBase):
 class SupportMessageRead(SupportMessageBase):
     id: uuid.UUID
     sender_id: Optional[uuid.UUID] = None
+    is_deleted: bool = False
     is_read: bool
     read_at: Optional[datetime] = None
     created_at: datetime

@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import String, Boolean, ForeignKey, Text, DateTime, func
+from sqlalchemy import String, Boolean, ForeignKey, Text, DateTime, func, JSON
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 from typing import Optional
@@ -31,7 +31,9 @@ class SupportMessage(AuditableBase):
     
     content_text: Mapped[str] = mapped_column(Text)
     attachment_url: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    attachment_metadata: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     
+    is_deleted: Mapped[bool] = mapped_column(default=False)
     is_read: Mapped[bool] = mapped_column(default=False)
     read_at: Mapped[Optional[DateTime]] = mapped_column(DateTime(timezone=True), nullable=True)
 

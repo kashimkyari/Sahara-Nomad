@@ -135,6 +135,36 @@ async def send_support_message(
     
     return new_msg
 
+@router.delete("/messages/{message_id}", response_model=SupportMessageRead)
+async def delete_support_message(
+    message_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Soft-delete a support message."""
+    stmt = select(SupportMessage).where(
+        SupportMessage.id == message_id,
+        SupportMessage.sender_id == current_user.id
+    )
+    result = await db.execute(stmt)
+    msg = result.scalar_one_or_none()
+    
+    if not msg:
+        raise HTTPException(status_code=404, detail="Message not found or unauthorized")
+        
+    if msg.is_deleted:
+        return msg
+        
+    msg.is_deleted = True
+    await db.commit()
+    await db.refresh(msg)
+    
+    # Broadcast the deletion
+    msg_data = SupportMessageRead.model_validate(msg).model_dump_json()
+    await manager.broadcast(msg_data, str(msg.ticket_id))
+    
+    return msg
+
 @router.websocket("/ws/{ticket_id}")
 async def support_websocket_endpoint(
     websocket: WebSocket, 
