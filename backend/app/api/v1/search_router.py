@@ -55,10 +55,18 @@ async def search_runners(
         .scalar_subquery()
     )
 
+    # Subquery for completed waka count (trips)
+    completed_waka_sq = (
+        select(func.count(Waka.id))
+        .where(Waka.runner_id == User.id, Waka.is_completed == True)
+        .scalar_subquery()
+    )
+
     stmt = select(
         User, 
         func.ST_Distance(func.cast(User.last_location, Geography), func.cast(user_location, Geography)).label("distance_m"),
-        active_waka_sq.label("active_wakas")
+        active_waka_sq.label("active_wakas"),
+        completed_waka_sq.label("stats_trips_dynamic")
     ).where(
         User.id != current_user.id,
         User.is_runner == True, 
@@ -85,7 +93,7 @@ async def search_runners(
     elif sort == "price":
         stmt = stmt.order_by(User.hourly_rate.asc())
     elif sort == "trips":
-        stmt = stmt.order_by(User.stats_trips.desc())
+        stmt = stmt.order_by(completed_waka_sq.desc())
     elif filter == "nearby":
         stmt = stmt.order_by("distance_m")
     else:
@@ -115,7 +123,7 @@ async def search_runners(
     rows = result.all()
     
     runners = []
-    for user, distance_m, active_wakas in rows:
+    for user, distance_m, active_wakas, stats_trips_dynamic in rows:
         distance_km = round((distance_m or 0) / 1000.0, 1)
         img = user.avatar_url if user.avatar_url else f"https://i.pravatar.cc/150?u={user.id}"
         
@@ -128,7 +136,9 @@ async def search_runners(
             image=img,
             active_waka_count=active_wakas or 0,
             hourly_rate=float(user.hourly_rate or 0),
-            bio=user.bio
+            bio=user.bio,
+            stats_trips=stats_trips_dynamic or 0,
+            loyalty_badge=user.loyalty_badge
         ))
         
     return SearchResponse(

@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
-import { ChevronLeft, ShieldCheck, Star } from 'lucide-react-native';
+import { ChevronLeft, ShieldCheck, Star, Award } from 'lucide-react-native';
 import { DesignTokens as DT } from '../../constants/design';
 import { useTheme } from '../../hooks/use-theme';
 import { useAuth } from '../../context/AuthContext';
@@ -77,7 +77,12 @@ export default function RunnerProfileScreen() {
               style={styles.avatar} 
             />
           </View>
-          <Text style={styles.runnerName}>{runner.full_name}</Text>
+          <View style={styles.nameRow}>
+            <Text style={styles.runnerName}>{runner.full_name}</Text>
+            {runner.loyalty_badge && (
+              <Award size={18} color={colors.primary} />
+            )}
+          </View>
           <View style={styles.ratingRow}>
             {[1, 2, 3, 4, 5].map((i) => (
               <Star 
@@ -208,6 +213,11 @@ const getStyles = (colors: any) => StyleSheet.create({
     fontFamily: DT.typography.heading,
     fontSize: 24,
     color: colors.text,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     marginBottom: DT.spacing.sm,
   },
   ratingRow: {

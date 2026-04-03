@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Image, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Search, MapPin, Star, History, ArrowRight, TrendingUp, X } from 'lucide-react-native';
+import { Search, MapPin, Star, History, ArrowRight, TrendingUp, X, ShoppingBag, Award } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { DesignTokens as DT } from '../../constants/design';
 import { useTheme } from '../../hooks/use-theme';
@@ -261,12 +261,20 @@ export default function SearchScreen() {
                     </View>
                     <View style={styles.runnerHeaderInfo}>
                       <View style={styles.runnerTitleRow}>
-                        <Text style={styles.runnerName} numberOfLines={1}>{runner.name}</Text>
+                        <View style={styles.nameBadgeRow}>
+                          <Text style={styles.runnerName} numberOfLines={1}>{runner.name}</Text>
+                          {runner.loyalty_badge && (
+                            <Award size={14} color={colors.primary} />
+                          )}
+                        </View>
                         <Text style={styles.runnerPrice}>₦{runner.hourly_rate.toLocaleString()}/hr</Text>
                       </View>
                       <View style={styles.runnerMeta}>
                         <Star size={12} color={colors.accent} fill={colors.accent} />
                         <Text style={styles.runnerRating}>{runner.rating}</Text>
+                        <Text style={styles.metaDot}>•</Text>
+                        <ShoppingBag size={12} color={colors.muted} />
+                        <Text style={styles.statsText}>{runner.stats_trips} trips</Text>
                         {runner.active_waka_count > 0 && (
                           <>
                             <Text style={styles.metaDot}>•</Text>
@@ -538,8 +546,14 @@ const getStyles = (colors: any) => StyleSheet.create({
   runnerTitleRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'baseline',
+    alignItems: 'center',
     marginBottom: 4,
+  },
+  nameBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    flex: 1,
   },
   runnerPrice: {
     fontFamily: DT.typography.heading,
@@ -555,6 +569,11 @@ const getStyles = (colors: any) => StyleSheet.create({
     fontFamily: DT.typography.body,
     fontSize: 14,
     color: colors.text,
+  },
+  statsText: {
+    fontFamily: DT.typography.body,
+    fontSize: 12,
+    color: colors.muted,
   },
   runnerFooter: {
     flexDirection: 'row',

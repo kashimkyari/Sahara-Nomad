@@ -202,11 +202,25 @@ async def _hydrate_user_response(user: User, db: AsyncSession) -> UserResponse:
     # Populate runner_profile if is_runner
     from ...schemas.user import RunnerProfileResponse
     if user.is_runner:
+        # Dynamically calculate stats_trips (completed) and active_wakas (not completed)
+        trips_result = await db.execute(
+            select(func.count(Waka.id))
+            .where(Waka.runner_id == user.id, Waka.is_completed == True)
+        )
+        stats_trips = trips_result.scalar() or 0
+
+        active_result = await db.execute(
+            select(func.count(Waka.id))
+            .where(Waka.runner_id == user.id, Waka.is_completed == False)
+        )
+        active_wakas = active_result.scalar() or 0
+
         resp.runner_profile = RunnerProfileResponse(
             bio=user.bio,
             hourly_rate=float(user.hourly_rate) if user.hourly_rate else 0.0,
-            stats_trips=user.stats_trips,
+            stats_trips=stats_trips,
             stats_rating=float(user.stats_rating),
+            active_wakas=active_wakas,
             is_online=user.is_online
         )
 

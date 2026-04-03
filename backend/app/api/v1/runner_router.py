@@ -76,6 +76,14 @@ async def get_runner_profile(
     active_res = await db.execute(active_stmt)
     active_count = active_res.scalar() or 0
 
+    # Fetch completed wakas (trips) for THIS runner
+    trips_stmt = select(func.count(Waka.id)).where(
+        Waka.runner_id == user.id,
+        Waka.is_completed == True
+    )
+    trips_res = await db.execute(trips_stmt)
+    trips_count = trips_res.scalar() or 0
+
     # Fetch last 5 reviews
     reviews_stmt = select(Review, User).join(User, Review.reviewer_id == User.id).where(
         Review.target_user_id == user.id
@@ -88,13 +96,14 @@ async def get_runner_profile(
         "id": str(user.id),
         "full_name": user.full_name,
         "avatar_url": user.avatar_url,
+        "loyalty_badge": user.loyalty_badge,
         "created_at": user.created_at.isoformat(),
         "runner_profile": {
             "id": str(user.id),
             "bio": user.bio,
             "hourly_rate": float(user.hourly_rate) if user.hourly_rate else 0,
             "stats_rating": float(user.stats_rating),
-            "stats_trips": user.stats_trips,
+            "stats_trips": trips_count,
             "active_wakas": active_count,
             "reviews": [
                 {

@@ -41,6 +41,7 @@ class RunnerProfileResponse(BaseModel):
     hourly_rate: Optional[float] = None
     stats_trips: int = 0
     stats_rating: float = 2.5
+    active_wakas: int = 0
     is_online: bool = False
 
     class Config:

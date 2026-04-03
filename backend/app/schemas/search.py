@@ -12,6 +12,8 @@ class RunnerSearchResponse(BaseModel):
     active_waka_count: int
     hourly_rate: float
     bio: Optional[str] = None
+    stats_trips: int = 0
+    loyalty_badge: Optional[str] = None
 
 class SearchRecord(BaseModel):
     query: str
