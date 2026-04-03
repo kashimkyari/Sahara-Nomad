@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { 
   View, 
   Text, 
@@ -23,7 +23,55 @@ import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import { Modal, Pressable } from 'react-native';
 import { FileText, ExternalLink, Play, Pause, Music } from 'lucide-react-native';
-import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import { useAudioPlayerStatus } from 'expo-audio';
+import AudioModule from 'expo-audio/build/AudioModule';
+
+// --- Small Audio Player Component ---
+const AudioPlayer = ({ uri, isMe, colors, styles }: { uri: string; isMe: boolean; colors: any; styles: any }) => {
+  // Work around the broken helper in expo-audio 55, which passes one extra constructor arg.
+  const player = useMemo(() => new (AudioModule as any).AudioPlayer({ uri }, 500, false), [uri]);
+  const { playing, duration, currentTime } = useAudioPlayerStatus(player);
+
+  useEffect(() => {
+    return () => {
+      if (typeof player.release === 'function') {
+        player.release();
+      } else if (typeof player.remove === 'function') {
+        player.remove();
+      }
+    };
+  }, [player]);
+
+  const togglePlayback = () => {
+    if (playing) {
+      player.pause();
+    } else {
+      player.play();
+    }
+  };
+
+  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+
+  return (
+    <TouchableOpacity 
+      style={[styles.audioContainer, isMe ? styles.myAudio : styles.theirAudio]} 
+      onPress={togglePlayback}
+    >
+      <View style={styles.audioIconBox}>
+        {playing ? (
+          <Pause size={18} color={isMe ? colors.primary : colors.surface} fill={isMe ? colors.primary : colors.surface} />
+        ) : (
+          <Play size={18} color={isMe ? colors.primary : colors.surface} fill={isMe ? colors.primary : colors.surface} />
+        )}
+      </View>
+      <View style={styles.audioWaveform}>
+        <View style={[styles.audioProgress, { width: `${progress}%`, backgroundColor: isMe ? 'white' : colors.primary }]} />
+        <View style={styles.audioTrack} />
+      </View>
+      <Music size={14} color={isMe ? 'rgba(255,255,255,0.6)' : colors.muted} />
+    </TouchableOpacity>
+  );
+};
 
 export default function LiveSupportScreen() {
   const { colors } = useTheme();
@@ -41,42 +89,6 @@ export default function LiveSupportScreen() {
   const scrollRef = useRef<ScrollView>(null);
   const ws = useRef<WebSocket | null>(null);
   const styles = getStyles(colors);
-
-  // --- Small Audio Player Component ---
-  const AudioPlayer = ({ uri, isMe }: { uri: string; isMe: boolean }) => {
-    const player = useAudioPlayer(uri);
-    const { playing, duration, currentTime } = useAudioPlayerStatus(player);
-
-    const togglePlayback = () => {
-      if (playing) {
-        player.pause();
-      } else {
-        player.play();
-      }
-    };
-
-    const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
-
-    return (
-      <TouchableOpacity 
-        style={[styles.audioContainer, isMe ? styles.myAudio : styles.theirAudio]} 
-        onPress={togglePlayback}
-      >
-        <View style={styles.audioIconBox}>
-          {playing ? (
-            <Pause size={18} color={isMe ? colors.primary : colors.surface} fill={isMe ? colors.primary : colors.surface} />
-          ) : (
-            <Play size={18} color={isMe ? colors.primary : colors.surface} fill={isMe ? colors.primary : colors.surface} />
-          )}
-        </View>
-        <View style={styles.audioWaveform}>
-          <View style={[styles.audioProgress, { width: `${progress}%`, backgroundColor: isMe ? 'white' : colors.primary }]} />
-          <View style={styles.audioTrack} />
-        </View>
-        <Music size={14} color={isMe ? 'rgba(255,255,255,0.6)' : colors.muted} />
-      </TouchableOpacity>
-    );
-  };
 
   // Initialize or fetch ticket
   useEffect(() => {
@@ -354,7 +366,7 @@ export default function LiveSupportScreen() {
                             <Image source={{ uri: msg.attachment_url }} style={styles.bubbleImage} />
                           </TouchableOpacity>
                         ) : msg.attachment_url.match(/\.(mp3|wav|m4a|aac|ogg|opus)(\?.*)?$/i) ? (
-                          <AudioPlayer uri={msg.attachment_url} isMe={isMe} />
+                          <AudioPlayer uri={msg.attachment_url} isMe={isMe} colors={colors} styles={styles} />
                         ) : (
                           <TouchableOpacity 
                             style={styles.fileLink} 

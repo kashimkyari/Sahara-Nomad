@@ -55,3 +55,6 @@ backend/app/schemas/__pycache__/*
 backend/app/services/__pycache__/*
 backend/app/main.pyc
 .codex
+.agents/skills/building-native-ui/SKILL.md
+.agents/*
+skills-lock.json
