@@ -42,6 +42,8 @@ class WakaResponse(BaseModel):
     is_completed: bool
     completed_by_runner: bool
     completed_by_employer: bool
+    has_employer_reviewed: bool = False
+    has_runner_reviewed: bool = False
     created_at: datetime
     
     employer: Optional[WakaUser] = None

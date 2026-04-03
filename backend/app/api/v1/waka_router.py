@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select, func, update
 from sqlalchemy.orm import selectinload
 from ...database import get_db
 from ...models.waka import Waka, WakaDecline
 from ...models.user import User
 from ...schemas.waka import WakaCreate, WakaResponse
+from ...schemas.review import ReviewBase, ReviewResponse
 from .deps import get_current_user
 from ...services.notification_service import notify_user
 import uuid
@@ -21,7 +22,22 @@ async def get_hydrated_waka(db: AsyncSession, waka_id: uuid.UUID) -> Waka:
         .where(Waka.id == waka_id)
     )
     result = await db.execute(stmt)
-    return result.scalars().first()
+    waka = result.scalars().first()
+    if not waka:
+        return None
+        
+    # Check for reviews
+    from ...models.review import Review
+    emp_rev_stmt = select(func.count(Review.id)).where(Review.waka_id == waka_id, Review.reviewer_id == waka.employer_id)
+    run_rev_stmt = select(func.count(Review.id)).where(Review.waka_id == waka_id, Review.reviewer_id == waka.runner_id)
+    
+    emp_rev_res = await db.execute(emp_rev_stmt)
+    run_rev_res = await db.execute(run_rev_stmt)
+    
+    waka.has_employer_reviewed = emp_rev_res.scalar() > 0
+    waka.has_runner_reviewed = (run_rev_res.scalar() or 0) > 0 if waka.runner_id else False
+    
+    return waka
 
 @router.post("/", response_model=WakaResponse)
 async def create_waka(
@@ -375,3 +391,66 @@ async def decline_waka(
     
     await db.commit()
     return await get_hydrated_waka(db, waka_id)
+
+@router.post("/{waka_id}/review", response_model=ReviewResponse)
+async def leave_waka_review(
+    waka_id: uuid.UUID,
+    review_in: ReviewBase,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Leave a review for another participant of a completed errand."""
+    # 1. Fetch Waka
+    waka = await get_hydrated_waka(db, waka_id)
+    if not waka:
+        raise HTTPException(status_code=404, detail="Waka not found")
+        
+    # 2. Check Completion
+    if not waka.is_completed:
+        raise HTTPException(status_code=400, detail="Reviews can only be left after mutual completion")
+        
+    # 3. Check Participation & Identify Target
+    if current_user.id == waka.employer_id:
+        target_id = waka.runner_id
+        if waka.has_employer_reviewed:
+            raise HTTPException(status_code=400, detail="You have already reviewed this errand")
+    elif current_user.id == waka.runner_id:
+        target_id = waka.employer_id
+        if waka.has_runner_reviewed:
+            raise HTTPException(status_code=400, detail="You have already reviewed this errand")
+    else:
+        raise HTTPException(status_code=403, detail="Only participants can leave reviews")
+        
+    if not target_id:
+         raise HTTPException(status_code=400, detail="No target user to review")
+
+    # 4. Create Review
+    from ...models.review import Review
+    review = Review(
+        waka_id=waka_id,
+        reviewer_id=current_user.id,
+        target_user_id=target_id,
+        rating=review_in.rating,
+        comment=review_in.comment
+    )
+    db.add(review)
+    
+    # 5. Update target user's stats_rating (Live recalculation)
+    # Fetch all ratings for target user
+    ratings_stmt = select(func.avg(Review.rating)).where(Review.target_user_id == target_id)
+    
+    # Note: We commit the review first so the average includes it
+    await db.commit() 
+    
+    avg_res = await db.execute(ratings_stmt)
+    new_avg = avg_res.scalar() or 0.0
+    
+    # Update user model
+    from ...models.user import User
+    await db.execute(
+        update(User).where(User.id == target_id).values(stats_rating=float(new_avg))
+    )
+    
+    await db.commit()
+    await db.refresh(review)
+    return review

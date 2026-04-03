@@ -8,11 +8,12 @@ class ReviewBase(BaseModel):
     comment: str
 
 class ReviewCreate(ReviewBase):
-    pass
+    waka_id: UUID
 
 class ReviewResponse(ReviewBase):
     id: UUID
     reviewer_id: UUID
+    waka_id: UUID
     reviewer_name: Optional[str] = None
     created_at: datetime
 

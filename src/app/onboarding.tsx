@@ -51,7 +51,7 @@ export default function OnboardingScreen() {
     if (activeSlide < slides.length - 1) {
       scrollRef.current?.scrollTo({ x: (activeSlide + 1) * width, animated: true });
     } else {
-      router.push('/auth');
+      router.replace('/auth');
     }
   };
 
@@ -102,7 +102,7 @@ export default function OnboardingScreen() {
         />
         <TouchableOpacity
           style={styles.loginLink}
-          onPress={() => router.push('/auth')}
+          onPress={() => router.replace('/auth')}
         >
           <Text style={styles.loginText}>Log in instead</Text>
         </TouchableOpacity>

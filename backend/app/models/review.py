@@ -11,6 +11,8 @@ class Review(AuditableBase):
     target_user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"))
     reviewer_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"))
     
+    waka_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("wakas.id"))
+    
     rating: Mapped[int] = mapped_column(Integer) # 1-5
     comment: Mapped[str] = mapped_column(Text)
 

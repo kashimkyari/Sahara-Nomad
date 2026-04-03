@@ -17,6 +17,7 @@ import { useAuth } from '../../context/AuthContext';
 import API from '../../constants/api';
 import { ActivityIndicator } from 'react-native';
 import { BrutalistAlert } from '../../components/ui/BrutalistAlert';
+import { ReviewForm } from '../../components/ui/ReviewForm';
 
 // Mock data removed in favor of real API calls
 
@@ -205,6 +206,30 @@ export default function WakaStatusScreen() {
       showAlert('Error', e.message);
     } finally {
       setIsAccepting(false);
+    }
+  };
+
+  const handleLeaveReview = async (rating: number, comment: string) => {
+    if (!token || !id) return;
+    try {
+      const res = await fetch(`${API.WAKA.GET(id)}/review`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ rating, comment })
+      });
+      
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Failed to submit review');
+      }
+      
+      showAlert('Review Sent', 'Your feedback helps the Sendam community grow!');
+      fetchWakaDetails();
+    } catch (e: any) {
+      showAlert('Error', e.message);
     }
   };
 
@@ -496,6 +521,38 @@ export default function WakaStatusScreen() {
               disabled={isCancelling}
             >
               <Text style={styles.cancelText}>Cancel Waka</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Review Form - Show when completed and user hasn't reviewed */}
+        {waka.is_completed && (
+          (user?.id === waka.employer_id && !waka.has_employer_reviewed) ||
+          (user?.id === waka.runner_id && !waka.has_runner_reviewed)
+        ) && (
+          <View style={{ marginTop: DT.spacing.md }}>
+            <ReviewForm 
+              targetName={user?.id === waka.employer_id ? (waka.runner?.full_name || 'Runner') : (waka.employer?.full_name || 'Nomad')}
+              onSubmit={handleLeaveReview}
+            />
+          </View>
+        )}
+        
+        {waka.is_completed && (
+          ((user?.id === waka.employer_id && waka.has_employer_reviewed) ||
+           (user?.id === waka.runner_id && waka.has_runner_reviewed))
+        ) && (
+          <View style={[styles.card, { borderColor: colors.secondary, backgroundColor: colors.surface }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <CheckCircle2 size={24} color={colors.secondary} />
+              <Text style={[styles.cardTitle, { marginBottom: 0, fontSize: 18 }]}>You've reviewed this runner</Text>
+            </View>
+            <Text style={[styles.infoText, { marginTop: 8 }]}>Your feedback is live on their profile. Thanks for keeping Sendam safe!</Text>
+            <TouchableOpacity 
+              style={[styles.actionBtn, { marginTop: DT.spacing.md, backgroundColor: colors.text }]}
+              onPress={() => router.replace('/(tabs)')}
+            >
+              <Text style={{ color: colors.surface, fontFamily: DT.typography.heading }}>BACK HOME</Text>
             </TouchableOpacity>
           </View>
         )}
