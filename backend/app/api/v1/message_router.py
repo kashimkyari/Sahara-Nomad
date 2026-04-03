@@ -82,7 +82,7 @@ async def list_conversations(
             waka_res = await db.execute(waka_stmt)
             waka = waka_res.scalar_one_or_none()
             if waka:
-                waka_title = waka.title
+                waka_title = waka.item_description
                 # Assuming waka might have an emoji or we use a default based on category
                 # For now, let's just use the title if it starts with an emoji or just the title
                 waka_emoji = "🛒" # Default emoji for errands

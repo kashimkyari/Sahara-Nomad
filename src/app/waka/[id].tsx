@@ -4,10 +4,10 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
-  Image,
   StyleSheet,
   Animated,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ChevronLeft, MapPin, Phone, MessageCircle, CheckCircle2, Truck, Clock, Zap } from 'lucide-react-native';
@@ -316,8 +316,16 @@ export default function WakaStatusScreen() {
           <View style={styles.runnerCard}>
             <View style={styles.runnerHeaderRow}>
               <Image 
-                source={{ uri: displayUser.avatar_url || `https://i.pravatar.cc/150?u=${displayUser.id}` }} 
+                source={displayUser.avatar_url 
+                  ? { 
+                      uri: `${API.API_URL}${displayUser.avatar_url}`,
+                      headers: { Authorization: `Bearer ${token}` }
+                    } 
+                  : { uri: `https://i.pravatar.cc/150?u=${displayUser.id}` }
+                }
                 style={styles.runnerAvatar} 
+                contentFit="cover"
+                transition={200}
               />
               <View style={styles.runnerInfo}>
                 <Text style={styles.runnerName}>{displayUser.full_name}</Text>
