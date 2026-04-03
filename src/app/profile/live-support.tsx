@@ -50,25 +50,48 @@ const AudioPlayer = ({ uri, isMe, colors, styles }: { uri: string; isMe: boolean
     }
   };
 
+  const formatTime = (millis: number) => {
+    const totalSeconds = Math.floor(millis / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
     <TouchableOpacity 
       style={[styles.audioContainer, isMe ? styles.myAudio : styles.theirAudio]} 
       onPress={togglePlayback}
+      activeOpacity={0.9}
     >
       <View style={styles.audioIconBox}>
         {playing ? (
-          <Pause size={18} color={isMe ? colors.primary : colors.surface} fill={isMe ? colors.primary : colors.surface} />
+          <Pause 
+            size={20} 
+            color={colors.text} 
+            fill={colors.text} 
+            strokeWidth={3}
+          />
         ) : (
-          <Play size={18} color={isMe ? colors.primary : colors.surface} fill={isMe ? colors.primary : colors.surface} />
+          <Play 
+            size={20} 
+            color={colors.text} 
+            fill={colors.text} 
+            strokeWidth={3}
+          />
         )}
       </View>
-      <View style={styles.audioWaveform}>
-        <View style={[styles.audioProgress, { width: `${progress}%`, backgroundColor: isMe ? 'white' : colors.primary }]} />
-        <View style={styles.audioTrack} />
+      <View style={{ flex: 1, gap: 4 }}>
+        <View style={styles.audioWaveform}>
+          <View style={[styles.audioProgress, { width: `${progress}%`, backgroundColor: isMe ? colors.surface : colors.primary }]} />
+          <View style={styles.audioTrack} />
+        </View>
+        <Text style={[styles.audioTimeText, isMe && styles.myBubbleText]}>
+          {formatTime(currentTime)} / {formatTime(duration)}
+        </Text>
       </View>
-      <Music size={14} color={isMe ? 'rgba(255,255,255,0.6)' : colors.muted} />
+      <Music size={14} color={isMe ? 'rgba(255,255,255,0.7)' : colors.muted} />
     </TouchableOpacity>
   );
 };
@@ -351,16 +374,19 @@ export default function LiveSupportScreen() {
                       <Image source={{ uri: 'https://i.pravatar.cc/150?u=support' }} style={styles.smallAvatar} />
                     </View>
                   )}
-                  <MotiView 
-                    from={{ opacity: 0, scale: 0.9, translateY: 10 }}
-                    animate={{ opacity: 1, scale: 1, translateY: 0 }}
-                    style={[
-                      styles.bubble, 
-                      isMe ? styles.myBubble : styles.theirBubble
-                    ]}
-                  >
+                  <View style={{ flex: 1 }}>
                     {msg.attachment_url && (
-                      <View style={styles.attachmentWrapper}>
+                      <MotiView 
+                        from={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        style={[
+                          isMe ? styles.myWrapper : styles.theirWrapper,
+                          { 
+                            alignSelf: isMe ? 'flex-end' : 'flex-start',
+                            marginBottom: msg.content_text ? 8 : 0 
+                          }
+                        ]}
+                      >
                         {msg.attachment_url.toLowerCase().includes('image') || msg.attachment_url.match(/\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i) ? (
                           <TouchableOpacity onPress={() => setSelectedImage(msg.attachment_url)}>
                             <Image source={{ uri: msg.attachment_url }} style={styles.bubbleImage} />
@@ -372,34 +398,58 @@ export default function LiveSupportScreen() {
                             style={styles.fileLink} 
                             onPress={() => {/* In real app, open in browser or download */}}
                           >
-                            <FileText size={20} color={isMe ? colors.surface : colors.text} />
-                            <Text style={[styles.fileText, isMe && styles.myBubbleText]}>
-                              View Attachment
-                            </Text>
-                            <ExternalLink size={14} color={isMe ? 'rgba(255,255,255,0.6)' : colors.muted} />
+                            <FileText size={20} color={colors.text} />
+                            <Text style={styles.fileText}>View Attachment</Text>
+                            <ExternalLink size={14} color={colors.muted} />
                           </TouchableOpacity>
                         )}
-                      </View>
+                        {!msg.content_text && (
+                          <View style={[styles.bubbleFooter, { marginTop: 4 }]}>
+                            <Text style={styles.bubbleTime}>
+                              {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </Text>
+                            {isMe && (
+                              <CheckCheck 
+                                size={14} 
+                                color={msg.is_read ? colors.secondary : colors.muted} 
+                                strokeWidth={3} 
+                                style={{ marginLeft: 4 }} 
+                              />
+                            )}
+                          </View>
+                        )}
+                      </MotiView>
                     )}
+
                     {msg.content_text ? (
-                      <Text style={[styles.bubbleText, isMe && styles.myBubbleText]}>
-                        {msg.content_text}
-                      </Text>
+                      <MotiView 
+                        from={{ opacity: 0, scale: 0.9, translateY: 5 }}
+                        animate={{ opacity: 1, scale: 1, translateY: 0 }}
+                        style={[
+                          styles.bubble, 
+                          isMe ? styles.myBubble : styles.theirBubble,
+                          { alignSelf: isMe ? 'flex-end' : 'flex-start' }
+                        ]}
+                      >
+                        <Text style={[styles.bubbleText, isMe && styles.myBubbleText]}>
+                          {msg.content_text}
+                        </Text>
+                        <View style={styles.bubbleFooter}>
+                          <Text style={[styles.bubbleTime, isMe && styles.myBubbleTime]}>
+                            {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </Text>
+                          {isMe && (
+                            <CheckCheck 
+                              size={14} 
+                              color={msg.is_read ? colors.surface : 'rgba(255,255,255,0.4)'} 
+                              strokeWidth={3} 
+                              style={{ marginLeft: 4 }} 
+                            />
+                          )}
+                        </View>
+                      </MotiView>
                     ) : null}
-                    <View style={styles.bubbleFooter}>
-                      <Text style={[styles.bubbleTime, isMe && styles.myBubbleTime]}>
-                        {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </Text>
-                      {isMe && (
-                        <CheckCheck 
-                          size={14} 
-                          color={msg.is_read ? colors.surface : 'rgba(255,255,255,0.4)'} 
-                          strokeWidth={3} 
-                          style={{ marginLeft: 4 }} 
-                        />
-                      )}
-                    </View>
-                  </MotiView>
+                  </View>
                 </View>
               );
             })}
@@ -522,29 +572,40 @@ const getStyles = (colors: any) => StyleSheet.create({
     shadowColor: colors.text, shadowOffset: { width: 3, height: 3 }, shadowOpacity: 1, shadowRadius: 0,
   },
   sendBtnDisabled: { backgroundColor: colors.muted },
-  bubbleImage: { width: 200, height: 150, borderRadius: 8, marginBottom: 8, borderWidth: 2, borderColor: colors.text },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.9)', justifyContent: 'center', alignItems: 'center' },
-  modalContent: { width: '90%', height: '80%' },
+  bubbleImage: { 
+    width: 220, height: 165, marginBottom: 8, 
+    borderWidth: 3, borderColor: colors.text,
+    shadowColor: colors.text, shadowOffset: { width: 4, height: 4 }, shadowOpacity: 1, shadowRadius: 0,
+  },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', justifyContent: 'center', alignItems: 'center' },
+  modalContent: { width: '90%', height: '80%', borderWidth: 4, borderColor: colors.text, backgroundColor: colors.background },
   fullImage: { width: '100%', height: '100%' },
   attachmentWrapper: { marginBottom: 8 },
   fileLink: { 
-    flexDirection: 'row', alignItems: 'center', gap: 8, padding: 10, 
-    borderWidth: 2, borderColor: 'rgba(0,0,0,0.1)', borderRadius: 8,
-    backgroundColor: 'rgba(0,0,0,0.05)'
+    flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, 
+    borderWidth: 3, borderColor: colors.text,
+    backgroundColor: colors.surface,
+    shadowColor: colors.text, shadowOffset: { width: 3, height: 3 }, shadowOpacity: 1, shadowRadius: 0,
   },
   fileText: { fontFamily: DT.typography.bodySemiBold, fontSize: 13, color: colors.text },
   audioContainer: {
     flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, 
-    borderRadius: 12, minWidth: 180, marginBottom: 4,
-    borderWidth: 2, borderColor: 'rgba(0,0,0,0.1)'
+    minWidth: 200, marginBottom: 4,
+    borderWidth: 3, borderColor: colors.text,
+    shadowColor: colors.text, shadowOffset: { width: 4, height: 4 }, shadowOpacity: 1, shadowRadius: 0,
   },
-  myAudio: { backgroundColor: 'rgba(255,255,255,0.1)' },
-  theirAudio: { backgroundColor: 'rgba(0,0,0,0.05)' },
+  myAudio: { backgroundColor: colors.primary },
+  theirAudio: { backgroundColor: colors.surface },
   audioIconBox: {
-    width: 34, height: 34, borderRadius: 17, backgroundColor: colors.background,
+    width: 38, height: 38, borderWidth: 2, borderColor: colors.text,
+    backgroundColor: colors.background,
     alignItems: 'center', justifyContent: 'center'
   },
-  audioWaveform: { flex: 1, height: 4, backgroundColor: 'rgba(0,0,0,0.1)', borderRadius: 2, overflow: 'hidden', position: 'relative' },
-  audioTrack: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0.2 },
-  audioProgress: { height: '100%', borderRadius: 2 },
+  audioWaveform: { 
+    flex: 1, height: 8, backgroundColor: 'rgba(0,0,0,0.1)', 
+    borderWidth: 2, borderColor: colors.text, overflow: 'hidden', position: 'relative' 
+  },
+  audioTrack: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0.1 },
+  audioProgress: { height: '100%' },
+  audioTimeText: { fontFamily: DT.typography.bodySemiBold, fontSize: 10, color: colors.muted, marginTop: 2 },
 });
