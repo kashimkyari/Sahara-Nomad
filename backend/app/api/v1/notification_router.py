@@ -42,6 +42,34 @@ async def get_notifications(
         
     return formatted_notes
 
+@router.get("/{notification_id}", response_model=NotificationRead)
+async def get_notification(
+    notification_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    result = await db.execute(
+        select(InAppNotification).where(
+            InAppNotification.id == notification_id, 
+            InAppNotification.user_id == current_user.id
+        )
+    )
+    note = result.scalars().first()
+    if not note:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    
+    time_human = arrow.get(note.created_at).humanize()
+    return NotificationRead(
+        id=str(note.id),
+        title=note.title,
+        body=note.body,
+        time=time_human,
+        type=note.type,
+        unread=note.is_unread,
+        linked_entity_id=str(note.linked_entity_id) if note.linked_entity_id else None,
+        linked_entity_type=note.linked_entity_type
+    )
+
 @router.post("/{notification_id}/read")
 async def mark_as_read(
     notification_id: uuid.UUID,

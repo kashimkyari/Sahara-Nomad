@@ -6,7 +6,11 @@ import { ChevronLeft, CheckCircle2, AlertTriangle, Info, ArrowRight, ExternalLin
 import { DesignTokens as DT } from '../../constants/design';
 import { useTheme } from '../../hooks/use-theme';
 
-const notificationData: Record<string, { title: string; body: string; time: string; date: string; type: 'success' | 'warning' | 'info'; sender: string; wakaId?: string }> = {
+import { useAuth } from '../../context/AuthContext';
+import API from '../../constants/api';
+import { ActivityIndicator } from 'react-native';
+
+const mockData: Record<string, { title: string; body: string; time: string; date: string; type: 'success' | 'warning' | 'info'; sender: string; wakaId?: string }> = {
   '1': { 
     title: 'Runner Accepted', 
     body: 'Chinedu O. has accepted your errand to Mile 12 Market. He is currently at Ketu and moving towards the market area.\n\nHe will provide photos of the items once he arrives at the stall. You can chat with him directly if you need to add more items or give specific instructions.', 
@@ -45,11 +49,51 @@ const notificationData: Record<string, { title: string; body: string; time: stri
 
 export default function NotificationDetailScreen() {
   const { colors } = useTheme();
+  const { token } = useAuth();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const styles = getStyles(colors);
+  
+  const [note, setNote] = React.useState<any>(null);
+  const [loading, setLoading] = React.useState(true);
 
-  const note = notificationData[id as string] || notificationData['1'];
+  const isUUID = (str: string) => {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+  };
+
+  const fetchNotification = async () => {
+    if (!id || !token) return;
+    
+    if (!isUUID(id)) {
+      setNote(mockData[id] || mockData['1']);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const res = await fetch(API.NOTIFICATIONS.GET(id), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setNote({
+            ...data,
+            date: 'Today', 
+            sender: 'Sendam System'
+        });
+      }
+    } catch (e) {
+      console.error('Fetch notification failed:', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchNotification();
+  }, [id, token]);
+
 
   const getTypeIcon = (type: string, color: string) => {
     switch (type) {
@@ -71,6 +115,9 @@ export default function NotificationDetailScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        {loading ? (
+            <ActivityIndicator color={colors.primary} style={{ marginTop: 100 }} />
+        ) : note ? (
         <View style={styles.receiptContainer}>
           <View style={styles.receiptHeader}>
             <View style={[styles.iconPill, { backgroundColor: note.type === 'warning' ? colors.accent : colors.primary }]}>
@@ -105,7 +152,11 @@ export default function NotificationDetailScreen() {
           <View style={styles.receiptDivider} />
           <Text style={styles.barcodeText}>||| ||||| || ||| || ||</Text>
         </View>
+        ) : (
+            <Text style={{ textAlign: 'center', marginTop: 100, color: colors.muted }}>Notification not found</Text>
+        )}
 
+        {!loading && note && (
         <View style={styles.actions}>
           <TouchableOpacity 
             style={styles.primaryAction}
@@ -124,6 +175,7 @@ export default function NotificationDetailScreen() {
             <ArrowRight size={24} color={colors.surface} strokeWidth={3} />
           </TouchableOpacity>
         </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );

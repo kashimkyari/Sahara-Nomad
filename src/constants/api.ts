@@ -39,6 +39,7 @@ export default {
     },
     NOTIFICATIONS: {
         LIST: `${API_URL}/notifications/`,
+        GET: (id: string) => `${API_URL}/notifications/${id}`,
         READ: (id: string) => `${API_URL}/notifications/${id}/read`,
         CLEAR_ALL: `${API_URL}/notifications/clear-all`,
         UNREAD_COUNT: `${API_URL}/notifications/unread-count`,
