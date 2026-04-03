@@ -16,6 +16,7 @@ import { ChevronLeft, Camera, Paperclip, Send, CheckCheck } from 'lucide-react-n
 import { DesignTokens as DT } from '../../constants/design';
 import { useTheme } from '../../hooks/use-theme';
 import { useAuth } from '../../context/AuthContext';
+import API from '../../constants/api';
 import { MotiView, AnimatePresence } from 'moti';
 import * as Haptics from 'expo-haptics';
 
@@ -37,7 +38,7 @@ export default function LiveSupportScreen() {
     const initSupport = async () => {
       if (!ticketId) {
         try {
-          const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/support/`, {
+          const response = await fetch(API.SUPPORT.INIT, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -63,7 +64,7 @@ export default function LiveSupportScreen() {
   // Handle WebSocket connection
   useEffect(() => {
     if (ticketId && token) {
-      const wsUrl = `${process.env.EXPO_PUBLIC_API_URL?.replace('http', 'ws')}/support/ws/${ticketId}?token=${token}`;
+      const wsUrl = API.SUPPORT.WS(ticketId, token);
       ws.current = new WebSocket(wsUrl);
 
       ws.current.onmessage = (e) => {
@@ -86,7 +87,7 @@ export default function LiveSupportScreen() {
 
   const fetchHistory = async (id: string) => {
     try {
-      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/support/${id}/messages`, {
+      const response = await fetch(API.SUPPORT.MESSAGES(id), {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {

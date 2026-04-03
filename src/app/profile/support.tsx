@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { DesignTokens as DT } from '../../constants/design';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../hooks/use-theme';
+import API from '../../constants/api';
 
 const faqs = [
   { q: 'How do I cancel a waka?', a: 'Open the active waka from your Home screen and tap "Cancel Waka". Cancellations are free before a runner accepts. After acceptance, a ₦500 cancellation fee applies.' },
@@ -29,7 +30,7 @@ export default function SupportScreen() {
 
   const fetchHistory = async () => {
     try {
-      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/support/`, {
+      const response = await fetch(API.SUPPORT.LIST, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {

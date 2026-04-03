@@ -53,5 +53,12 @@ export default {
             return url.slice(0, -1);
         },
         RECORD: `${API_URL}/search/record`
+    },
+    SUPPORT: {
+        LIST: `${API_URL}/support/`,
+        INIT: `${API_URL}/support/`,
+        MESSAGES: (id: string) => `${API_URL}/support/${id}/messages`,
+        SEND: `${API_URL}/support/messages`,
+        WS: (id: string, token: string) => `ws://172.20.10.9:8000/api/v1/support/ws/${id}?token=${token}`,
     }
 };
