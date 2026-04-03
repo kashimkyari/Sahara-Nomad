@@ -72,7 +72,7 @@ export default function LiveSupportScreen() {
             <View style={styles.onlineDotOverlay} />
           </View>
           <View>
-            <Text style={styles.headerName}>Sahara Support</Text>
+            <Text style={styles.headerName}>SendAm Support</Text>
             <Text style={styles.headerStatus}>Always online</Text>
           </View>
         </View>

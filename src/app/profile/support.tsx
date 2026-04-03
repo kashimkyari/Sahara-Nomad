@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, TextInput, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, TextInput, StyleSheet, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, ChevronRight, MessageSquare, Phone, Mail } from 'lucide-react-native';
 import { DesignTokens as DT } from '../../constants/design';
 import { useTheme } from '../../hooks/use-theme';
+import { useAuth } from '../../context/AuthContext';
 
 const faqs = [
   { q: 'How do I cancel a waka?', a: 'Open the active waka from your Home screen and tap "Cancel Waka". Cancellations are free before a runner accepts. After acceptance, a ₦500 cancellation fee applies.' },
@@ -16,6 +17,7 @@ const faqs = [
 
 export default function SupportScreen() {
   const { colors } = useTheme();
+  const { user } = useAuth();
   const router = useRouter();
   const [expanded, setExpanded] = useState<number | null>(null);
   const [subject, setSubject] = useState('');
@@ -38,7 +40,24 @@ export default function SupportScreen() {
         {[
           { icon: MessageSquare, label: 'Live Support', sub: 'Avg. 3 min response', color: colors.primary, action: () => router.push('/profile/live-support' as any) },
           { icon: Phone, label: 'Call Support', sub: '9am – 6pm Mon–Sat', color: colors.secondary, action: () => router.push('/profile/call-support' as any) },
-          { icon: Mail, label: 'Email Us', sub: 'support@sendam.ng', color: colors.accent },
+          { 
+            icon: Mail, 
+            label: 'Email Us', 
+            sub: 'support@sendam.ng', 
+            color: colors.accent, 
+            action: () => {
+              const subject = encodeURIComponent('Support Request - SendAm');
+              const body = encodeURIComponent(
+                `--- USER INFO ---\n` +
+                `Name: ${user?.full_name || 'N/A'}\n` +
+                `Phone: ${user?.phone_number || 'N/A'}\n` +
+                `User ID: ${user?.id || 'N/A'}\n\n` +
+                `--- DESCRIPTION ---\n` +
+                `[Please describe your issue here]\n`
+              );
+              Linking.openURL(`mailto:support@sendam.ng?subject=${subject}&body=${body}`);
+            } 
+          },
         ].map((ch) => (
           <TouchableOpacity key={ch.label} style={styles.channelRow} onPress={ch.action}>
             <View style={[styles.channelIcon, { backgroundColor: ch.color }]}>
