@@ -103,6 +103,7 @@ export default function HomeScreen() {
       if (res.ok) {
         const data = await res.json();
         setNearbyRunners(data.runners.slice(0, RUNNERS_LIMIT));
+        setActiveRunnersCount(data.runners.filter((r: any) => r.is_online).length);
       }
     } catch (e) {
       console.error('Fetch nearby runners failed:', e);
@@ -165,7 +166,7 @@ export default function HomeScreen() {
           <View style={styles.marketStatusRow}>
             <View style={styles.marketDot} />
             <Text style={styles.marketStats}>
-              {activeRunnersCount === null ? '--' : activeRunnersCount} Runners Active
+              {activeRunnersCount === null ? '--' : (activeRunnersCount === 0 ? 'No' : activeRunnersCount)} Runners Active
             </Text>
           </View>
         </View>
