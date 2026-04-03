@@ -9,7 +9,8 @@ import {
   Wallet,
   Plus,
   ShieldCheck,
-  ArrowRight
+  ArrowRight,
+  Zap
 } from 'lucide-react-native';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View, ScrollView } from 'react-native';
@@ -84,6 +85,12 @@ export default function ProfileScreen() {
                 <View style={styles.verificationBadge}>
                   <CheckCircle2 size={12} color={colors.surface} strokeWidth={3} />
                   <Text style={styles.verificationText}>Verified</Text>
+                </View>
+              )}
+              {user?.is_runner && (
+                <View style={[styles.verificationBadge, { backgroundColor: colors.accent, borderColor: colors.text }]}>
+                  <Zap size={12} color={colors.text} strokeWidth={3} fill={colors.text} />
+                  <Text style={[styles.verificationText, { color: colors.text }]}>Runner</Text>
                 </View>
               )}
             </View>

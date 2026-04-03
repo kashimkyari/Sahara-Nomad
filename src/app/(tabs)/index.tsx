@@ -36,7 +36,7 @@ const RUNNERS_LIMIT = 5;
 
 export default function HomeScreen() {
   const { colors } = useTheme();
-  const { user, token, refreshUser } = useAuth();
+  const { user, token, refreshUser, isAdmin } = useAuth();
   const router = useRouter();
   const navigation = useNavigation();
   const styles = getStyles(colors);
@@ -66,7 +66,8 @@ export default function HomeScreen() {
     if (!token) return;
     try {
       setIsLoadingWakas(true);
-      const res = await fetch(API.WAKA.ACTIVE, {
+      const url = user?.is_runner ? API.WAKA.RUNNER_ACTIVE : API.WAKA.ACTIVE;
+      const res = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
@@ -89,7 +90,7 @@ export default function HomeScreen() {
       });
       if (res.ok) {
         const data = await res.json();
-        setAvailableWakas(data);
+        setAvailableWakas(data.slice(0, 5));
       }
     } catch (e) {
       console.error('Fetch available wakas failed:', e);
@@ -136,8 +137,8 @@ export default function HomeScreen() {
     fetchActiveWakas();
     fetchUnreadCount();
     fetchNearbyRunners();
-    if (user?.is_runner) fetchAvailableWakas();
-  }, [token, user?.is_runner]);
+    if (user?.is_runner || isAdmin) fetchAvailableWakas();
+  }, [token, user?.is_runner, isAdmin]);
 
   const { refreshControl, refreshBanner, onScroll, refreshing } = useBrutalistRefresh({
     onRefresh: async () => { 
@@ -146,7 +147,7 @@ export default function HomeScreen() {
         fetchActiveWakas(), 
         fetchUnreadCount(),
         fetchNearbyRunners(),
-        user?.is_runner ? fetchAvailableWakas() : Promise.resolve()
+        (user?.is_runner || isAdmin) ? fetchAvailableWakas() : Promise.resolve()
       ]);
     },
   });
@@ -274,34 +275,58 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {/* ── Available Wakas (Runner Only) ── */}
-        {user?.is_runner && availableWakas.length > 0 && (
+        {/* ── Available Errands (Runner & Admin) ── */}
+        {(user?.is_runner || isAdmin) && (
           <View style={styles.section}>
-            <Text style={styles.sectionLabel}>OPEN WAKAS NEAR YOU</Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.horizontalList}
-            >
-              {availableWakas.map((waka) => (
-                <TouchableOpacity
-                  key={waka.id}
-                  style={styles.wakaCardWrapper}
-                  onPress={() => router.push(`/waka/${waka.id}` as any)}
-                >
-                  <View style={[styles.wakaCard, { backgroundColor: colors.accent }]}>
-                    <View style={styles.wakaLive}>
-                      <Text style={styles.wakaLiveText}>NEW</Text>
-                    </View>
-                    <Text style={[styles.wakaTitle, { color: colors.text }]} numberOfLines={2}>{waka.item_description}</Text>
-                    <View style={[styles.wakaFooter, { borderTopColor: colors.text + '20' }]}>
-                      <Text style={[styles.wakaStatus, { color: colors.text }]}>₦{waka.total_price?.toLocaleString()}</Text>
-                      <ArrowRight size={16} color={colors.text} />
-                    </View>
-                  </View>
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.sectionLabel, { color: colors.accent, borderLeftWidth: 4, borderLeftColor: colors.accent, paddingLeft: 8 }]}>
+                AVAILABLE ERRANDS
+              </Text>
+              {availableWakas.length > 0 && (
+                <TouchableOpacity onPress={() => router.push('/runners/all')}>
+                  <Text style={styles.seeAll}>View all</Text>
                 </TouchableOpacity>
-              ))}
-            </ScrollView>
+              )}
+            </View>
+            
+            {isLoadingAvailable ? (
+              <View style={[styles.wakaCard, { width: '100%', alignItems: 'center', borderColor: colors.text + '30' }]}>
+                <ActivityIndicator color={colors.accent} size="small" />
+              </View>
+            ) : availableWakas.length > 0 ? (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.horizontalList}
+              >
+                {availableWakas.map((waka) => (
+                  <TouchableOpacity
+                    key={waka.id}
+                    style={styles.wakaCardWrapper}
+                    onPress={() => router.push(`/waka/${waka.id}` as any)}
+                  >
+                    <View style={[styles.wakaCard, { backgroundColor: colors.accent }]}>
+                      <View style={styles.wakaLive}>
+                        <Text style={styles.wakaLiveText}>NEW</Text>
+                      </View>
+                      <Text style={[styles.wakaTitle, { color: colors.text }]} numberOfLines={2}>{waka.item_description}</Text>
+                      <View style={[styles.wakaFooter, { borderTopColor: colors.text + '20' }]}>
+                        <Text style={[styles.wakaStatus, { color: colors.text }]}>₦{(waka.total_price || 0).toLocaleString()}</Text>
+                        <ArrowRight size={16} color={colors.text} />
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            ) : (
+              <View style={[styles.wakaCard, { backgroundColor: colors.surface, width: '100%', padding: 35, alignItems: 'center', borderStyle: 'dashed' }]}>
+                <Package size={34} color={colors.muted} style={{ marginBottom: 12, opacity: 0.6 }} />
+                <Text style={{ fontFamily: DT.typography.heading, fontSize: 17, color: colors.text }}>No Open Errands</Text>
+                <Text style={{ fontFamily: DT.typography.body, fontSize: 13, color: colors.muted, textAlign: 'center', marginTop: 6, lineHeight: 18 }}>
+                  Errands posted by nomads in your area will appear here immediately.
+                </Text>
+              </View>
+            )}
           </View>
         )}
 

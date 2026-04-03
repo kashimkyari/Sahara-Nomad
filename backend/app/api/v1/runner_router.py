@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from geoalchemy2 import Geography
 from ...database import get_db
-from ...models.user import User
+from ...models.user import User, UserRole
 from ...models.review import Review
 from ...models.waka import Waka
 from .deps import get_current_user
@@ -24,7 +24,13 @@ async def get_active_runners_count(
     if lat is None or lng is None:
         result = await db.execute(
             select(func.count(User.id))
-            .where(User.is_runner == True, User.is_online == True, User.is_user_deleted == False)
+            .where(
+                User.id != current_user.id,
+                User.role == UserRole.USER,
+                User.is_runner == True, 
+                User.is_online == True, 
+                User.is_user_deleted == False
+            )
         )
         return {"count": result.scalar()}
 
@@ -35,6 +41,8 @@ async def get_active_runners_count(
     result = await db.execute(
         select(func.count(User.id))
         .where(
+            User.id != current_user.id,
+            User.role == UserRole.USER,
             User.is_runner == True,
             User.is_online == True,
             User.is_user_deleted == False,

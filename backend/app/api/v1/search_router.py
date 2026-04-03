@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, cast
 from geoalchemy2 import Geography
 from ...database import get_db
-from ...models.user import User
+from ...models.user import User, UserRole
 from ...models.search import SearchHistory
 from ...models.waka import Waka
 from ...schemas.search import SearchResponse, RunnerSearchResponse, SearchRecord
@@ -59,7 +59,12 @@ async def search_runners(
         User, 
         func.ST_Distance(func.cast(User.last_location, Geography), func.cast(user_location, Geography)).label("distance_m"),
         active_waka_sq.label("active_wakas")
-    ).where(User.is_runner == True, User.is_user_deleted == False)
+    ).where(
+        User.id != current_user.id,
+        User.is_runner == True, 
+        User.role == UserRole.USER,
+        User.is_user_deleted == False
+    )
     
     if q:
         stmt = stmt.where(User.full_name.ilike(f"%{q}%"))
