@@ -70,7 +70,7 @@ async def search_runners(
         stmt = stmt.where(User.full_name.ilike(f"%{q}%"))
         
     if filter == "available_now":
-        stmt = stmt.where(User.is_online == True)
+        pass # All runners shown, but sorted by online Status
     elif filter == "5_star":
         stmt = stmt.where(User.stats_rating >= 4.8)
     elif filter == "nearby":
