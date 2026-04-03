@@ -14,6 +14,21 @@ Notifications.setNotificationHandler({
   }),
 });
 
+// Configure Notification Categories
+Notifications.setNotificationCategoryAsync('message', [
+  {
+    identifier: 'reply',
+    buttonTitle: 'Reply',
+    options: {
+      opensAppToForeground: false,
+    },
+    textInput: {
+      submitButtonTitle: 'Send',
+      placeholder: 'Type your message...',
+    },
+  },
+]);
+
 export async function registerForPushNotificationsAsync() {
   let token;
 

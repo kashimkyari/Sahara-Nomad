@@ -260,7 +260,11 @@ async def send_message_http(
             type="message",
             linked_entity_id=conv.id,
             linked_entity_type="conversation",
-            send_in_app=False
+            send_in_app=False,
+            category_id="message",
+            extra_data={
+                "sender_avatar_url": current_user.avatar_url
+            }
         )
         await db.commit()
     
@@ -392,7 +396,11 @@ async def websocket_endpoint(
                     type="message",
                     linked_entity_id=conv.id,
                     linked_entity_type="conversation",
-                    send_in_app=False
+                    send_in_app=False,
+                    category_id="message",
+                    extra_data={
+                        "sender_avatar_url": current_user.avatar_url
+                    }
                 )
                 await db.commit()
             

@@ -5,13 +5,14 @@ from ..models.notification import InAppNotification
 from sqlalchemy.ext.asyncio import AsyncSession
 import uuid
 
-def send_push_notification(token: str, title: str, body: str, data: Optional[dict] = None):
+def send_push_notification(token: str, title: str, body: str, data: Optional[dict] = None, category_id: Optional[str] = None):
     try:
         response = PushClient().publish(
             PushMessage(to=token,
                         title=title,
                         body=body,
-                        data=data)
+                        data=data,
+                        category_id=category_id)
         )
     except PushServerError as exc:
         # Enforce error logging in production
@@ -55,7 +56,9 @@ async def notify_user(
     linked_entity_id: uuid.UUID = None,
     linked_entity_type: str = None,
     send_push: bool = True,
-    send_in_app: bool = True
+    send_in_app: bool = True,
+    category_id: Optional[str] = None,
+    extra_data: Optional[dict] = None
 ):
     """Unified notification dispatcher. Creates in-app record and optionally sends push."""
     # 1. Conditionally create in-app notification
@@ -66,13 +69,19 @@ async def notify_user(
     
     # 2. Conditional Push Notification
     if send_push and user.push_notifications_enabled and user.expo_push_token:
+        # Merge data
+        payload = {
+            "type": type,
+            "linked_entity_id": str(linked_entity_id) if linked_entity_id else None,
+            "linked_entity_type": linked_entity_type
+        }
+        if extra_data:
+            payload.update(extra_data)
+
         send_push_notification(
             user.expo_push_token,
             title,
             body,
-            {
-                "type": type,
-                "linked_entity_id": str(linked_entity_id) if linked_entity_id else None,
-                "linked_entity_type": linked_entity_type
-            }
+            payload,
+            category_id=category_id
         )

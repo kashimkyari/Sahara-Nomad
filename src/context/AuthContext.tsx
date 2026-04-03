@@ -239,9 +239,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log('Notification Received:', notification);
       });
 
-      const responseListener = Notifications.addNotificationResponseReceivedListener(response => {
+      const responseListener = Notifications.addNotificationResponseReceivedListener(async response => {
         console.log('Notification Response:', response);
         const data = response.notification.request.content.data;
+        const actionIdentifier = response.actionIdentifier;
+        const userText = (response as any).userText;
+
+        if (actionIdentifier === 'reply' && userText && data?.linked_entity_id) {
+          // Handle Quick Reply
+          try {
+            await fetch(`${API.API_URL}/chat/messages`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify({
+                conversation_id: data.linked_entity_id,
+                content_text: userText
+              })
+            });
+            console.log('Quick Reply Sent:', userText);
+          } catch (e) {
+            console.error('Failed to send quick reply:', e);
+          }
+          return;
+        }
+
         if (data?.linked_entity_id && data?.linked_entity_type) {
           // Handle navigation based on entity type
           if (data.linked_entity_type === 'conversation') {
