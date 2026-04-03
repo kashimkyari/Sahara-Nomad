@@ -64,7 +64,7 @@ async def signup(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
     await db.refresh(db_obj)
 
     # Welcome Notification
-    from ..services.notification_service import notify_user
+    from ...services.notification_service import notify_user
     await notify_user(
         db=db,
         user=db_obj,
