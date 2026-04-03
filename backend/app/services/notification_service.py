@@ -33,6 +33,10 @@ def send_push_notification(token: str, title: str, body: str, data: Optional[dic
                 payload["image"] = full_avatar_url
                 # iOS requires 'attachments' for rich notifications
                 payload["attachments"] = [{"url": full_avatar_url}]
+                # Redundantly add to data for certain frontend listeners/extensions
+                if data is not None:
+                    data["image"] = full_avatar_url
+                    data["avatar_url"] = full_avatar_url
         
         headers = {
             "Content-Type": "application/json",
