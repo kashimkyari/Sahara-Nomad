@@ -207,7 +207,8 @@ async def send_message_http(
         conversation_id=msg_in.conversation_id,
         sender_id=current_user.id,
         content_text=msg_in.content_text,
-        attachment_url=msg_in.attachment_url
+        attachment_url=msg_in.attachment_url,
+        attachment_metadata=msg_in.attachment_metadata
     )
     db.add(new_msg)
     
@@ -219,8 +220,11 @@ async def send_message_http(
     await db.refresh(new_msg)
     
     # Broadcast via WebSocket
-    msg_data = MessageRead.model_validate(new_msg).model_dump_json()
-    await manager.broadcast(msg_data, str(msg_in.conversation_id))
+    msg_data = {
+        "type": "NEW_MESSAGE",
+        "message": MessageRead.model_validate(new_msg).model_dump(mode='json')
+    }
+    await manager.broadcast(json.dumps(msg_data), str(msg_in.conversation_id))
     
     # Notify recipient
     recipient_id = conv.runner_id if current_user.id == conv.employer_id else conv.employer_id
@@ -238,6 +242,35 @@ async def send_message_http(
         await db.commit()
     
     return new_msg
+
+@router.delete("/messages/{message_id}", response_model=MessageRead)
+async def delete_message(
+    message_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Soft-delete a message (only sender can delete)."""
+    stmt = select(Message).where(Message.id == message_id)
+    result = await db.execute(stmt)
+    msg = result.scalar_one_or_none()
+    
+    if not msg:
+        raise HTTPException(status_code=404, detail="Message not found")
+    if msg.sender_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Only the sender can delete this message")
+        
+    msg.is_deleted = True
+    await db.commit()
+    await db.refresh(msg)
+    
+    # Broadcast deletion
+    msg_data = {
+        "type": "DELETE_MESSAGE",
+        "message_id": str(message_id)
+    }
+    await manager.broadcast(json.dumps(msg_data), str(msg.conversation_id))
+    
+    return msg
 
 # Basic In-Memory Connection Manager for demo (Prod should use Redis as per plan)
 class ConnectionManager:
@@ -318,8 +351,11 @@ async def websocket_endpoint(
             await db.refresh(new_msg)
             
             # Broadcast
-            msg_data = MessageRead.model_validate(new_msg).model_dump_json()
-            await manager.broadcast(msg_data, convo_id)
+            msg_data = {
+                "type": "NEW_MESSAGE",
+                "message": MessageRead.model_validate(new_msg).model_dump(mode='json')
+            }
+            await manager.broadcast(json.dumps(msg_data), convo_id)
             
             # Notify recipient
             recipient_id = conv.runner_id if sender_id == conv.employer_id else conv.employer_id

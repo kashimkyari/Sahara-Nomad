@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Camera, CheckCheck, ChevronLeft, Package, Paperclip, Send } from 'lucide-react-native';
-import React, { useEffect, useRef, useState } from 'react';
+import { Camera, CheckCheck, ChevronLeft, Package, Paperclip, Send, FileText, ExternalLink } from 'lucide-react-native';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import {
   Image,
   KeyboardAvoidingView,
@@ -11,6 +11,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DesignTokens as DT } from '../../constants/design';
@@ -18,6 +19,102 @@ import { useTheme } from '../../hooks/use-theme';
 import { useAuth } from '../../context/AuthContext';
 import API from '../../constants/api';
 import { ActivityIndicator } from 'react-native';
+import { MotiView, AnimatePresence } from 'moti';
+import { AudioModule, useAudioPlayerStatus } from 'expo-audio';
+import * as DocumentPicker from 'expo-document-picker';
+import * as ImagePicker from 'expo-image-picker';
+import { Play, Pause, Music, Trash2 } from 'lucide-react-native';
+import { BrutalistAlert } from '../../components/ui/BrutalistAlert';
+
+// --- Small Audio Player Component ---
+const AudioPlayer = ({ uri, isMe, colors, styles, initialDuration, onLongPress }: { uri: string; isMe: boolean; colors: any; styles: any; initialDuration?: number; onLongPress?: () => void }) => {
+  // Work around the broken helper in expo-audio 55, which passes one extra constructor arg.
+  const player = useMemo(() => new (AudioModule as any).AudioPlayer({ uri }, 500, false), [uri]);
+  const { playing, duration, currentTime } = useAudioPlayerStatus(player);
+  const [audioDuration, setAudioDuration] = useState(initialDuration || 0);
+
+  useEffect(() => {
+    if (duration > 0) setAudioDuration(duration);
+  }, [duration]);
+
+  useEffect(() => {
+    return () => {
+      if (typeof player.release === 'function') {
+        player.release();
+      } else if (typeof player.remove === 'function') {
+        player.remove();
+      }
+    };
+  }, [player]);
+
+  const formatTime = (millis: number) => {
+    const totalSeconds = Math.floor(millis / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  const progress = audioDuration > 0 ? (currentTime / audioDuration) * 100 : 0;
+  
+  // High-density simulated waveform (40 bars for "smooth" premium look)
+  const bars = useMemo(() => Array.from({ length: 40 }).map((_, i) => ({
+    id: i,
+    height: 12 + Math.random() * 26
+  })), []);
+
+  const togglePlayback = () => {
+    if (playing) {
+      player.pause();
+    } else {
+      player.play();
+    }
+  };
+
+  return (
+    <TouchableOpacity 
+      style={[styles.audioContainer, isMe ? styles.myAudio : styles.theirAudio]} 
+      onPress={togglePlayback}
+      onLongPress={onLongPress}
+      activeOpacity={0.9}
+    >
+      <View style={styles.audioIconBox}>
+        {playing ? (
+          <Pause size={20} color={colors.text} fill={colors.text} strokeWidth={3} />
+        ) : (
+          <Play size={20} color={colors.text} fill={colors.text} strokeWidth={3} />
+        )}
+      </View>
+      <View style={{ flex: 1, gap: 8 }}>
+        <View style={styles.waveformRow}>
+          {bars.map((bar, i) => {
+            const isFilled = (i / bars.length) * 100 <= progress;
+            return (
+              <MotiView 
+                key={bar.id} 
+                animate={{
+                  backgroundColor: isFilled ? (isMe ? colors.surface : colors.primary) : 'rgba(0,0,0,0.1)',
+                }}
+                transition={{ type: 'timing', duration: 150 }}
+                style={[
+                  styles.waveformBar, 
+                  { 
+                    height: bar.height,
+                    borderColor: colors.text,
+                    borderWidth: 1.5,
+                  }
+                ]} 
+              />
+            );
+          })}
+        </View>
+        <Text style={[styles.audioTimeText, isMe && styles.myBubbleText]}>
+          {formatTime(currentTime)} / {audioDuration > 0 ? formatTime(audioDuration) : '--:--'}
+        </Text>
+      </View>
+      <Music size={14} color={isMe ? 'rgba(255,255,255,0.7)' : colors.muted} />
+    </TouchableOpacity>
+  );
+};
 
 
 export default function ConversationScreen() {
@@ -31,6 +128,12 @@ export default function ConversationScreen() {
   const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [conversation, setConversation] = useState<any>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  
+  // Soft-delete states
+  const [isDeleteAlertVisible, setIsDeleteAlertVisible] = useState(false);
+  const [selectedMessageForDelete, setSelectedMessageForDelete] = useState<any>(null);
   
   const scrollRef = useRef<ScrollView>(null);
   const ws = useRef<WebSocket | null>(null);
@@ -73,13 +176,20 @@ export default function ConversationScreen() {
     ws.current = new WebSocket(API.MESSAGES.WS(convoId, authToken));
     
     ws.current.onmessage = (e) => {
-      const newMsg = JSON.parse(e.data);
-      setMessages(prev => {
-        // Avoid duplicates if HTTP send already added it
-        if (prev.find(m => m.id === newMsg.id)) return prev;
-        return [...prev, newMsg];
-      });
-      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
+      const data = JSON.parse(e.data);
+      
+      if (data.type === 'NEW_MESSAGE') {
+        const newMsg = data.message;
+        setMessages(prev => {
+          if (prev.find(m => m.id === newMsg.id)) return prev;
+          return [...prev, newMsg];
+        });
+        setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
+      } else if (data.type === 'DELETE_MESSAGE') {
+        setMessages(prev => prev.map(m => 
+          m.id === data.message_id ? { ...m, is_deleted: true } : m
+        ));
+      }
     };
 
     ws.current.onerror = (e) => {
@@ -87,14 +197,13 @@ export default function ConversationScreen() {
     };
   };
 
-  const sendMessage = async () => {
-    if (!message.trim()) return;
-
-    const content = message.trim();
-    setMessage('');
+  const sendMessage = async (content_text?: string, attachment_url?: string, attachment_metadata?: any) => {
+    const content = content_text || message.trim();
+    if (!content && !attachment_url) return;
+    
+    if (!content_text) setMessage('');
 
     try {
-      // Use HTTP for sending to ensure easy DB persistence and broadcast logic on backend
       const res = await fetch(API.MESSAGES.SEND, {
         method: 'POST',
         headers: {
@@ -103,15 +212,15 @@ export default function ConversationScreen() {
         },
         body: JSON.stringify({
           conversation_id: convoId,
-          content_text: content,
+          content_text: content || null,
+          attachment_url: attachment_url || null,
+          attachment_metadata: attachment_metadata || null
         }),
       });
       
       if (!res.ok) throw new Error('Failed to send message');
       
       const sentMsg = await res.json();
-      // Optimistically add or let WS handle it? 
-      // Let's add it if not already there (though WS is usually fast)
       setMessages(prev => {
         if (prev.find(m => m.id === sentMsg.id)) return prev;
         return [...prev, sentMsg];
@@ -120,7 +229,97 @@ export default function ConversationScreen() {
       setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
     } catch (e) {
       console.error('Send error:', e);
-      // Fallback: restore message to input or show error
+    }
+  };
+
+  const uploadMedia = async (uri: string, type: string, metadata: any = {}) => {
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', {
+        uri,
+        name: type === 'image' ? 'photo.jpg' : 'audio.m4a',
+        type: type === 'image' ? 'image/jpeg' : 'audio/m4a',
+      } as any);
+
+      const res = await fetch(API.MEDIA.UPLOAD, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!res.ok) throw new Error('Upload failed');
+      const data = await res.json();
+      await sendMessage(undefined, data.url, metadata);
+    } catch (e) {
+      console.error('Upload Error:', e);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const pickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      quality: 0.8,
+    });
+    if (!result.canceled) {
+      await uploadMedia(result.assets[0].uri, 'image');
+    }
+  };
+
+  const pickDocument = async () => {
+    const result = await DocumentPicker.getDocumentAsync({
+      type: '*/*',
+    });
+    if (!result.canceled) {
+      const asset = result.assets[0];
+      const uri = asset.uri;
+      let metadata: any = {};
+      
+      if (uri.match(/\.(mp3|wav|m4a|aac|ogg|opus)(\?.*)?$/i)) {
+        try {
+          const tempPlayer = new (AudioModule as any).AudioPlayer({ uri }, 500, false);
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          if (tempPlayer.duration > 0) metadata.duration = tempPlayer.duration;
+          if (typeof tempPlayer.release === 'function') tempPlayer.release();
+        } catch (e) {
+          console.warn('Could not extract duration metadata', e);
+        }
+      }
+      
+      await uploadMedia(asset.uri, asset.mimeType?.includes('image') ? 'image' : 'file', metadata);
+    }
+  };
+
+  const onLongPressMessage = (msg: any) => {
+    if (msg.sender_id === user?.id && !msg.is_deleted) {
+      setSelectedMessageForDelete(msg);
+      setIsDeleteAlertVisible(true);
+    }
+  };
+
+  const handleDeleteMessage = async () => {
+    if (!selectedMessageForDelete) return;
+    
+    const msgId = selectedMessageForDelete.id;
+    setIsDeleteAlertVisible(false);
+    
+    try {
+      const res = await fetch(API.MESSAGES.DELETE_MESSAGE(msgId), {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (res.ok) {
+        setMessages(prev => prev.map(m => 
+          m.id === msgId ? { ...m, is_deleted: true } : m
+        ));
+      }
+    } catch (e) {
+      console.error('Delete error:', e);
     }
   };
 
@@ -187,41 +386,164 @@ export default function ConversationScreen() {
           {loading ? (
             <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 40 }} />
           ) : (
-            messages.map((msg) => {
-              const isMe = msg.sender_id === user?.id;
-              return (
-                <View
-                  key={msg.id}
-                  style={[styles.bubbleWrapper, isMe ? styles.myWrapper : styles.theirWrapper]}
-                >
-                  {!isMe && (
-                    <View style={styles.theirAvatarBox}>
-                      <Image 
-                        source={{ uri: conversation?.other_user?.avatar_url || `https://i.pravatar.cc/150?u=${msg.sender_id}` }} 
-                        style={styles.theirAvatar} 
-                      />
-                    </View>
-                  )}
+            <AnimatePresence>
+              {messages.map((msg) => {
+                const isMe = msg.sender_id === user?.id;
+                return (
+                  <View
+                    key={msg.id}
+                    style={[styles.bubbleWrapper, isMe ? styles.myWrapper : styles.theirWrapper]}
+                  >
+                    {!isMe && !msg.is_deleted && (
+                      <View style={styles.theirAvatarBox}>
+                        <Image 
+                          source={{ uri: conversation?.other_user?.avatar_url || `https://i.pravatar.cc/150?u=${msg.sender_id}` }} 
+                          style={styles.theirAvatar} 
+                        />
+                      </View>
+                    )}
 
-                  <View style={[styles.bubble, isMe ? styles.myBubble : styles.theirBubble]}>
-                    <Text style={[styles.bubbleText, isMe && styles.myBubbleText]}>
-                      {msg.content_text}
-                    </Text>
-                    <View style={styles.bubbleFooter}>
-                      <Text style={[styles.bubbleTime, isMe && styles.myBubbleTime]}>
-                        {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </Text>
-                      {isMe && msg.is_read && (
-                        <CheckCheck size={14} color={colors.surface} strokeWidth={3} style={{ marginLeft: 4 }} />
-                      )}
-                      {isMe && !msg.is_read && (
-                        <CheckCheck size={14} color={'rgba(255,255,255,0.5)'} strokeWidth={3} style={{ marginLeft: 4 }} />
+                    <View style={{ flex: 1 }}>
+                      {msg.is_deleted ? (
+                        <MotiView 
+                          from={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          style={{ 
+                            alignSelf: isMe ? 'flex-end' : 'flex-start',
+                            paddingVertical: 8,
+                            paddingHorizontal: 12,
+                            backgroundColor: 'rgba(0,0,0,0.03)',
+                            borderWidth: 1,
+                            borderColor: 'rgba(0,0,0,0.1)',
+                            borderStyle: 'dashed',
+                            borderRadius: 8,
+                            marginVertical: 4
+                          }}
+                        >
+                          <Text style={[
+                            { 
+                              fontFamily: DT.typography.bodySemiBold, 
+                              fontSize: 12, 
+                              fontStyle: 'italic', 
+                              color: colors.muted,
+                              opacity: 0.6
+                            }
+                          ]}>
+                            This message has been deleted
+                          </Text>
+                          <Text style={[
+                            { 
+                              fontFamily: DT.typography.bodySemiBold, 
+                              fontSize: 9, 
+                              color: colors.muted,
+                              opacity: 0.4,
+                              marginTop: 2,
+                              textAlign: isMe ? 'right' : 'left'
+                            }
+                          ]}>
+                            {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </Text>
+                        </MotiView>
+                      ) : (
+                        <>
+                          {msg.attachment_url && (
+                            <MotiView 
+                              from={{ opacity: 0, scale: 0.95 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              style={[
+                                isMe ? styles.myWrapper : styles.theirWrapper,
+                                { 
+                                  alignSelf: isMe ? 'flex-end' : 'flex-start',
+                                  marginBottom: msg.content_text ? 8 : 0 
+                                }
+                              ]}
+                            >
+                              {msg.attachment_url.toLowerCase().includes('image') || msg.attachment_url.match(/\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i) ? (
+                                <TouchableOpacity 
+                                  onPress={() => setSelectedImage(msg.attachment_url || null)}
+                                  onLongPress={() => onLongPressMessage(msg)}
+                                  activeOpacity={0.8}
+                                >
+                                  <Image source={{ uri: msg.attachment_url }} style={styles.bubbleImage} />
+                                </TouchableOpacity>
+                              ) : msg.attachment_url.match(/\.(mp3|wav|m4a|aac|ogg|opus)(\?.*)?$/i) ? (
+                                <AudioPlayer 
+                                  uri={msg.attachment_url} 
+                                  isMe={isMe} 
+                                  colors={colors} 
+                                  styles={styles} 
+                                  initialDuration={msg.attachment_metadata?.duration}
+                                  onLongPress={() => onLongPressMessage(msg)}
+                                />
+                              ) : (
+                                <TouchableOpacity 
+                                  style={styles.fileLink} 
+                                  onPress={() => {/* In real app, open in browser or download */}}
+                                  onLongPress={() => onLongPressMessage(msg)}
+                                >
+                                  <FileText size={20} color={colors.text} />
+                                  <Text style={styles.fileText}>View Attachment</Text>
+                                  <ExternalLink size={14} color={colors.muted} />
+                                </TouchableOpacity>
+                              )}
+                              {!msg.content_text && (
+                                <View style={[styles.bubbleFooter, { marginTop: 4 }]}>
+                                  <Text style={styles.bubbleTime}>
+                                    {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                  </Text>
+                                  {isMe && (
+                                    <CheckCheck 
+                                      size={14} 
+                                      color={msg.is_read ? colors.secondary : colors.muted} 
+                                      strokeWidth={3} 
+                                      style={{ marginLeft: 4 }} 
+                                    />
+                                  )}
+                                </View>
+                              )}
+                            </MotiView>
+                          )}
+
+                          {msg.content_text ? (
+                            <MotiView 
+                              from={{ opacity: 0, scale: 0.9, translateY: 5 }}
+                              animate={{ opacity: 1, scale: 1, translateY: 0 }}
+                              style={[
+                                styles.bubble, 
+                                isMe ? styles.myBubble : styles.theirBubble,
+                                { alignSelf: isMe ? 'flex-end' : 'flex-start' }
+                              ]}
+                            >
+                              <TouchableOpacity 
+                                onLongPress={() => onLongPressMessage(msg)}
+                                activeOpacity={0.8}
+                              >
+                                <Text style={[styles.bubbleText, isMe && styles.myBubbleText]}>
+                                  {msg.content_text}
+                                </Text>
+                              </TouchableOpacity>
+                              <View style={styles.bubbleFooter}>
+                                <Text style={[styles.bubbleTime, isMe && styles.myBubbleTime]}>
+                                  {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </Text>
+                                {isMe && (
+                                  <CheckCheck 
+                                    size={14} 
+                                    color={msg.is_read ? colors.surface : 'rgba(255,255,255,0.4)'} 
+                                    strokeWidth={3} 
+                                    style={{ marginLeft: 4 }} 
+                                  />
+                                )}
+                              </View>
+                            </MotiView>
+                          ) : null}
+                        </>
                       )}
                     </View>
                   </View>
-                </View>
-              );
-            })
+                );
+              })}
+            </AnimatePresence>
           )}
 
           {isTyping && (
@@ -235,11 +557,11 @@ export default function ConversationScreen() {
 
         {/* Input Block */}
         <View style={styles.inputContainer}>
-          <TouchableOpacity style={styles.attachmentBtn}>
-            <Paperclip size={22} color={colors.text} strokeWidth={2.5} />
+          <TouchableOpacity style={styles.attachmentBtn} onPress={pickDocument} disabled={isUploading}>
+            <Paperclip size={22} color={isUploading ? colors.muted : colors.text} strokeWidth={2.5} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.attachmentBtn}>
-            <Camera size={22} color={colors.text} strokeWidth={2.5} />
+          <TouchableOpacity style={styles.attachmentBtn} onPress={pickImage} disabled={isUploading}>
+            <Camera size={22} color={isUploading ? colors.muted : colors.text} strokeWidth={2.5} />
           </TouchableOpacity>
 
           <TextInput
@@ -254,7 +576,8 @@ export default function ConversationScreen() {
 
           <TouchableOpacity
             style={[styles.sendBtn, !message.trim() && styles.sendBtnDisabled]}
-            onPress={sendMessage}
+            onPress={() => sendMessage()}
+            disabled={!message.trim()}
           >
             <Send
               size={20}
@@ -265,6 +588,37 @@ export default function ConversationScreen() {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+
+      <Modal visible={!!selectedImage} transparent animationType="fade" onRequestClose={() => setSelectedImage(null)}>
+        <TouchableOpacity style={styles.modalOverlay} onPress={() => setSelectedImage(null)} activeOpacity={1}>
+          <MotiView 
+            from={{ scale: 0.5, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            style={styles.modalContent}
+          >
+            <Image source={{ uri: selectedImage || '' }} style={styles.fullImage} resizeMode="contain" />
+          </MotiView>
+        </TouchableOpacity>
+      </Modal>
+
+      <BrutalistAlert
+        visible={isDeleteAlertVisible}
+        title="Delete Message?"
+        message="Are you sure you want to permanently remove this message from the chat?"
+        buttons={[
+          {
+            text: "No, Keep it",
+            style: "cancel",
+            onPress: () => setIsDeleteAlertVisible(false)
+          },
+          {
+            text: "Yes, Delete",
+            style: "destructive",
+            onPress: handleDeleteMessage
+          }
+        ]}
+        onClose={() => setIsDeleteAlertVisible(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -516,4 +870,38 @@ const getStyles = (colors: any) => StyleSheet.create({
   sendBtnDisabled: {
     backgroundColor: colors.muted,
   },
+  bubbleImage: { 
+    width: 220, height: 165, marginBottom: 8, 
+    borderWidth: 3, borderColor: colors.text,
+    shadowColor: colors.text, shadowOffset: { width: 4, height: 4 }, shadowOpacity: 1, shadowRadius: 0,
+  },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', justifyContent: 'center', alignItems: 'center' },
+  modalContent: { width: '90%', height: '80%', borderWidth: 4, borderColor: colors.text, backgroundColor: colors.background },
+  fullImage: { width: '100%', height: '100%' },
+  fileLink: { 
+    flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, 
+    borderWidth: 3, borderColor: colors.text,
+    backgroundColor: colors.surface,
+    shadowColor: colors.text, shadowOffset: { width: 3, height: 3 }, shadowOpacity: 1, shadowRadius: 0,
+  },
+  fileText: { fontFamily: DT.typography.bodySemiBold, fontSize: 13, color: colors.text },
+  audioContainer: {
+    flexDirection: 'row', alignItems: 'center', padding: 16, 
+    minWidth: 240, maxWidth: '90%', marginBottom: 4,
+    borderWidth: 3, borderColor: colors.text,
+    shadowColor: colors.text, shadowOffset: { width: 4, height: 4 }, shadowOpacity: 1, shadowRadius: 0,
+  },
+  myAudio: { backgroundColor: colors.primary },
+  theirAudio: { backgroundColor: colors.surface },
+  audioIconBox: {
+    width: 44, height: 44, borderWidth: 3, borderColor: colors.text,
+    backgroundColor: colors.background, marginRight: 12,
+    alignItems: 'center', justifyContent: 'center'
+  },
+  audioTimeText: { fontFamily: DT.typography.bodySemiBold, fontSize: 10, color: colors.muted, marginTop: 4 },
+  waveformRow: { 
+    flexDirection: 'row', alignItems: 'center', gap: 2, 
+    height: 48, justifyContent: 'flex-start', overflow: 'hidden' 
+  },
+  waveformBar: { width: 3, minHeight: 4, borderRadius: 1.5 },
 });

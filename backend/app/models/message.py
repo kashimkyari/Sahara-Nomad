@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import String, Boolean, ForeignKey, Text, DateTime, func
-from sqlalchemy.dialects.postgresql import UUID, ARRAY
+from sqlalchemy.dialects.postgresql import UUID, ARRAY, JSON
 import uuid
 from typing import Optional
 from .base import AuditableBase
@@ -31,11 +31,13 @@ class Message(AuditableBase):
     
     content_text: Mapped[Optional[str]] = mapped_column(String(1500), nullable=True)
     attachment_url: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    attachment_metadata: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     
     is_delivered: Mapped[bool] = mapped_column(default=False)
     is_read: Mapped[bool] = mapped_column(default=False)
     read_at: Mapped[Optional[DateTime]] = mapped_column(DateTime(timezone=True), nullable=True)
     
+    is_deleted: Mapped[bool] = mapped_column(default=False)
     is_deleted_by_sender: Mapped[bool] = mapped_column(default=False)
 
     conversation: Mapped["Conversation"] = relationship("Conversation", back_populates="messages")

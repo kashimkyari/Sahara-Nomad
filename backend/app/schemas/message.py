@@ -7,6 +7,7 @@ from .user import UserInfo
 class MessageBase(BaseModel):
     content_text: Optional[str] = None
     attachment_url: Optional[str] = None
+    attachment_metadata: Optional[dict] = None
 
 class MessageCreate(MessageBase):
     conversation_id: UUID
@@ -17,6 +18,7 @@ class MessageRead(MessageBase):
     is_delivered: bool
     is_read: bool
     read_at: Optional[datetime] = None
+    is_deleted: bool = False
     created_at: datetime
     
     model_config = ConfigDict(from_attributes=True)

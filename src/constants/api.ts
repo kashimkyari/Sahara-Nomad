@@ -29,6 +29,7 @@ export default {
         CONVERSATIONS: `${API_URL}/chat/conversations`,
         HISTORY: (id: string) => `${API_URL}/chat/${id}/history`,
         SEND: `${API_URL}/chat/messages`,
+        DELETE_MESSAGE: (id: string) => `${API_URL}/chat/messages/${id}`,
         WS: (id: string, token: string) => `ws://172.20.10.9:8000/api/v1/chat/ws/${id}?token=${token}`,
         UNREAD_COUNT: `${API_URL}/chat/unread-count`,
     },
