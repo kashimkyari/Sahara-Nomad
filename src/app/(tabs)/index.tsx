@@ -303,7 +303,7 @@ export default function HomeScreen() {
                 AVAILABLE ERRANDS
               </Text>
               {availableWakas.length > 0 && (
-                <TouchableOpacity onPress={() => router.push('/runners/all')}>
+                <TouchableOpacity onPress={() => router.push('/waka/available')}>
                   <Text style={styles.seeAll}>View all</Text>
                 </TouchableOpacity>
               )}
