@@ -51,6 +51,14 @@ export default function AuthScreen() {
     setAlertVisible(true);
   };
 
+  const sanitizePhone = (input: string) => {
+    const digits = input.replace(/\D/g, ''); // Remove all non-digits
+    if (digits.startsWith('234')) {
+      return digits.slice(3).replace(/^0+/, '');
+    }
+    return digits.replace(/^0+/, '');
+  };
+
   const handleSubmit = async () => {
     if (phone.length < 10) {
       setPhoneError('Ah ah, check that number again.');
@@ -60,7 +68,7 @@ export default function AuthScreen() {
     setIsOtpView(false); // Reset view if switching tabs or starting over
     setLoading(true);
 
-    const fullPhone = `+234${phone.replace(/^0+/, '')}`;
+    const fullPhone = `+234${sanitizePhone(phone)}`;
 
     try {
       if (tab === 'signup') {
@@ -114,7 +122,7 @@ export default function AuthScreen() {
   const handleVerifyOtp = async () => {
     setLoading(true);
     setPhoneError('');
-    const fullPhone = `+234${phone.replace(/^0+/, '')}`;
+    const fullPhone = `+234${sanitizePhone(phone)}`;
 
     try {
       const response = await fetch(`${API.API_URL}/auth/verify-otp`, {
@@ -143,7 +151,7 @@ export default function AuthScreen() {
   const handleResendOtp = async () => {
     setLoading(true);
     setPhoneError('');
-    const fullPhone = `+234${phone.replace(/^0+/, '')}`;
+    const fullPhone = `+234${sanitizePhone(phone)}`;
 
     try {
       const response = await fetch(`${API.API_URL}/auth/request-otp?phone_number=${encodeURIComponent(fullPhone)}`, {
@@ -249,7 +257,7 @@ export default function AuthScreen() {
                     value={name}
                     onChangeText={setName}
                     autoCapitalize="words"
-                    textContentType="givenName"
+                    textContentType="name"
                     autoComplete="name"
                     onSubmitEditing={() => phoneRef.current?.focus()}
                     returnKeyType="next"
