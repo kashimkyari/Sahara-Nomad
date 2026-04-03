@@ -167,13 +167,6 @@ async def get_chat_history(
     if not conv or current_user.id not in [conv.employer_id, conv.runner_id]:
         raise HTTPException(status_code=403, detail="Not authorized to view this chat history")
 
-    result = await db.execute(
-        select(Message)
-        .where(Message.conversation_id == convo_id)
-        .order_by(Message.created_at.asc())
-    )
-    messages = result.scalars().all()
-    
     # Mark messages from other user as read when history is requested
     await db.execute(
         update(Message)
@@ -187,6 +180,14 @@ async def get_chat_history(
         .values(is_read=True, read_at=func.now())
     )
     await db.commit()
+
+    # Now fetch messages (after update and commit)
+    result = await db.execute(
+        select(Message)
+        .where(Message.conversation_id == convo_id)
+        .order_by(Message.created_at.asc())
+    )
+    messages = result.scalars().all()
     
     return messages
 
