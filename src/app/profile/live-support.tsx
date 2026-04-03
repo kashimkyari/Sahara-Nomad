@@ -11,49 +11,100 @@ import {
   Image 
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ChevronLeft, Camera, Paperclip, Send, CheckCheck } from 'lucide-react-native';
 import { DesignTokens as DT } from '../../constants/design';
 import { useTheme } from '../../hooks/use-theme';
+import { useAuth } from '../../context/AuthContext';
 import { MotiView, AnimatePresence } from 'moti';
 import * as Haptics from 'expo-haptics';
 
 export default function LiveSupportScreen() {
   const { colors } = useTheme();
+  const { token, user } = useAuth();
   const router = useRouter();
-  const [messages, setMessages] = useState([
-    { id: '1', text: 'Hey there! How can we help you today? ⚡️', sender: 'support', time: '09:41', is_read: true },
-  ]);
+  const params = useLocalSearchParams();
+  const [ticketId, setTicketId] = useState<string | null>(params.ticketId as string || null);
+  const [messages, setMessages] = useState<any[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
+  const ws = useRef<WebSocket | null>(null);
   const styles = getStyles(colors);
 
-  const sendMessage = () => {
-    if (!chatInput.trim()) return;
-    const newMessage = { 
-      id: Date.now().toString(), 
-      text: chatInput, 
-      sender: 'user', 
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      is_read: false
+  // Initialize or fetch ticket
+  useEffect(() => {
+    const initSupport = async () => {
+      if (!ticketId) {
+        try {
+          const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/support/`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ subject: 'Live Support Session' })
+          });
+          if (response.ok) {
+            const ticket = await response.json();
+            setTicketId(ticket.id);
+          }
+        } catch (e) {
+          console.error('Failed to init support ticket', e);
+        }
+      } else {
+        fetchHistory(ticketId);
+      }
     };
-    setMessages([...messages, newMessage]);
+
+    if (token) initSupport();
+  }, [ticketId, token]);
+
+  // Handle WebSocket connection
+  useEffect(() => {
+    if (ticketId && token) {
+      const wsUrl = `${process.env.EXPO_PUBLIC_API_URL?.replace('http', 'ws')}/support/ws/${ticketId}?token=${token}`;
+      ws.current = new WebSocket(wsUrl);
+
+      ws.current.onmessage = (e) => {
+        const msg = JSON.parse(e.data);
+        setMessages((prev) => {
+          // Avoid duplicates
+          if (prev.find(m => m.id === msg.id)) return prev;
+          return [...prev, msg];
+        });
+        if (msg.sender_id !== user?.id) {
+          setIsTyping(false);
+        }
+      };
+
+      return () => {
+        ws.current?.close();
+      };
+    }
+  }, [ticketId, token]);
+
+  const fetchHistory = async (id: string) => {
+    try {
+      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/support/${id}/messages`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setMessages(data);
+      }
+    } catch (e) {
+      console.error('Failed to fetch messages', e);
+    }
+  };
+
+  const sendMessage = () => {
+    if (!chatInput.trim() || !ws.current || ws.current.readyState !== WebSocket.OPEN) return;
+    
+    const payload = { content_text: chatInput };
+    ws.current.send(JSON.stringify(payload));
     setChatInput('');
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-
-    // Mock response flow
-    setTimeout(() => setIsTyping(true), 800);
-    setTimeout(() => {
-      setIsTyping(false);
-      setMessages(prev => [...prev, {
-        id: (Date.now() + 1).toString(),
-        text: "Got it! A member of our team will be with you shortly to help. 🚀",
-        sender: 'support',
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        is_read: true
-      }]);
-    }, 2500);
   };
 
   return (
@@ -92,7 +143,7 @@ export default function LiveSupportScreen() {
         >
           <AnimatePresence>
             {messages.map((msg) => {
-              const isMe = msg.sender === 'user';
+              const isMe = msg.sender_id === user?.id;
               return (
                 <View key={msg.id} style={[styles.bubbleWrapper, isMe ? styles.myWrapper : styles.theirWrapper]}>
                   {!isMe && (
@@ -109,11 +160,11 @@ export default function LiveSupportScreen() {
                     ]}
                   >
                     <Text style={[styles.bubbleText, isMe && styles.myBubbleText]}>
-                      {msg.text}
+                      {msg.content_text}
                     </Text>
                     <View style={styles.bubbleFooter}>
                       <Text style={[styles.bubbleTime, isMe && styles.myBubbleTime]}>
-                        {msg.time}
+                        {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </Text>
                       {isMe && (
                         <CheckCheck 

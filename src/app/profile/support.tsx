@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, TextInput, StyleSheet, Linking } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { ChevronLeft, ChevronRight, MessageSquare, Phone, Mail } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, Mail, MessageSquare, Phone } from 'lucide-react-native';
+import React, { useState, useEffect } from 'react';
+import { Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { DesignTokens as DT } from '../../constants/design';
-import { useTheme } from '../../hooks/use-theme';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../hooks/use-theme';
 
 const faqs = [
   { q: 'How do I cancel a waka?', a: 'Open the active waka from your Home screen and tap "Cancel Waka". Cancellations are free before a runner accepts. After acceptance, a ₦500 cancellation fee applies.' },
@@ -15,17 +15,31 @@ const faqs = [
   { q: 'How do I become a runner?', a: 'Tap "Become a Runner" in your profile settings. You will need to complete BVN verification and an address check before going live.' },
 ];
 
-const chatHistory = [
-  { id: 'T-842', status: 'Active', date: 'Today, 10:45 AM', lastMsg: 'Our team is reviewing your request...' },
-  { id: 'T-721', status: 'Resolved', date: 'Mar 28, 2026', lastMsg: 'Glad we could help! Feel free to reach out again.' },
-];
-
 export default function SupportScreen() {
   const { colors } = useTheme();
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const router = useRouter();
   const [expanded, setExpanded] = useState<number | null>(null);
+  const [history, setHistory] = useState<any[]>([]);
   const styles = getStyles(colors);
+
+  useEffect(() => {
+    fetchHistory();
+  }, []);
+
+  const fetchHistory = async () => {
+    try {
+      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/support/`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setHistory(data);
+      }
+    } catch (e) {
+      console.error('Failed to fetch support history', e);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -43,23 +57,23 @@ export default function SupportScreen() {
         {[
           { icon: MessageSquare, label: 'Live Support', sub: 'Avg. 3 min response', color: colors.primary, action: () => router.push('/profile/live-support' as any) },
           { icon: Phone, label: 'Call Support', sub: '9am – 6pm Mon–Sat', color: colors.secondary, action: () => router.push('/profile/call-support' as any) },
-          { 
-            icon: Mail, 
-            label: 'Email Us', 
-            sub: 'support@sendam.ng', 
-            color: colors.accent, 
+          {
+            icon: Mail,
+            label: 'Email Us',
+            sub: 'support@sendam.ng',
+            color: colors.accent,
             action: () => {
               const subject = encodeURIComponent('Support Request - SendAm');
               const body = encodeURIComponent(
-                `--- USER INFO ---\n` +
+                `USER INFO:\n` +
                 `Name: ${user?.full_name || 'N/A'}\n` +
                 `Phone: ${user?.phone_number || 'N/A'}\n` +
                 `User ID: ${user?.id || 'N/A'}\n\n` +
-                `--- DESCRIPTION ---\n` +
+                `DESCRIPTION:\n` +
                 `[Please describe your issue here]\n`
               );
               Linking.openURL(`mailto:support@sendam.ng?subject=${subject}&body=${body}`);
-            } 
+            }
           },
         ].map((ch) => (
           <TouchableOpacity key={ch.label} style={styles.channelRow} onPress={ch.action}>
@@ -89,25 +103,33 @@ export default function SupportScreen() {
 
         {/* Chat History */}
         <Text style={[styles.sectionLabel, { marginTop: DT.spacing.lg }]}>LIVE SUPPORT HISTORY</Text>
-        {chatHistory.map((item) => (
+        {history.length > 0 ? history.map((item) => (
           <TouchableOpacity 
             key={item.id} 
             style={styles.historyCard}
-            onPress={() => router.push('/profile/live-support' as any)}
+            onPress={() => router.push({ pathname: '/profile/live-support', params: { ticketId: item.id } } as any)}
           >
             <View style={styles.historyHeader}>
-              <Text style={styles.historyId}>{item.id}</Text>
-              <View style={[styles.statusTag, { backgroundColor: item.status === 'Active' ? colors.primary : colors.secondary }]}>
+              <Text style={styles.historyId}>Ticket #{item.id.slice(0, 5).toUpperCase()}</Text>
+              <View style={[styles.statusTag, { backgroundColor: item.status === 'active' ? colors.primary : colors.secondary }]}>
                 <Text style={styles.statusText}>{item.status.toUpperCase()}</Text>
               </View>
             </View>
-            <Text style={styles.historyMsg} numberOfLines={1}>{item.lastMsg}</Text>
+            <Text style={styles.historyMsg} numberOfLines={1}>
+              {item.last_message_text || 'No messages yet'}
+            </Text>
             <View style={styles.historyFooter}>
-              <Text style={styles.historyDate}>{item.date}</Text>
+              <Text style={styles.historyDate}>
+                {item.last_message_at ? new Date(item.last_message_at).toLocaleDateString() : 'Just now'}
+              </Text>
               <ChevronRight size={16} color={colors.muted} />
             </View>
           </TouchableOpacity>
-        ))}
+        )) : (
+          <View style={styles.emptyHistory}>
+            <Text style={styles.emptyText}>No previous support chats found.</Text>
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -164,4 +186,13 @@ const getStyles = (colors: any) => StyleSheet.create({
   historyMsg: { fontFamily: DT.typography.body, fontSize: 14, color: colors.muted, marginBottom: 12 },
   historyFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   historyDate: { fontFamily: DT.typography.bodySemiBold, fontSize: 11, color: colors.muted },
+  emptyHistory: { 
+    alignItems: 'center', 
+    paddingVertical: 40, 
+    borderStyle: 'dashed', 
+    borderWidth: 2, 
+    borderColor: colors.muted,
+    marginTop: 10,
+  },
+  emptyText: { fontFamily: DT.typography.body, fontSize: 14, color: colors.muted },
 });

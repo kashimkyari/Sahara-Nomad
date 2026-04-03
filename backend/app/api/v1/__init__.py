@@ -7,6 +7,7 @@ from .message_router import router as message_router
 from .runner_router import router as runner_router
 from .notification_router import router as notification_router
 from .runner_application_router import router as runner_application_router
+from .support_router import router as support_router
 
 api_router = APIRouter()
 
@@ -18,3 +19,4 @@ api_router.include_router(message_router, prefix="/chat", tags=["chat"])
 api_router.include_router(runner_router, prefix="/runners", tags=["runners"])
 api_router.include_router(notification_router, prefix="/notifications", tags=["notifications"])
 api_router.include_router(runner_application_router, prefix="/runner-applications", tags=["runner-applications"])
+api_router.include_router(support_router, prefix="/support", tags=["support"])

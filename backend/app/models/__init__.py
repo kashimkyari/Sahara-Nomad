@@ -1,5 +1,6 @@
 from .base import Base, AuditableBase
 from .user import User, RunnerApplication
+from .support import SupportTicket, SupportMessage
 from .review import Review
 from .wallet import Wallet, Transaction
 from .waka import Waka
