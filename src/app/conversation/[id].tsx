@@ -2,7 +2,6 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Camera, CheckCheck, ChevronLeft, Package, Paperclip, Send, FileText, ExternalLink } from 'lucide-react-native';
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import {
-  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -13,6 +12,7 @@ import {
   View,
   Modal,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DesignTokens as DT } from '../../constants/design';
 import { useTheme } from '../../hooks/use-theme';
@@ -149,13 +149,14 @@ export default function ConversationScreen() {
 
   const fetchHistory = async () => {
     try {
-      // First get conversations list to find this specific one (optional if we had a GET /conversations/{id})
-      const convsRes = await fetch(API.MESSAGES.CONVERSATIONS, {
+      // Get conversation details directly
+      const convRes = await fetch(API.MESSAGES.CONVERSATION_DETAIL(convoId!), {
         headers: { Authorization: `Bearer ${token}` }
       });
-      const convs = await convsRes.json();
-      const currentConv = convs.find((c: any) => c.id === convoId);
-      if (currentConv) setConversation(currentConv);
+      if (convRes.ok) {
+        const conv = await convRes.json();
+        setConversation(conv);
+      }
 
       const res = await fetch(API.MESSAGES.HISTORY(convoId!), {
         headers: { Authorization: `Bearer ${token}` }
@@ -336,7 +337,10 @@ export default function ConversationScreen() {
           onPress={() => router.push(`/runner/${conversation?.other_user?.id}` as any)}
         >
           <Image 
-            source={{ uri: conversation?.other_user?.avatar_url || `https://i.pravatar.cc/150?u=${conversation?.other_user?.id}` }} 
+            source={conversation?.other_user?.avatar_url 
+              ? { uri: `${API.API_URL}${conversation?.other_user?.avatar_url}`, headers: { Authorization: `Bearer ${token}` } }
+              : { uri: `https://i.pravatar.cc/150?u=${conversation?.other_user?.id}` }
+            } 
             style={styles.headerAvatar} 
           />
           <View style={styles.headerInfo}>
@@ -397,7 +401,10 @@ export default function ConversationScreen() {
                     {!isMe && !msg.is_deleted && (
                       <View style={styles.theirAvatarBox}>
                         <Image 
-                          source={{ uri: conversation?.other_user?.avatar_url || `https://i.pravatar.cc/150?u=${msg.sender_id}` }} 
+                          source={conversation?.other_user?.avatar_url 
+                            ? { uri: `${API.API_URL}${conversation?.other_user?.avatar_url}`, headers: { Authorization: `Bearer ${token}` } }
+                            : { uri: `https://i.pravatar.cc/150?u=${msg.sender_id}` }
+                          } 
                           style={styles.theirAvatar} 
                         />
                       </View>

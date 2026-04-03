@@ -31,6 +31,7 @@ export default {
     },
     MESSAGES: {
         CONVERSATIONS: `${API_URL}/chat/conversations`,
+        CONVERSATION_DETAIL: (id: string) => `${API_URL}/chat/conversations/${id}`,
         HISTORY: (id: string) => `${API_URL}/chat/${id}/history`,
         SEND: `${API_URL}/chat/messages`,
         DELETE_MESSAGE: (id: string) => `${API_URL}/chat/messages/${id}`,

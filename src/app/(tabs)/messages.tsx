@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet, ScrollView, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, TextInput } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Search, Pin, Check, CheckCheck } from 'lucide-react-native';
@@ -158,7 +159,10 @@ export default function MessagesScreen() {
                   {/* Avatar */}
                   <View style={[styles.avatarWrap, conv.unread_count > 0 && styles.avatarWrapUnread]}>
                     <Image
-                      source={{ uri: conv.other_user?.avatar_url || `https://i.pravatar.cc/150?u=${conv.other_user?.id}` }}
+                      source={conv.other_user?.avatar_url 
+                        ? { uri: `${API.API_URL}${conv.other_user?.avatar_url}`, headers: { Authorization: `Bearer ${token}` } }
+                        : { uri: `https://i.pravatar.cc/150?u=${conv.other_user?.id}` }
+                      }
                       style={styles.avatar}
                     />
                     {conv.unread_count > 0 && <View style={styles.avatarDot} />}

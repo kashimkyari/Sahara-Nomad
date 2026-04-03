@@ -15,6 +15,67 @@ import json
 
 router = APIRouter()
 
+async def enrich_conversation(db: AsyncSession, conv: Conversation, current_user: User) -> ConversationRead:
+    """Enrich a conversation with other_user info, unread count, and waka info."""
+    other_user_id = conv.runner_id if conv.employer_id == current_user.id else conv.employer_id
+    
+    # Get other user info
+    other_user_stmt = select(User).where(User.id == other_user_id)
+    other_user_res = await db.execute(other_user_stmt)
+    other_user = other_user_res.scalar_one_or_none()
+    
+    # Count unread messages (where sender is NOT current_user and is_read is False)
+    unread_stmt = (
+        select(func.count(Message.id))
+        .where(
+            and_(
+                Message.conversation_id == conv.id,
+                Message.sender_id != current_user.id,
+                Message.is_read == False
+            )
+        )
+    )
+    unread_res = await db.execute(unread_stmt)
+    unread_count = unread_res.scalar() or 0
+    
+    # Get Waka info if available
+    waka_title = None
+    waka_emoji = None
+    if conv.waka_id:
+        waka_stmt = select(Waka).where(Waka.id == conv.waka_id)
+        waka_res = await db.execute(waka_stmt)
+        waka = waka_res.scalar_one_or_none()
+        if waka:
+            waka_title = waka.item_description
+            waka_emoji = "🛒" # Default emoji for errands
+    
+    # Determine status of the last message (sent by current_user)
+    last_msg_status = None
+    last_msg_stmt = (
+        select(Message)
+        .where(Message.conversation_id == conv.id)
+        .order_by(Message.created_at.desc())
+        .limit(1)
+    )
+    last_msg_res = await db.execute(last_msg_stmt)
+    last_msg = last_msg_res.scalar_one_or_none()
+    if last_msg and last_msg.sender_id == current_user.id:
+        last_msg_status = "read" if last_msg.is_read else "sent"
+        
+    conv_dict = ConversationRead.model_validate(conv)
+    conv_dict.unread_count = unread_count
+    conv_dict.waka_title = waka_title
+    conv_dict.waka_emoji = waka_emoji
+    conv_dict.last_message_status = last_msg_status
+    
+    if other_user:
+        conv_dict.other_user = UserInfo.model_validate(other_user)
+    
+    # Determine if pinned by current user
+    conv_dict.is_pinned = conv.is_pinned_by_employer if conv.employer_id == current_user.id else conv.is_pinned_by_runner
+    
+    return conv_dict
+
 @router.get("/unread-count")
 async def get_unread_count(
     db: AsyncSession = Depends(get_db),
@@ -53,69 +114,29 @@ async def list_conversations(
     # Enrich with other user info and unread count
     enriched = []
     for conv in conversations:
-        other_user_id = conv.runner_id if conv.employer_id == current_user.id else conv.employer_id
-        
-        # Get other user info
-        other_user_stmt = select(User).where(User.id == other_user_id)
-        other_user_res = await db.execute(other_user_stmt)
-        other_user = other_user_res.scalar_one_or_none()
-        
-        # Count unread messages (where sender is NOT current_user and is_read is False)
-        unread_stmt = (
-            select(func.count(Message.id))
-            .where(
-                and_(
-                    Message.conversation_id == conv.id,
-                    Message.sender_id != current_user.id,
-                    Message.is_read == False
-                )
-            )
-        )
-        unread_res = await db.execute(unread_stmt)
-        unread_count = unread_res.scalar() or 0
-        
-        # Get Waka info if available
-        waka_title = None
-        waka_emoji = None
-        if conv.waka_id:
-            waka_stmt = select(Waka).where(Waka.id == conv.waka_id)
-            waka_res = await db.execute(waka_stmt)
-            waka = waka_res.scalar_one_or_none()
-            if waka:
-                waka_title = waka.item_description
-                # Assuming waka might have an emoji or we use a default based on category
-                # For now, let's just use the title if it starts with an emoji or just the title
-                waka_emoji = "🛒" # Default emoji for errands
-        
-        # Determine status of the last message (sent by current_user)
-        last_msg_status = None
-        last_msg_stmt = (
-            select(Message)
-            .where(Message.conversation_id == conv.id)
-            .order_by(Message.created_at.desc())
-            .limit(1)
-        )
-        last_msg_res = await db.execute(last_msg_stmt)
-        last_msg = last_msg_res.scalar_one_or_none()
-        
-        if last_msg and last_msg.sender_id == current_user.id:
-            last_msg_status = "read" if last_msg.is_read else "sent"
-            
-        conv_dict = ConversationRead.model_validate(conv)
-        conv_dict.unread_count = unread_count
-        conv_dict.waka_title = waka_title
-        conv_dict.waka_emoji = waka_emoji
-        conv_dict.last_message_status = last_msg_status
-        
-        if other_user:
-            conv_dict.other_user = UserInfo.model_validate(other_user)
-        
-        # Determine if pinned by current user
-        conv_dict.is_pinned = conv.is_pinned_by_employer if conv.employer_id == current_user.id else conv.is_pinned_by_runner
-        
-        enriched.append(conv_dict)
+        enriched.append(await enrich_conversation(db, conv, current_user))
         
     return enriched
+
+@router.get("/conversations/{convo_id}", response_model=ConversationRead)
+async def get_conversation(
+    convo_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Return a single enriched conversation."""
+    stmt = select(Conversation).where(
+        and_(
+            Conversation.id == convo_id,
+            or_(Conversation.employer_id == current_user.id, Conversation.runner_id == current_user.id)
+        )
+    )
+    result = await db.execute(stmt)
+    conv = result.scalar_one_or_none()
+    if not conv:
+        raise HTTPException(status_code=404, detail="Conversation not found or not participant")
+        
+    return await enrich_conversation(db, conv, current_user)
 
 @router.post("/conversations", response_model=ConversationRead)
 async def create_or_get_conversation(
@@ -141,7 +162,7 @@ async def create_or_get_conversation(
     result = await db.execute(stmt)
     existing = result.scalar_one_or_none()
     if existing:
-        return ConversationRead.model_validate(existing)
+        return await enrich_conversation(db, existing, current_user)
         
     # Create new
     new_conv = Conversation(
@@ -152,7 +173,7 @@ async def create_or_get_conversation(
     db.add(new_conv)
     await db.commit()
     await db.refresh(new_conv)
-    return ConversationRead.model_validate(new_conv)
+    return await enrich_conversation(db, new_conv, current_user)
 
 @router.get("/{convo_id}/history", response_model=list[MessageRead])
 async def get_chat_history(
