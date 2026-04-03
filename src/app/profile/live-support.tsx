@@ -19,6 +19,10 @@ import { useAuth } from '../../context/AuthContext';
 import API from '../../constants/api';
 import { MotiView, AnimatePresence } from 'moti';
 import * as Haptics from 'expo-haptics';
+import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
+import { Modal } from 'react-native';
+import { FileText, ExternalLink } from 'lucide-react-native';
 
 export default function LiveSupportScreen() {
   const { colors } = useTheme();
@@ -31,6 +35,8 @@ export default function LiveSupportScreen() {
   const [isTyping, setIsTyping] = useState(false);
   const [isConnecting, setIsConnecting] = useState(true);
   const [isLive, setIsLive] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const scrollRef = useRef<ScrollView>(null);
   const ws = useRef<WebSocket | null>(null);
   const styles = getStyles(colors);
@@ -117,25 +123,25 @@ export default function LiveSupportScreen() {
     }
   };
 
-  const sendMessage = () => {
-    if (!chatInput.trim()) return;
+  const sendMessage = (contentText?: string, attachmentUrl?: string) => {
+    const text = contentText || chatInput;
+    if (!text.trim() && !attachmentUrl) return;
     
     if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
-      // If WS is not ready, we could use the REST fallback
-      sendViaRest();
+      sendViaRest(text, attachmentUrl);
       return;
     }
     
-    const payload = { content_text: chatInput };
+    const payload = { content_text: text, attachment_url: attachmentUrl };
     ws.current.send(JSON.stringify(payload));
     setChatInput('');
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
-  const sendViaRest = async () => {
+  const sendViaRest = async (contentText?: string, attachmentUrl?: string) => {
     if (!ticketId) return;
-    const content = chatInput;
-    setChatInput(''); // Clear optimistically
+    const text = contentText || chatInput;
+    setChatInput(''); 
     
     try {
       const response = await fetch(API.SUPPORT.SEND, {
@@ -144,19 +150,81 @@ export default function LiveSupportScreen() {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ ticket_id: ticketId, content_text: content })
+        body: JSON.stringify({ 
+          ticket_id: ticketId, 
+          content_text: text,
+          attachment_url: attachmentUrl 
+        })
       });
       
       if (!response.ok) {
-        setChatInput(content); // Restore if failed
+        setChatInput(text);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       } else {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        // history will update via interval or manually if needed, 
-        // but usually sending via REST triggers a broadcast on the backend too.
       }
     } catch (e) {
-      setChatInput(content);
+      setChatInput(text);
+    }
+  };
+
+  const pickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 0.8,
+    });
+
+    if (!result.canceled) {
+      uploadMedia(result.assets[0].uri);
+    }
+  };
+
+  const uploadMedia = async (uri: string) => {
+    setIsUploading(true);
+    const formData = new FormData();
+    const filename = uri.split('/').pop();
+    const match = /\.(\w+)$/.exec(filename || '');
+    const type = match ? `image/${match[1]}` : `image`;
+
+    formData.append('file', { uri, name: filename, type } as any);
+
+    try {
+      const response = await fetch(API.MEDIA.UPLOAD, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
+        },
+        body: formData,
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        sendMessage('', data.url);
+      } else {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      }
+    } catch (e) {
+      console.error('Upload Error', e);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const pickDocument = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: '*/*',
+        copyToCacheDirectory: true,
+      });
+
+      if (!result.canceled) {
+        uploadMedia(result.assets[0].uri);
+      }
+    } catch (err) {
+      console.error('Pick Document Error', err);
     }
   };
 
@@ -214,9 +282,31 @@ export default function LiveSupportScreen() {
                       isMe ? styles.myBubble : styles.theirBubble
                     ]}
                   >
-                    <Text style={[styles.bubbleText, isMe && styles.myBubbleText]}>
-                      {msg.content_text}
-                    </Text>
+                    {msg.attachment_url && (
+                      <View style={styles.attachmentWrapper}>
+                        {msg.attachment_url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                          <TouchableOpacity onPress={() => setSelectedImage(msg.attachment_url)}>
+                            <Image source={{ uri: msg.attachment_url }} style={styles.bubbleImage} />
+                          </TouchableOpacity>
+                        ) : (
+                          <TouchableOpacity 
+                            style={styles.fileLink} 
+                            onPress={() => {/* In real app, open in browser or download */}}
+                          >
+                            <FileText size={20} color={isMe ? colors.surface : colors.text} />
+                            <Text style={[styles.fileText, isMe && styles.myBubbleText]}>
+                              View Attachment
+                            </Text>
+                            <ExternalLink size={14} color={isMe ? 'rgba(255,255,255,0.6)' : colors.muted} />
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    )}
+                    {msg.content_text ? (
+                      <Text style={[styles.bubbleText, isMe && styles.myBubbleText]}>
+                        {msg.content_text}
+                      </Text>
+                    ) : null}
                     <View style={styles.bubbleFooter}>
                       <Text style={[styles.bubbleTime, isMe && styles.myBubbleTime]}>
                         {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -250,11 +340,11 @@ export default function LiveSupportScreen() {
         </ScrollView>
 
         <View style={styles.chatInputArea}>
-          <TouchableOpacity style={styles.attachmentBtn}>
-            <Paperclip size={22} color={colors.text} strokeWidth={2.5} />
+          <TouchableOpacity style={styles.attachmentBtn} onPress={pickDocument} disabled={isUploading}>
+            <Paperclip size={22} color={isUploading ? colors.muted : colors.text} strokeWidth={2.5} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.attachmentBtn}>
-            <Camera size={22} color={colors.text} strokeWidth={2.5} />
+          <TouchableOpacity style={styles.attachmentBtn} onPress={pickImage} disabled={isUploading}>
+            <Camera size={22} color={isUploading ? colors.muted : colors.text} strokeWidth={2.5} />
           </TouchableOpacity>
           
           <TextInput
@@ -269,13 +359,25 @@ export default function LiveSupportScreen() {
           
           <TouchableOpacity 
             style={[styles.sendBtn, !chatInput.trim() && styles.sendBtnDisabled]} 
-            onPress={sendMessage}
+            onPress={() => sendMessage()}
             disabled={!chatInput.trim()}
           >
             <Send size={20} color={colors.surface} strokeWidth={3} style={{ marginLeft: 2 }} />
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+
+      <Modal visible={!!selectedImage} transparent animationType="fade">
+        <TouchableOpacity style={styles.modalOverlay} onPress={() => setSelectedImage(null)} activeOpacity={1}>
+          <MotiView 
+            from={{ scale: 0.5, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            style={styles.modalContent}
+          >
+            <Image source={{ uri: selectedImage || '' }} style={styles.fullImage} resizeMode="contain" />
+          </MotiView>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -341,4 +443,15 @@ const getStyles = (colors: any) => StyleSheet.create({
     shadowColor: colors.text, shadowOffset: { width: 3, height: 3 }, shadowOpacity: 1, shadowRadius: 0,
   },
   sendBtnDisabled: { backgroundColor: colors.muted },
+  bubbleImage: { width: 200, height: 150, borderRadius: 8, marginBottom: 8, borderWidth: 2, borderColor: colors.text },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.9)', justifyContent: 'center', alignItems: 'center' },
+  modalContent: { width: '90%', height: '80%' },
+  fullImage: { width: '100%', height: '100%' },
+  attachmentWrapper: { marginBottom: 8 },
+  fileLink: { 
+    flexDirection: 'row', alignItems: 'center', gap: 8, padding: 10, 
+    borderWidth: 2, borderColor: 'rgba(0,0,0,0.1)', borderRadius: 8,
+    backgroundColor: 'rgba(0,0,0,0.05)'
+  },
+  fileText: { fontFamily: DT.typography.bodySemiBold, fontSize: 13, color: colors.text },
 });

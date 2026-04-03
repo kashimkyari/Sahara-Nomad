@@ -4,6 +4,7 @@ from typing import Optional
 class Settings(BaseSettings):
     PROJECT_NAME: str = "SendAm API"
     API_V1_STR: str = "/api/v1"
+    API_BASE_URL: str = "http://172.20.10.9:8000"
     
     JWT_SECRET: str = "your-secret-key-change-this-in-prod"
     ALGORITHM: str = "HS256"

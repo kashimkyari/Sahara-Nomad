@@ -60,5 +60,8 @@ export default {
         MESSAGES: (id: string) => `${API_URL}/support/${id}/messages`,
         SEND: `${API_URL}/support/messages`,
         WS: (id: string, token: string) => `ws://172.20.10.9:8000/api/v1/support/ws/${id}?token=${token}`,
+    },
+    MEDIA: {
+        UPLOAD: `${API_URL}/media/upload`,
     }
 };
