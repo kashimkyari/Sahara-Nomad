@@ -21,8 +21,9 @@ import { MotiView, AnimatePresence } from 'moti';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
-import { Modal } from 'react-native';
-import { FileText, ExternalLink } from 'lucide-react-native';
+import { Modal, Pressable } from 'react-native';
+import { FileText, ExternalLink, Play, Pause, Music } from 'lucide-react-native';
+import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 
 export default function LiveSupportScreen() {
   const { colors } = useTheme();
@@ -40,6 +41,42 @@ export default function LiveSupportScreen() {
   const scrollRef = useRef<ScrollView>(null);
   const ws = useRef<WebSocket | null>(null);
   const styles = getStyles(colors);
+
+  // --- Small Audio Player Component ---
+  const AudioPlayer = ({ uri, isMe }: { uri: string; isMe: boolean }) => {
+    const player = useAudioPlayer(uri);
+    const { playing, duration, currentTime } = useAudioPlayerStatus(player);
+
+    const togglePlayback = () => {
+      if (playing) {
+        player.pause();
+      } else {
+        player.play();
+      }
+    };
+
+    const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+
+    return (
+      <TouchableOpacity 
+        style={[styles.audioContainer, isMe ? styles.myAudio : styles.theirAudio]} 
+        onPress={togglePlayback}
+      >
+        <View style={styles.audioIconBox}>
+          {playing ? (
+            <Pause size={18} color={isMe ? colors.primary : colors.surface} fill={isMe ? colors.primary : colors.surface} />
+          ) : (
+            <Play size={18} color={isMe ? colors.primary : colors.surface} fill={isMe ? colors.primary : colors.surface} />
+          )}
+        </View>
+        <View style={styles.audioWaveform}>
+          <View style={[styles.audioProgress, { width: `${progress}%`, backgroundColor: isMe ? 'white' : colors.primary }]} />
+          <View style={styles.audioTrack} />
+        </View>
+        <Music size={14} color={isMe ? 'rgba(255,255,255,0.6)' : colors.muted} />
+      </TouchableOpacity>
+    );
+  };
 
   // Initialize or fetch ticket
   useEffect(() => {
@@ -209,7 +246,11 @@ export default function LiveSupportScreen() {
     const formData = new FormData();
     const filename = uri.split('/').pop();
     const match = /\.(\w+)$/.exec(filename || '');
-    const type = match ? `image/${match[1]}` : `image`;
+    const ext = match ? match[1].toLowerCase() : '';
+    
+    let type = 'application/octet-stream';
+    if (ext.match(/(jpg|jpeg|png|gif|webp)/)) type = `image/${ext}`;
+    if (ext.match(/(mp3|wav|m4a|aac|ogg)/)) type = `audio/${ext}`;
 
     formData.append('file', { uri, name: filename, type } as any);
 
@@ -308,10 +349,12 @@ export default function LiveSupportScreen() {
                   >
                     {msg.attachment_url && (
                       <View style={styles.attachmentWrapper}>
-                        {msg.attachment_url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                        {msg.attachment_url.toLowerCase().includes('image') || msg.attachment_url.match(/\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i) ? (
                           <TouchableOpacity onPress={() => setSelectedImage(msg.attachment_url)}>
                             <Image source={{ uri: msg.attachment_url }} style={styles.bubbleImage} />
                           </TouchableOpacity>
+                        ) : msg.attachment_url.match(/\.(mp3|wav|m4a|aac|ogg|opus)(\?.*)?$/i) ? (
+                          <AudioPlayer uri={msg.attachment_url} isMe={isMe} />
                         ) : (
                           <TouchableOpacity 
                             style={styles.fileLink} 
@@ -478,4 +521,18 @@ const getStyles = (colors: any) => StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.05)'
   },
   fileText: { fontFamily: DT.typography.bodySemiBold, fontSize: 13, color: colors.text },
+  audioContainer: {
+    flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, 
+    borderRadius: 12, minWidth: 180, marginBottom: 4,
+    borderWidth: 2, borderColor: 'rgba(0,0,0,0.1)'
+  },
+  myAudio: { backgroundColor: 'rgba(255,255,255,0.1)' },
+  theirAudio: { backgroundColor: 'rgba(0,0,0,0.05)' },
+  audioIconBox: {
+    width: 34, height: 34, borderRadius: 17, backgroundColor: colors.background,
+    alignItems: 'center', justifyContent: 'center'
+  },
+  audioWaveform: { flex: 1, height: 4, backgroundColor: 'rgba(0,0,0,0.1)', borderRadius: 2, overflow: 'hidden', position: 'relative' },
+  audioTrack: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0.2 },
+  audioProgress: { height: '100%', borderRadius: 2 },
 });
