@@ -12,8 +12,10 @@ def send_push_notification(token: str, title: str, body: str, data: Optional[dic
                         title=title,
                         body=body,
                         data=data,
-                        category_id=category_id)
+                        category=category_id,
+                        mutable_content=True if category_id else False)
         )
+        print(f"Push Notification Sent Success: {title} -> {token}")
     except PushServerError as exc:
         # Enforce error logging in production
         print(f"Push Notification Error: {exc}")
