@@ -200,7 +200,7 @@ export default function SearchScreen() {
 
         {/* Interactive Markets */}
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>POPULAR MARKETS</Text>
+          <Text style={styles.sectionLabel}>POPULAR MARKETS & STORES</Text>
           <View style={styles.tagsWrap}>
             {markets.map((m) => {
               const isSelected = selectedMarket === m;

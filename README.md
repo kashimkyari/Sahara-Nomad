@@ -45,7 +45,7 @@ This project demonstrates the ability to:
 - structure a codebase around reusable UI and shared context
 - think in terms of user journey, platform behavior, and business logic at the same time
 
-If you are a recruiter or hiring manager, the strongest signal here is that this app combines product thinking with implementation depth. It is not only visually designed, it is operationally wired.
+The strongest hiring signal in this project is that it combines product thinking with implementation depth. It is not only visually designed, it is operationally wired.
 
 ## Elevator Pitch
 
@@ -476,7 +476,7 @@ npm run lint
 
 ## What To Read First As A Reviewer
 
-If you want the fastest understanding of the codebase, start here:
+The fastest way to understand the codebase is to start here:
 
 - `src/context/AuthContext.tsx`
 - `src/constants/api.ts`
@@ -518,7 +518,7 @@ This codebase demonstrates practical solutions to common product engineering pro
 
 ## Resume-Ready Summary
 
-If you want short bullets that describe this project well, these are accurate to the codebase:
+The short bullets below describe the project accurately:
 
 - Built a full-stack logistics marketplace app with an Expo React Native frontend and FastAPI backend for runner discovery, errand posting, live tracking, messaging, wallet flows, and notifications.
 - Implemented authenticated mobile navigation with secure token persistence, refresh-token recovery, protected routes, and user session restoration.
@@ -528,7 +528,7 @@ If you want short bullets that describe this project well, these are accurate to
 
 ## How To Talk About This In Interviews
 
-If you discuss this project in an interview, the strongest angles are:
+The strongest interview angles for this project are:
 
 - product thinking
   You built around a real operational workflow, not just isolated screens.
@@ -615,7 +615,7 @@ They are here for three reasons:
 
 ## Portfolio Positioning
 
-This project should be understood as a substantial applied product engineering project.
+I see this project as a substantial applied product engineering project.
 
 It is not:
 
@@ -632,7 +632,7 @@ It is:
 - designed to support transactions, communication, fulfillment, and account state
 - strong enough to discuss in frontend, mobile, and full-stack interviews
 
-If I were presenting this in a portfolio review, I would position it as:
+In a portfolio review, I would position it as:
 
 - a marketplace app
 - a logistics coordination app
@@ -643,7 +643,7 @@ If I were presenting this in a portfolio review, I would position it as:
 
 ### Recruiters
 
-If you are a recruiter, the key point is that this project shows more than component styling.
+For recruiters, the key point is that this project shows more than component styling.
 
 It includes:
 
@@ -657,7 +657,7 @@ It includes:
 
 ### Hiring managers
 
-If you are a hiring manager, the key point is that this codebase demonstrates the ability to work on a real product surface area:
+For hiring managers, the key point is that this codebase demonstrates the ability to work on a real product surface area:
 
 - user acquisition
 - identity
@@ -670,7 +670,7 @@ If you are a hiring manager, the key point is that this codebase demonstrates th
 
 ### Engineers
 
-If you are an engineer, the key point is that there is real technical material here:
+For engineers, the key point is that there is real technical material here:
 
 - Expo Router architecture
 - React context-based state boundaries
@@ -1764,7 +1764,7 @@ Mapped to:
 
 ## Hiring Manager Highlights
 
-If someone is skimming this project to decide whether I can contribute to a team, these are the most important takeaways:
+The clearest takeaways for a hiring manager skimming the project are:
 
 - I can build multi-screen React Native apps with real navigation complexity.
 - I understand authentication beyond just form submission.
@@ -1775,7 +1775,7 @@ If someone is skimming this project to decide whether I can contribute to a team
 
 ## Recruiter-Friendly Talking Points
 
-If a recruiter asks what this project is, short accurate answers include:
+Short accurate ways to describe the project include:
 
 - It is a mobile logistics marketplace app.
 - It connects customers with local runners for errands and deliveries.
@@ -1862,7 +1862,7 @@ Value:
 
 ## STAR Story Seeds
 
-These are useful when answering behavioral questions.
+These work well as behavioral interview story seeds.
 
 ### Situation
 
@@ -1917,7 +1917,7 @@ Better path:
 
 ## System Design Discussion Prompts
 
-These are prompts I can use if an interviewer asks how I would evolve the project.
+These are the system design directions I would use if the conversation shifted toward evolution and scaling.
 
 ### How would you scale notifications?
 
@@ -2302,7 +2302,7 @@ SendAm is a mobile marketplace app I built for same-city errands and delivery co
 
 ### If asked “What was the hardest part?”
 
-Good answer:
+A concise answer:
 
 - balancing product breadth with architecture simplicity
 - centralizing auth correctly
@@ -2310,13 +2310,13 @@ Good answer:
 
 ### If asked “What are you most proud of?”
 
-Good answer:
+A concise answer:
 
 - that the app feels like a product, not just a collection of screens
 
 ### If asked “What would you improve?”
 
-Good answer:
+A concise answer:
 
 - environment config
 - stronger typed contracts
@@ -2326,13 +2326,13 @@ Good answer:
 
 ### If asked “What did you learn?”
 
-Good answer:
+A concise answer:
 
 - how much product quality depends on infrastructure details like auth, storage, notifications, and route handling, not just screen design
 
 ### If asked “Why this project?”
 
-Good answer:
+A concise answer:
 
 - it let me work on a realistic mix of UX, business logic, backend integration, and mobile-native capability work
 
@@ -2340,7 +2340,7 @@ Good answer:
 
 ### For frontend roles
 
-Emphasize:
+The strongest emphasis is on:
 
 - component structure
 - route architecture
@@ -2350,7 +2350,7 @@ Emphasize:
 
 ### For mobile roles
 
-Emphasize:
+The strongest emphasis is on:
 
 - secure storage
 - notifications
@@ -2360,7 +2360,7 @@ Emphasize:
 
 ### For full-stack roles
 
-Emphasize:
+The strongest emphasis is on:
 
 - frontend-backend contract design
 - FastAPI integration
@@ -2369,7 +2369,7 @@ Emphasize:
 
 ### For startup roles
 
-Emphasize:
+The strongest emphasis is on:
 
 - breadth
 - product sense
@@ -2378,7 +2378,7 @@ Emphasize:
 
 ## Final Hiring Summary
 
-If someone reads only one part of this extended dossier, it should be this:
+If only one part of this extended dossier gets read, it should be this:
 
 SendAm shows that I can take a real-world problem, translate it into a product workflow, design a mobile user experience around it, connect that experience to a FastAPI backend, and implement the glue that makes the app behave like real software: authentication, persistence, route protection, notifications, messaging, payments-related surfaces, and operational state handling.
 
@@ -2615,7 +2615,7 @@ Runner discovery, search recording, and potential role expansion suggest room fo
 
 ## Final Notes For Reviewers
 
-If you are reviewing this project as part of a hiring process, the most useful way to read it is:
+The most useful reading path for a hiring review is:
 
 1. scan `src/context/AuthContext.tsx`
 2. scan `src/constants/api.ts`
