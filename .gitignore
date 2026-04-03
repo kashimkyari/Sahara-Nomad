@@ -58,3 +58,4 @@ backend/app/main.pyc
 .agents/skills/building-native-ui/SKILL.md
 .agents/*
 skills-lock.json
+backend/scripts/make_super_admin.py
