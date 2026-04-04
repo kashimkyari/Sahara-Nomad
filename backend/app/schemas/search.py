@@ -8,7 +8,7 @@ class RunnerSearchResponse(BaseModel):
     rating: float
     distance_km: float
     is_online: bool
-    image: str
+    avatar_url: str
     active_waka_count: int
     hourly_rate: float
     bio: Optional[str] = None

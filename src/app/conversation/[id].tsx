@@ -26,14 +26,23 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { Play, Pause, Music, Trash2 } from 'lucide-react-native';
 import { BrutalistAlert } from '../../components/ui/BrutalistAlert';
+import { getCachedAudioUri } from '../../utils/audio-cache';
 
 // --- Small Audio Player Component ---
 const AudioPlayer = (props: any) => {
   const [hasStarted, setHasStarted] = useState(false);
+  const [resolvedUri, setResolvedUri] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (hasStarted && !resolvedUri) {
+      getCachedAudioUri(props.uri).then(setResolvedUri);
+    }
+  }, [hasStarted, props.uri, resolvedUri]);
+
   const player = useMemo(() => {
-    if (!hasStarted) return null;
-    return new (AudioModule as any).AudioPlayer({ uri: props.uri }, 100, true);
-  }, [hasStarted, props.uri]);
+    if (!resolvedUri) return null;
+    return new (AudioModule as any).AudioPlayer({ uri: resolvedUri }, 100, true);
+  }, [resolvedUri]);
 
   if (!hasStarted || !player) {
     return (

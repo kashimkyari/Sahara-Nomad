@@ -26,6 +26,7 @@ import { Modal, Pressable } from 'react-native';
 import { FileText, ExternalLink, Play, Pause, Music, Trash2 } from 'lucide-react-native';
 import { useAudioPlayerStatus } from 'expo-audio';
 import AudioModule from 'expo-audio/build/AudioModule';
+import { getCachedAudioUri } from '../../utils/audio-cache';
 import { BrutalistAlert } from '../../components/ui/BrutalistAlert';
 
 interface SupportMessage {
@@ -47,10 +48,18 @@ interface SupportMessage {
 // --- Small Audio Player Component ---
 const AudioPlayer = (props: any) => {
   const [hasStarted, setHasStarted] = useState(false);
+  const [resolvedUri, setResolvedUri] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (hasStarted && !resolvedUri) {
+      getCachedAudioUri(props.uri).then(setResolvedUri);
+    }
+  }, [hasStarted, props.uri, resolvedUri]);
+
   const player = useMemo(() => {
-    if (!hasStarted) return null;
-    return new (AudioModule as any).AudioPlayer({ uri: props.uri }, 100, true);
-  }, [hasStarted, props.uri]);
+    if (!resolvedUri) return null;
+    return new (AudioModule as any).AudioPlayer({ uri: resolvedUri }, 100, true);
+  }, [resolvedUri]);
 
   if (!hasStarted || !player) {
     return (

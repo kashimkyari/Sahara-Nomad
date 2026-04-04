@@ -20,7 +20,7 @@ import uuid
 import os
 import shutil
 from fastapi import File, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 
 UPLOAD_DIR = "uploads/avatars"
 if not os.path.exists(UPLOAD_DIR):
@@ -53,8 +53,7 @@ async def signup(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
     )
     db.add(db_obj)
     await db.flush()
-    # Set default avatar url based on id
-    db_obj.avatar_url = f"/auth/users/{db_obj.id}/avatar"
+    # No default avatar url anymore, let frontend fallback handle it if none uploaded
 
     # Create Wallet
     wallet = Wallet(user_id=db_obj.id)
@@ -408,11 +407,13 @@ async def upload_avatar(
 @router.get("/users/{user_id}/avatar")
 async def get_user_avatar(user_id: uuid.UUID):
     # Find the file that starts with user id
-    for f in os.listdir(UPLOAD_DIR):
-        if f.startswith(str(user_id)):
-            return FileResponse(os.path.join(UPLOAD_DIR, f))
+    if os.path.exists(UPLOAD_DIR):
+        for f in os.listdir(UPLOAD_DIR):
+            if f.startswith(str(user_id)):
+                return FileResponse(os.path.join(UPLOAD_DIR, f))
     
-    raise HTTPException(status_code=404, detail="Avatar not found")
+    # Fallback: Redirect to a high-quality placeholder if no file found
+    return RedirectResponse(url=f"https://i.pravatar.cc/150?u={user_id}")
 
 @router.get("/me/avatarurl")
 async def get_avatar(current_user: User = Depends(get_current_user)):

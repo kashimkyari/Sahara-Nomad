@@ -251,9 +251,9 @@ export default function SearchScreen() {
                   <View style={styles.runnerHeader}>
                     <View style={styles.runnerAvatarWrap}>
                       <Image 
-                        source={runner.image.startsWith('http') 
-                          ? { uri: runner.image } 
-                          : { uri: `${API.API_URL}${runner.image}`, headers: { Authorization: `Bearer ${token}` } }
+                        source={runner.avatar_url.startsWith('http') 
+                          ? { uri: runner.avatar_url } 
+                          : { uri: `${API.API_URL}${runner.avatar_url}`, headers: { Authorization: `Bearer ${token}` } }
                         } 
                         style={styles.runnerAvatar} 
                       />

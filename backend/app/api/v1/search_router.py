@@ -125,7 +125,6 @@ async def search_runners(
     runners = []
     for user, distance_m, active_wakas, stats_trips_dynamic in rows:
         distance_km = round((distance_m or 0) / 1000.0, 1)
-        img = user.avatar_url if user.avatar_url else f"https://i.pravatar.cc/150?u={user.id}"
         
         runners.append(RunnerSearchResponse(
             id=user.id,
@@ -133,7 +132,7 @@ async def search_runners(
             rating=float(user.stats_rating),
             distance_km=distance_km,
             is_online=user.is_online,
-            image=img,
+            avatar_url=user.avatar_url or f"/auth/users/{user.id}/avatar",
             active_waka_count=active_wakas or 0,
             hourly_rate=float(user.hourly_rate or 0),
             bio=user.bio,
