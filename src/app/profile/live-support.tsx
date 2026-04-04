@@ -8,7 +8,8 @@ import {
   StyleSheet, 
   KeyboardAvoidingView, 
   Platform, 
-  Image 
+  Image,
+  ActivityIndicator
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -44,10 +45,42 @@ interface SupportMessage {
 }
 
 // --- Small Audio Player Component ---
-const AudioPlayer = ({ uri, isMe, colors, styles, initialDuration, onLongPress }: { uri: string; isMe: boolean; colors: any; styles: any; initialDuration?: number; onLongPress?: () => void }) => {
-  // Work around the broken helper in expo-audio 55, which passes one extra constructor arg.
-  const player = useMemo(() => new (AudioModule as any).AudioPlayer({ uri }, 500, false), [uri]);
-  const { playing, duration, currentTime } = useAudioPlayerStatus(player);
+const AudioPlayer = (props: any) => {
+  const [hasStarted, setHasStarted] = useState(false);
+  const player = useMemo(() => {
+    if (!hasStarted) return null;
+    return new (AudioModule as any).AudioPlayer({ uri: props.uri }, 100, true);
+  }, [hasStarted, props.uri]);
+
+  if (!hasStarted || !player) {
+    return (
+      <View style={[props.styles.audioContainer, props.isMe ? props.styles.myAudio : props.styles.theirAudio]}>
+        <TouchableOpacity style={props.styles.audioIconBox} onPress={() => setHasStarted(true)}>
+          <Play size={20} color={props.colors.text} fill={props.colors.text} strokeWidth={3} />
+        </TouchableOpacity>
+        <View style={{ flex: 1, gap: 8 }}>
+          <View style={props.styles.waveformRow}>
+            {/* Static Waveform */}
+            {Array.from({ length: 40 }).map((_, i) => (
+              <View 
+                key={i} 
+                style={[props.styles.waveformBar, { height: 12 + Math.random() * 20, backgroundColor: 'rgba(0,0,0,0.1)', borderWidth: 1.5, borderColor: props.colors.text }]} 
+              />
+            ))}
+          </View>
+          <Text style={props.styles.audioTimeText}>
+            {props.initialDuration ? `${Math.floor(props.initialDuration / 60)}:${(props.initialDuration % 60).toString().padStart(2, '0')}` : '0:00'}
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
+  return <ActiveAudioPlayer {...props} player={player} />;
+};
+
+const ActiveAudioPlayer = ({ player, uri, isMe, colors, styles, initialDuration, onLongPress }: any) => {
+  const { playing, duration, currentTime, isBuffering } = useAudioPlayerStatus(player);
   const [audioDuration, setAudioDuration] = useState(initialDuration || 0);
 
   useEffect(() => {
@@ -56,10 +89,12 @@ const AudioPlayer = ({ uri, isMe, colors, styles, initialDuration, onLongPress }
 
   useEffect(() => {
     return () => {
-      if (typeof player.release === 'function') {
-        player.release();
-      } else if (typeof player.remove === 'function') {
-        player.remove();
+      if (player) {
+        if (typeof player.release === 'function') {
+          player.release();
+        } else if (typeof player.remove === 'function') {
+          player.remove();
+        }
       }
     };
   }, [player]);
@@ -73,7 +108,6 @@ const AudioPlayer = ({ uri, isMe, colors, styles, initialDuration, onLongPress }
 
   const progress = audioDuration > 0 ? (currentTime / audioDuration) * 100 : 0;
   
-  // High-density simulated waveform (40 bars for "smooth" premium look)
   const bars = useMemo(() => Array.from({ length: 40 }).map((_, i) => ({
     id: i,
     height: 12 + Math.random() * 26
@@ -88,21 +122,22 @@ const AudioPlayer = ({ uri, isMe, colors, styles, initialDuration, onLongPress }
   };
 
   return (
-    <View 
-      style={[styles.audioContainer, isMe ? styles.myAudio : styles.theirAudio]} 
-    >
+    <View style={[styles.audioContainer, isMe ? styles.myAudio : styles.theirAudio]}>
       <TouchableOpacity 
         style={styles.audioIconBox} 
         onPress={togglePlayback}
         onLongPress={onLongPress}
         activeOpacity={0.7}
       >
-        {playing ? (
+        {isBuffering ? (
+          <ActivityIndicator size="small" color={colors.text} />
+        ) : playing ? (
           <Pause size={20} color={colors.text} fill={colors.text} strokeWidth={3} />
         ) : (
           <Play size={20} color={colors.text} fill={colors.text} strokeWidth={3} />
         )}
       </TouchableOpacity>
+
       <View style={{ flex: 1, gap: 8 }}>
         <View style={styles.waveformRow}>
           {bars.map((bar, i) => {
@@ -126,8 +161,8 @@ const AudioPlayer = ({ uri, isMe, colors, styles, initialDuration, onLongPress }
             );
           })}
         </View>
-        <Text style={[styles.audioTimeText, isMe && styles.myBubbleText]}>
-          {formatTime(currentTime)} / {audioDuration > 0 ? formatTime(audioDuration) : '--:--'}
+        <Text style={[styles.audioTimeText, isMe && { color: 'rgba(255,255,255,0.7)' }]}>
+          {formatTime(currentTime)} / {formatTime(audioDuration)}
         </Text>
       </View>
       <Music size={14} color={isMe ? 'rgba(255,255,255,0.7)' : colors.muted} />
