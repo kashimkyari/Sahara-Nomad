@@ -48,11 +48,11 @@ const AudioPlayer = ({ uri, isMe, colors, styles, initialDuration, onLongPress }
     };
   }, [player]);
 
-  const formatTime = (millis: number) => {
-    const totalSeconds = Math.floor(millis / 1000);
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  const formatTime = (seconds: number) => {
+    const totalSeconds = Math.floor(seconds);
+    const mins = Math.floor(totalSeconds / 60);
+    const secs = totalSeconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   const progress = audioDuration > 0 ? (currentTime / audioDuration) * 100 : 0;
@@ -131,6 +131,7 @@ export default function ConversationScreen() {
   const [conversation, setConversation] = useState<any>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
   
   // Soft-delete states
   const [isDeleteAlertVisible, setIsDeleteAlertVisible] = useState(false);
@@ -236,6 +237,22 @@ export default function ConversationScreen() {
 
   const uploadMedia = async (uri: string, type: string, metadata: any = {}) => {
     setIsUploading(true);
+    setUploadProgress(0);
+    
+    // Create a temporary pending message
+    const tempId = `pending-${Date.now()}`;
+    const pendingMsg = {
+      id: tempId,
+      sender_id: user?.id,
+      content_text: null,
+      attachment_url: uri, // Use local URI for preview
+      is_pending: true,
+      created_at: new Date().toISOString()
+    };
+    
+    setMessages(prev => [...prev, pendingMsg]);
+    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
+
     try {
       const formData = new FormData();
       formData.append('file', {
@@ -244,21 +261,46 @@ export default function ConversationScreen() {
         type: type === 'image' ? 'image/jpeg' : 'audio/m4a',
       } as any);
 
-      const res = await fetch(API.MEDIA.UPLOAD, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formData,
+      const xhr = new XMLHttpRequest();
+      
+      const uploadPromise = new Promise((resolve, reject) => {
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable) {
+            const progress = Math.round((event.loaded / event.total) * 100);
+            setUploadProgress(progress);
+          }
+        };
+
+        xhr.onreadystatechange = () => {
+          if (xhr.readyState === 4) {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              resolve(JSON.parse(xhr.responseText));
+            } else {
+              reject(new Error('Upload failed'));
+            }
+          }
+        };
+
+        xhr.onerror = () => reject(new Error('Network error'));
+        
+        xhr.open('POST', API.MEDIA.UPLOAD);
+        xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+        xhr.send(formData);
       });
 
-      if (!res.ok) throw new Error('Upload failed');
-      const data = await res.json();
+      const data: any = await uploadPromise;
+      
+      // Remove pending message before sending the real one
+      setMessages(prev => prev.filter(m => m.id !== tempId));
+      
       await sendMessage(undefined, data.url, metadata);
     } catch (e) {
       console.error('Upload Error:', e);
+      // Remove pending message on error
+      setMessages(prev => prev.filter(m => m.id !== tempId));
     } finally {
       setIsUploading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -466,7 +508,21 @@ export default function ConversationScreen() {
                                 }
                               ]}
                             >
-                              {msg.attachment_url.toLowerCase().includes('image') || msg.attachment_url.match(/\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i) ? (
+                              {msg.is_pending ? (
+                                <View style={[styles.audioContainer, styles.myAudio, { opacity: 0.8, minWidth: 200, padding: 12 }]}>
+                                  <View style={{ flex: 1 }}>
+                                    <Text style={[styles.audioTimeText, styles.myBubbleText, { marginBottom: 8 }]}>
+                                      Uploading {uploadProgress}%...
+                                    </Text>
+                                    <View style={{ height: 6, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 3, overflow: 'hidden' }}>
+                                      <MotiView 
+                                        animate={{ width: `${uploadProgress}%` }}
+                                        style={{ height: '100%', backgroundColor: colors.surface }}
+                                      />
+                                    </View>
+                                  </View>
+                                </View>
+                              ) : msg.attachment_url.toLowerCase().includes('image') || msg.attachment_url.match(/\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i) ? (
                                 <TouchableOpacity 
                                   onPress={() => setSelectedImage(msg.attachment_url || null)}
                                   onLongPress={() => onLongPressMessage(msg)}
