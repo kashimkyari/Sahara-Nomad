@@ -364,7 +364,9 @@ async def websocket_endpoint(
             new_msg = Message(
                 conversation_id=uuid.UUID(convo_id),
                 sender_id=sender_id,
-                content_text=content_text
+                content_text=content_text,
+                attachment_url=data.get("attachment_url"),
+                attachment_metadata=data.get("attachment_metadata")
             )
             db.add(new_msg)
             

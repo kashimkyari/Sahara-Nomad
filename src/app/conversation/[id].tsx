@@ -257,11 +257,15 @@ export default function ConversationScreen() {
 
     try {
       const formData = new FormData();
-      formData.append('file', {
-        uri,
-        name: type === 'image' ? 'photo.jpg' : 'audio.m4a',
-        type: type === 'image' ? 'image/jpeg' : 'audio/m4a',
-      } as any);
+      const filename = uri.split('/').pop();
+      const match = /\.(\w+)$/.exec(filename || '');
+      const ext = match ? match[1].toLowerCase() : '';
+      
+      let typeStr = 'application/octet-stream';
+      if (ext.match(/(jpg|jpeg|png|gif|webp)/)) typeStr = `image/${ext}`;
+      if (ext.match(/(mp3|wav|m4a|aac|ogg|opus)/)) typeStr = `audio/${ext}`;
+
+      formData.append('file', { uri, name: filename, type: typeStr } as any);
 
       const xhr = new XMLHttpRequest();
       

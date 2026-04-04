@@ -64,11 +64,11 @@ const AudioPlayer = ({ uri, isMe, colors, styles, initialDuration, onLongPress }
     };
   }, [player]);
 
-  const formatTime = (millis: number) => {
-    const totalSeconds = Math.floor(millis / 1000);
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  const formatTime = (seconds: number) => {
+    const totalSeconds = Math.floor(seconds);
+    const mins = Math.floor(totalSeconds / 60);
+    const secs = totalSeconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   const progress = audioDuration > 0 ? (currentTime / audioDuration) * 100 : 0;
@@ -88,19 +88,21 @@ const AudioPlayer = ({ uri, isMe, colors, styles, initialDuration, onLongPress }
   };
 
   return (
-    <TouchableOpacity 
+    <View 
       style={[styles.audioContainer, isMe ? styles.myAudio : styles.theirAudio]} 
-      onPress={togglePlayback}
-      onLongPress={onLongPress}
-      activeOpacity={0.9}
     >
-      <View style={styles.audioIconBox}>
+      <TouchableOpacity 
+        style={styles.audioIconBox} 
+        onPress={togglePlayback}
+        onLongPress={onLongPress}
+        activeOpacity={0.7}
+      >
         {playing ? (
           <Pause size={20} color={colors.text} fill={colors.text} strokeWidth={3} />
         ) : (
           <Play size={20} color={colors.text} fill={colors.text} strokeWidth={3} />
         )}
-      </View>
+      </TouchableOpacity>
       <View style={{ flex: 1, gap: 8 }}>
         <View style={styles.waveformRow}>
           {bars.map((bar, i) => {
@@ -129,7 +131,7 @@ const AudioPlayer = ({ uri, isMe, colors, styles, initialDuration, onLongPress }
         </Text>
       </View>
       <Music size={14} color={isMe ? 'rgba(255,255,255,0.7)' : colors.muted} />
-    </TouchableOpacity>
+    </View>
   );
 };
 

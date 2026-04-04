@@ -118,7 +118,8 @@ async def send_support_message(
         ticket_id=msg_in.ticket_id,
         sender_id=current_user.id,
         content_text=msg_in.content_text,
-        attachment_url=msg_in.attachment_url
+        attachment_url=msg_in.attachment_url,
+        attachment_metadata=msg_in.attachment_metadata
     )
     db.add(new_msg)
     
@@ -210,7 +211,8 @@ async def support_websocket_endpoint(
                 ticket_id=uuid.UUID(ticket_id),
                 sender_id=current_user.id,
                 content_text=content_text,
-                attachment_url=attachment_url
+                attachment_url=attachment_url,
+                attachment_metadata=data.get("attachment_metadata")
             )
             db.add(new_msg)
             
