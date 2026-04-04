@@ -42,6 +42,7 @@ async def apply_to_become_runner(
         bvn=app_in.bvn,
         home_address=app_in.home_address,
         transport_mode=app_in.transport_mode,
+        hourly_rate=app_in.hourly_rate,
         verification_method=app_in.verification_method,
         status="pending",
     )
@@ -110,6 +111,8 @@ async def review_application(
         user = user_result.scalars().first()
         if user:
             user.is_runner = True
+            if application.hourly_rate:
+                user.hourly_rate = application.hourly_rate
 
         # Notify User of Status Update
         title = "Application Approved! 🎉" if update.status == "approved" else "Application Update"

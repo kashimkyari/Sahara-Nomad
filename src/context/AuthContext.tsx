@@ -28,6 +28,8 @@ interface User {
   city: string | null;
   latitude: number | null;
   longitude: number | null;
+  is_online: boolean;
+  is_available: boolean;
   spent_total: number;
   errands_count: number;
   wallet_balance: number;
@@ -299,6 +301,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         responseListener.remove();
       };
     }
+  }, [token]);
+
+  // Global Presence & AppState Sync
+  useEffect(() => {
+    if (!token) return;
+
+    const syncPresence = async (status: boolean) => {
+      try {
+        await fetch(`${API.API_URL}/auth/me`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ is_online: status })
+        });
+        console.log('Presence Synced:', status);
+      } catch (e) {
+        console.error('Presence Sync Error:', e);
+      }
+    };
+
+    const handleAppStateChange = (nextAppState: string) => {
+      if (nextAppState === 'active') {
+        syncPresence(true);
+      } else {
+        syncPresence(false);
+      }
+    };
+
+    const subscription = Platform.OS !== 'web' 
+      ? require('react-native').AppState.addEventListener('change', handleAppStateChange)
+      : null;
+
+    // Initial sync
+    syncPresence(true);
+
+    return () => {
+      subscription?.remove();
+      // Set offline on unmount/logout
+      syncPresence(false);
+    };
   }, [token]);
 
   // Sync Location every 4 minutes if enabled

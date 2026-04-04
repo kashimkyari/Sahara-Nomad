@@ -166,6 +166,7 @@ export default function MessagesScreen() {
                       style={styles.avatar}
                     />
                     {conv.unread_count > 0 && <View style={styles.avatarDot} />}
+                    {conv.other_user?.is_online && <View style={styles.statusDotOnline} />}
                   </View>
   
                   {/* Info Block */}
@@ -355,6 +356,16 @@ const getStyles = (colors: any) => StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.text,
     borderRadius: 0,
+  },
+  statusDotOnline: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    width: 14,
+    height: 14,
+    backgroundColor: colors.secondary,
+    borderWidth: 2,
+    borderColor: colors.text,
   },
   infoBlock: {
     flex: 1,

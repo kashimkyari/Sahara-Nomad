@@ -32,6 +32,7 @@ class UserUpdate(BaseModel):
     bio: Optional[str] = None
     hourly_rate: Optional[float] = None
     is_online: Optional[bool] = None
+    is_available: Optional[bool] = None
     expo_push_token: Optional[str] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
@@ -43,6 +44,7 @@ class RunnerProfileResponse(BaseModel):
     stats_rating: float = 2.5
     active_wakas: int = 0
     is_online: bool = False
+    is_available: bool = False
 
     class Config:
         from_attributes = True
@@ -60,6 +62,8 @@ class UserResponse(UserBase):
     push_notifications_enabled: bool
     location_services_enabled: bool
     is_dark_mode: bool
+    is_online: bool = False
+    is_available: bool = False
     language: str
     region: str
     city: Optional[str] = None
@@ -116,6 +120,7 @@ class RunnerApplicationResponse(BaseModel):
     bvn: Optional[str]
     home_address: str
     transport_mode: str
+    hourly_rate: Optional[float] = None
     verification_method: str
     status: str
     created_at: datetime

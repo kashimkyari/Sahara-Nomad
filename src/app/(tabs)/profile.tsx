@@ -36,18 +36,18 @@ export default function ProfileScreen() {
   const { user, token, isAdmin, refreshUser } = useAuth();
   const router = useRouter();
 
-  const [isOnline, setIsOnline] = React.useState(user?.runner_profile?.is_online ?? false);
+  const [isAvailable, setIsAvailable] = React.useState(user?.is_available ?? false);
   const [isToggling, setIsToggling] = React.useState(false);
 
   React.useEffect(() => {
-    if (user?.runner_profile) {
-      setIsOnline(user.runner_profile.is_online);
+    if (user) {
+      setIsAvailable(user.is_available);
     }
-  }, [user?.runner_profile?.is_online]);
+  }, [user?.is_available]);
 
   const toggleAvailability = async (val: boolean) => {
     if (!token || isToggling) return;
-    setIsOnline(val); // Optimistic
+    setIsAvailable(val); // Optimistic
     setIsToggling(true);
     try {
       const res = await fetch(`${API.API_URL}/auth/me`, {
@@ -56,12 +56,12 @@ export default function ProfileScreen() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ is_online: val })
+        body: JSON.stringify({ is_available: val })
       });
       if (!res.ok) throw new Error();
       await refreshUser();
     } catch (e) {
-      setIsOnline(!val); // Revert
+      setIsAvailable(!val); // Revert
     } finally {
       setIsToggling(false);
     }
@@ -169,15 +169,15 @@ export default function ProfileScreen() {
           <View style={styles.runnerHub}>
             <View style={styles.runnerHubHeader}>
               <View style={styles.runnerHubTitleRow}>
-                <Power size={18} color={isOnline ? colors.secondary : colors.muted} strokeWidth={2.5} />
+                <Power size={18} color={isAvailable ? colors.secondary : colors.muted} strokeWidth={2.5} />
                 <Text style={styles.runnerHubTitle}>RUNNER HUB</Text>
               </View>
               <View style={styles.onlineStatusRow}>
-                <Text style={[styles.onlineStatusText, { color: isOnline ? colors.secondary : colors.muted }]}>
-                  {isOnline ? 'ONLINE' : 'OFFLINE'}
+                <Text style={[styles.onlineStatusText, { color: isAvailable ? colors.secondary : colors.muted }]}>
+                  {isAvailable ? 'ONLINE' : 'OFFLINE'}
                 </Text>
                 <NeobrutalistToggle
-                  value={isOnline}
+                  value={isAvailable}
                   onValueChange={toggleAvailability}
                   activeColor={colors.secondary}
                   colors={colors}

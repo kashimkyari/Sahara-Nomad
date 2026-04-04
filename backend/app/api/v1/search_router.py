@@ -98,7 +98,7 @@ async def search_runners(
         stmt = stmt.order_by("distance_m")
     else:
         # Default sort
-        stmt = stmt.order_by(User.is_online.desc(), "distance_m")
+        stmt = stmt.order_by(User.is_available.desc(), User.is_online.desc(), "distance_m")
         
     # Get dynamic markets for user's city
     markets = MarketService.get_popular_markets(city)

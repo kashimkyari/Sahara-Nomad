@@ -45,6 +45,7 @@ class User(AuditableBase):
     bio: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     hourly_rate: Mapped[Optional[float]] = mapped_column(Numeric(12, 2), nullable=True)
     is_online: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    is_available: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     stats_trips: Mapped[int] = mapped_column(Integer, default=0)
 
     otp_code: Mapped[Optional[str]] = mapped_column(String(6), nullable=True)
@@ -66,6 +67,7 @@ class RunnerApplication(AuditableBase):
     bvn: Mapped[Optional[str]] = mapped_column(String(11), nullable=True)          # masked/hashed in prod
     home_address: Mapped[str] = mapped_column(String(512))
     transport_mode: Mapped[str] = mapped_column(String(50))                         # Motorcycle / Keke / Car / On Foot
+    hourly_rate: Mapped[Optional[float]] = mapped_column(Numeric(12, 2), nullable=True)
     verification_method: Mapped[str] = mapped_column(String(20), default="otp")    # otp | liveness
 
     # Admin workflow

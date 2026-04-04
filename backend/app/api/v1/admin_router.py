@@ -66,6 +66,7 @@ async def get_runner_applications(
             bvn=app.bvn,
             home_address=app.home_address,
             transport_mode=app.transport_mode,
+            hourly_rate=app.hourly_rate,
             verification_method=app.verification_method,
             status=app.status,
             created_at=app.created_at
@@ -96,6 +97,8 @@ async def review_runner_application(
         user = user_result.scalars().first()
         if user:
             user.is_runner = True
+            if app.hourly_rate:
+                user.hourly_rate = app.hourly_rate
             
     await db.commit()
     return {"status": "success", "application_status": app.status}
