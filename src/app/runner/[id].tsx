@@ -61,7 +61,7 @@ export default function RunnerProfileScreen() {
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
           <ChevronLeft size={24} color={colors.text} strokeWidth={2.5} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Runner Profile</Text>
+        <Text style={styles.headerTitle}>{runner.is_runner ? 'Runner Profile' : 'Nomad Profile'}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -147,13 +147,15 @@ export default function RunnerProfileScreen() {
         </View>
       </ScrollView>
 
-      {/* Sticky Hire Button */}
-      <View style={styles.footer}>
-        <Button
-          title={`Hire ${runner.full_name?.split(' ')[0] || 'Runner'} – ₦${(runner.runner_profile?.hourly_rate || 0).toLocaleString()}/hr`}
-          onPress={() => router.push('/new-errand')}
-        />
-      </View>
+      {/* Sticky Hire Button - Only for Runners */}
+      {runner.is_runner && (
+        <View style={styles.footer}>
+          <Button
+            title={`Hire ${runner.full_name?.split(' ')[0] || 'Runner'} – ₦${(runner.runner_profile?.hourly_rate || 0).toLocaleString()}/hr`}
+            onPress={() => router.push('/new-errand')}
+          />
+        </View>
+      )}
     </SafeAreaView>
   );
 }

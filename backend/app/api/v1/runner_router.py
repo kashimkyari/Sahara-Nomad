@@ -59,14 +59,13 @@ async def get_runner_profile(
 ):
     stmt = select(User).where(
         User.id == runner_id,
-        User.is_runner == True,
         User.is_user_deleted == False
     )
     result = await db.execute(stmt)
     user = result.scalar_one_or_none()
     
     if not user:
-        raise HTTPException(status_code=404, detail="Runner not found")
+        raise HTTPException(status_code=404, detail="User not found")
         
     # Fetch active wakas for THIS runner
     active_stmt = select(func.count(Waka.id)).where(
@@ -96,6 +95,7 @@ async def get_runner_profile(
         "id": str(user.id),
         "full_name": user.full_name,
         "avatar_url": user.avatar_url,
+        "is_runner": user.is_runner,
         "loyalty_badge": user.loyalty_badge,
         "created_at": user.created_at.isoformat(),
         "runner_profile": {

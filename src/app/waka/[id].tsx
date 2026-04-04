@@ -379,7 +379,11 @@ export default function WakaStatusScreen() {
         {/* Participant (Runner/Nomad) Card */}
         {displayUser ? (
           <View style={styles.runnerCard}>
-            <View style={styles.runnerHeaderRow}>
+            <TouchableOpacity 
+              style={styles.runnerHeaderRow}
+              onPress={() => router.push(`/runner/${displayUser.id}`)}
+              activeOpacity={0.7}
+            >
               <Image 
                 source={displayUser.avatar_url 
                   ? { 
@@ -395,10 +399,10 @@ export default function WakaStatusScreen() {
               <View style={styles.runnerInfo}>
                 <Text style={styles.runnerName}>{displayUser.full_name}</Text>
                 <Text style={styles.runnerRating}>
-                  {actingAsRunner ? '★ 4.8 · Nomad' : '★ 4.9 · Runner'}
+                  ★ {displayUser.stats_rating?.toFixed(1) || '5.0'} · {displayUser.is_runner ? 'Runner' : 'Nomad'}
                 </Text>
               </View>
-            </View>
+            </TouchableOpacity>
             <View style={styles.runnerActions}>
               <TouchableOpacity style={styles.actionBtn} onPress={handleChat}>
                 <MessageCircle size={20} color={colors.text} strokeWidth={2.5} />
@@ -538,25 +542,6 @@ export default function WakaStatusScreen() {
           </View>
         )}
         
-        {waka.is_completed && (
-          ((user?.id === waka.employer_id && waka.has_employer_reviewed) ||
-           (user?.id === waka.runner_id && waka.has_runner_reviewed))
-        ) && (
-          <View style={[styles.card, { borderColor: colors.secondary, backgroundColor: colors.surface }]}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <CheckCircle2 size={24} color={colors.secondary} />
-              <Text style={[styles.cardTitle, { marginBottom: 0, fontSize: 18 }]}>You've reviewed this runner</Text>
-            </View>
-            <Text style={[styles.infoText, { marginTop: 8 }]}>Your feedback is live on their profile. Thanks for keeping Sendam safe!</Text>
-            <TouchableOpacity 
-              style={[styles.actionBtn, { marginTop: DT.spacing.md, backgroundColor: colors.text }]}
-              onPress={() => router.replace('/(tabs)')}
-            >
-              <Text style={{ color: colors.surface, fontFamily: DT.typography.heading }}>BACK HOME</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
         {waka.status === 'cancelled' && (
           <View style={[styles.card, { borderColor: colors.error, borderStyle: 'dashed' }]}>
             <Text style={[styles.cardTitle, { color: colors.error }]}>This waka was cancelled</Text>

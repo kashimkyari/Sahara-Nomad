@@ -24,6 +24,8 @@ class WakaUser(BaseModel):
     full_name: str
     avatar_url: Optional[str] = None
     phone_number: Optional[str] = None
+    is_runner: bool = False
+    stats_rating: float = 5.0
 
 class WakaResponse(BaseModel):
     id: UUID
