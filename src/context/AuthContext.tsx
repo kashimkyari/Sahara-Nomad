@@ -316,6 +316,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!token) return;
 
     const syncPresence = async (status: boolean) => {
+      if (!token) return;
       try {
         await fetch(`${API.API_URL}/auth/me`, {
           method: 'PATCH',
@@ -325,8 +326,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           },
           body: JSON.stringify({ is_online: status })
         });
-        console.log('Presence Synced:', status);
-      } catch (e) {
+      } catch (e: any) {
+        // Ignore "Runtime is shutting down" errors during unmount/reload
+        if (e?.message?.includes('shutting down')) return;
         console.error('Presence Sync Error:', e);
       }
     };
