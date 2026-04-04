@@ -10,7 +10,20 @@ import {
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { ChevronLeft, MapPin, Phone, MessageCircle, CheckCircle2, Truck, Clock, Zap } from 'lucide-react-native';
+import { 
+  ChevronLeft, 
+  MapPin, 
+  Phone, 
+  MessageCircle, 
+  CheckCircle2, 
+  Truck, 
+  Clock, 
+  Zap,
+  ShoppingBag,
+  Utensils,
+  Navigation,
+  Package
+} from 'lucide-react-native';
 import { DesignTokens as DT } from '../../constants/design';
 import { useTheme } from '../../hooks/use-theme';
 import { useAuth } from '../../context/AuthContext';
@@ -55,6 +68,13 @@ export default function WakaStatusScreen() {
   };
 
   const styles = getStyles(colors);
+
+  const getArea = (address: string) => {
+    if (!address) return 'Nearby';
+    const parts = address.split(',');
+    if (parts.length > 2) return parts[parts.length - 2].trim();
+    return parts[parts.length - 1].trim();
+  };
 
   const getStatusText = (step: number, status: string) => {
     if (status === 'cancelled') return 'CANCELLED';
@@ -324,25 +344,50 @@ export default function WakaStatusScreen() {
 
         {/* Waka Info Card */}
         <View style={styles.card}>
+          {/* Top Row: Category & Price */}
+          <View style={styles.cardTopRow}>
+            <View style={styles.badgeRow}>
+              <View style={styles.categoryBadge}>
+                {waka.category === 'market' ? <ShoppingBag size={12} color={colors.text} /> : 
+                 waka.category === 'food' ? <Utensils size={12} color={colors.text} /> : 
+                 <Package size={12} color={colors.text} />}
+                <Text style={styles.categoryLabel}>{waka.category.toUpperCase()}</Text>
+              </View>
+              <View style={styles.areaBadge}>
+                <MapPin size={10} color={colors.surface} fill={colors.surface} />
+                <Text style={styles.areaLabel}>{getArea(waka.pickup_address).toUpperCase()}</Text>
+              </View>
+            </View>
+            <Text style={styles.priceValue}>₦{waka.total_price.toLocaleString()}</Text>
+          </View>
+
+          {/* Body: Description */}
           <Text style={styles.cardTitle}>{waka.item_description}</Text>
-          <View style={styles.infoRow}>
-            <MapPin size={14} color={colors.primary} />
-            <Text style={styles.infoText}>{waka.pickup_address}</Text>
+
+          {/* Details Grid */}
+          <View style={styles.detailsGrid}>
+            <View style={styles.detailItem}>
+              <MapPin size={12} color={colors.accent} strokeWidth={2.5} />
+              <Text style={styles.detailLabel} numberOfLines={1}>PICKUP: {waka.pickup_address}</Text>
+            </View>
+            <View style={styles.detailItem}>
+              <Navigation size={12} color={colors.secondary} strokeWidth={2.5} />
+              <Text style={styles.detailLabel} numberOfLines={1}>DROPOFF: {waka.dropoff_address}</Text>
+            </View>
           </View>
-          <View style={styles.infoRow}>
-            <MapPin size={14} color={colors.secondary} />
-            <Text style={styles.infoText}>{waka.dropoff_address}</Text>
-          </View>
-          <View style={styles.divider} />
-          <Text style={styles.itemsLabel}>Category</Text>
-          <Text style={[styles.itemsText, { textTransform: 'uppercase', fontFamily: DT.typography.heading }]}>
-            {waka.category} Errand
-          </Text>
-          <View style={styles.divider} />
-          <View style={styles.feeRow}>
-            <Text style={styles.feeLabel}>Runner's Fee</Text>
-            <View style={styles.feeTag}>
-              <Text style={styles.feeTagText}>₦{waka.total_price.toLocaleString()}</Text>
+
+          {/* Action Row Hint */}
+          <View style={styles.feeHintRow}>
+            <Text style={styles.feeHintLabel}>TOTAL REWARD</Text>
+            <View style={styles.flashStatus}>
+              {waka.urgency === 'flash' ? (
+                <View style={styles.flashInnerBadge}>
+                  <Zap size={10} color={colors.surface} fill={colors.surface} />
+                  <Text style={styles.flashInnerText}>FLASH</Text>
+                </View>
+              ) : (
+                <Text style={styles.standardHintText}>STANDARD DELIVERY</Text>
+              )}
             </View>
           </View>
         </View>
@@ -689,65 +734,122 @@ function getStyles(colors: any) {
       backgroundColor: colors.surface,
       borderWidth: 3,
       borderColor: colors.text,
-      padding: DT.spacing.lg,
+      padding: DT.spacing.md,
       marginBottom: DT.spacing.lg,
       shadowColor: colors.text, shadowOffset: { width: 6, height: 6 }, shadowOpacity: 1, shadowRadius: 0, elevation: 6,
     },
-    cardTitle: {
-      fontFamily: DT.typography.heading,
-      fontSize: 22,
-      color: colors.text,
-      marginBottom: DT.spacing.md,
-    },
-    infoRow: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      gap: DT.spacing.sm,
-      marginBottom: 6,
-    },
-    infoText: {
-      fontFamily: DT.typography.body,
-      fontSize: 13, color: colors.text, flex: 1,
-    },
-    divider: {
-      height: 2,
-      backgroundColor: colors.text,
-      marginVertical: DT.spacing.md,
-    },
-    itemsLabel: {
-      fontFamily: DT.typography.heading,
-      fontSize: 12,
-      color: colors.muted,
-      letterSpacing: 1,
-      marginBottom: 4,
-    },
-    itemsText: {
-      fontFamily: DT.typography.body,
-      fontSize: 14,
-      color: colors.text,
-      lineHeight: 20,
-    },
-    feeRow: {
+    cardTopRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
+      marginBottom: 12,
     },
-    feeLabel: {
-      fontFamily: DT.typography.bodySemiBold,
-      fontSize: 14,
+    badgeRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    areaBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.secondary,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderWidth: 1.5,
+      borderColor: colors.text,
+      gap: 4,
+    },
+    areaLabel: {
+      fontFamily: DT.typography.heading,
+      fontSize: 9,
+      color: colors.surface,
+      letterSpacing: 0.5,
+    },
+    categoryBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.background,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderWidth: 1.5,
+      borderColor: colors.text,
+      gap: 4,
+    },
+    categoryLabel: {
+      fontFamily: DT.typography.heading,
+      fontSize: 9,
+      color: colors.text,
+      letterSpacing: 0.5,
+    },
+    priceValue: {
+      fontFamily: DT.typography.heading,
+      fontSize: 22,
       color: colors.text,
     },
-    feeTag: {
-      backgroundColor: colors.accent,
+    cardTitle: {
+      fontFamily: DT.typography.heading,
+      fontSize: 18,
+      color: colors.text,
+      marginBottom: 10,
+    },
+    detailsGrid: {
+      gap: 8,
+      marginBottom: 12,
+      backgroundColor: colors.background,
+      padding: 10,
       borderWidth: 2,
       borderColor: colors.text,
-      paddingHorizontal: 10,
-      paddingVertical: 3,
-      shadowColor: colors.text, shadowOffset: { width: 2, height: 2 }, shadowOpacity: 1, shadowRadius: 0, elevation: 3,
+      borderStyle: 'dashed',
     },
-    feeTagText: {
+    detailItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    detailLabel: {
+      fontFamily: DT.typography.bodySemiBold,
+      fontSize: 10,
+      color: colors.muted,
+      flex: 1,
+    },
+    feeHintRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      borderTopWidth: 2,
+      borderTopColor: colors.text,
+      paddingTop: 10,
+      marginTop: 4,
+    },
+    feeHintLabel: {
       fontFamily: DT.typography.heading,
-      fontSize: 15, color: colors.text,
+      fontSize: 10,
+      color: colors.muted,
+      letterSpacing: 1,
+    },
+    flashStatus: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    flashInnerBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.text,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      gap: 4,
+    },
+    flashInnerText: {
+      fontFamily: DT.typography.heading,
+      fontSize: 9,
+      color: colors.surface,
+      letterSpacing: 1,
+    },
+    standardHintText: {
+      fontFamily: DT.typography.heading,
+      fontSize: 9,
+      color: colors.muted,
+      letterSpacing: 0.5,
     },
     runnerCard: {
       backgroundColor: colors.surface,
@@ -852,6 +954,12 @@ function getStyles(colors: any) {
       fontSize: 18,
       color: colors.surface,
       letterSpacing: 1,
+    },
+    infoText: {
+      fontFamily: DT.typography.bodySemiBold,
+      fontSize: 13,
+      color: colors.text,
+      flex: 1,
     },
   });
 }

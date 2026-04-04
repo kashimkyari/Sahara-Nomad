@@ -9,7 +9,18 @@ import {
   ActivityIndicator 
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChevronLeft, Package, Clock, CheckCircle2, XCircle, ArrowRight } from 'lucide-react-native';
+import { 
+  ChevronLeft, 
+  Package, 
+  Clock, 
+  CheckCircle2, 
+  XCircle, 
+  ArrowRight,
+  MapPin,
+  Navigation,
+  ShoppingBag,
+  Utensils
+} from 'lucide-react-native';
 import { useRouter, Stack } from 'expo-router';
 import { DesignTokens as DT } from '../../constants/design';
 import { useTheme } from '../../hooks/use-theme';
@@ -48,6 +59,13 @@ export default function WakaHistoryScreen() {
     fetchHistory();
   }, []);
 
+  const getArea = (address: string) => {
+    if (!address) return 'Nearby';
+    const parts = address.split(',');
+    if (parts.length > 2) return parts[parts.length - 2].trim();
+    return parts[parts.length - 1].trim();
+  };
+
   const getStatusStyle = (status: string) => {
     switch (status) {
       case 'completed': return { color: colors.secondary, icon: CheckCircle2 };
@@ -56,43 +74,69 @@ export default function WakaHistoryScreen() {
     }
   };
 
-  const renderWaka = ({ item }: { item: any }) => {
+  const renderWaka = ({ item, index }: { item: any, index: number }) => {
     const { color, icon: StatusIcon } = getStatusStyle(item.status);
     const date = new Date(item.created_at).toLocaleDateString();
     const isRunner = item.runner_id === user?.id;
     const displayAmount = isRunner ? (item.runner_fee + item.flash_incentive) : item.total_price;
+    const CategoryIcon = item.category === 'market' ? ShoppingBag : item.category === 'food' ? Utensils : Package;
 
     return (
       <MotiView 
-        from={{ opacity: 0, scale: 0.9 }}
+        from={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: index * 50 }}
         style={styles.card}
       >
         <TouchableOpacity 
           style={styles.cardInner}
           onPress={() => router.push(`/waka/${item.id}` as any)}
         >
-          <View style={styles.cardHeader}>
-            <View style={{ flexDirection: 'row', gap: 6 }}>
-              <View style={[styles.statusBadge, { backgroundColor: color }]}>
-                <StatusIcon size={12} color={colors.surface} strokeWidth={3} />
-                <Text style={styles.statusText}>{item.status.toUpperCase()}</Text>
+          {/* Top Row: Category, Area & Date */}
+          <View style={styles.cardTopRow}>
+            <View style={styles.badgeRow}>
+              <View style={styles.categoryBadge}>
+                <CategoryIcon size={12} color={colors.text} />
+                <Text style={styles.categoryLabel}>{item.category.toUpperCase()}</Text>
               </View>
-              <View style={[styles.roleBadge, { backgroundColor: isRunner ? colors.accent : colors.secondary }]}>
-                <Text style={styles.roleText}>{isRunner ? 'RUNNER' : 'NOMAD'}</Text>
+              <View style={styles.areaBadge}>
+                <MapPin size={10} color={colors.surface} fill={colors.surface} />
+                <Text style={styles.areaLabel}>{getArea(item.pickup_address).toUpperCase()}</Text>
               </View>
             </View>
-            <Text style={styles.dateText}>{date || ''}</Text>
+            <Text style={styles.dateText}>{date}</Text>
           </View>
 
-          <Text style={styles.itemDesc} numberOfLines={2}>{item.item_description}</Text>
+          {/* Body: Description */}
+          <Text style={styles.itemTitle} numberOfLines={1}>{item.item_description}</Text>
 
-          <View style={styles.cardFooter}>
-            <View style={styles.priceContainer}>
-              <Text style={styles.priceLabel}>{isRunner ? 'YOU EARNED' : 'TOTAL PAID'}</Text>
+          {/* Details Grid */}
+          <View style={styles.detailsGrid}>
+            <View style={styles.detailItem}>
+              <MapPin size={12} color={colors.accent} strokeWidth={2.5} />
+              <Text style={styles.detailLabel} numberOfLines={1}>PICKUP: {item.pickup_address}</Text>
+            </View>
+            <View style={styles.detailItem}>
+              <Navigation size={12} color={colors.secondary} strokeWidth={2.5} />
+              <Text style={styles.detailLabel} numberOfLines={1}>DROPOFF: {item.dropoff_address}</Text>
+            </View>
+          </View>
+
+          {/* Footer: Status, Role & Price */}
+          <View style={styles.cardBottomRow}>
+            <View style={styles.statusGroup}>
+              <View style={[styles.statusBadge, { backgroundColor: color }]}>
+                <StatusIcon size={10} color={colors.surface} strokeWidth={3} />
+                <Text style={styles.statusLabelText}>{item.status.toUpperCase()}</Text>
+              </View>
+              <View style={[styles.roleBadge, { backgroundColor: isRunner ? colors.accent : colors.secondary }]}>
+                <Text style={styles.roleLabelText}>{isRunner ? 'RUNNER' : 'NOMAD'}</Text>
+              </View>
+            </View>
+            <View style={styles.priceStrip}>
+              <Text style={styles.priceLabel}>{isRunner ? 'EARNED' : 'PAID'}</Text>
               <Text style={styles.priceValue}>₦{displayAmount.toLocaleString()}</Text>
             </View>
-            <ArrowRight size={20} color={colors.text} />
           </View>
         </TouchableOpacity>
       </MotiView>
@@ -195,67 +239,128 @@ const getStyles = (colors: any) => StyleSheet.create({
     shadowRadius: 0,
     elevation: 4,
   },
-  cardHeader: {
+  cardTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 10,
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  categoryBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderWidth: 1.5,
+    borderColor: colors.text,
+    gap: 4,
+  },
+  categoryLabel: {
+    fontFamily: DT.typography.heading,
+    fontSize: 9,
+    color: colors.text,
+    letterSpacing: 0.5,
+  },
+  areaBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.secondary,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderWidth: 1.5,
+    borderColor: colors.text,
+    gap: 4,
+  },
+  areaLabel: {
+    fontFamily: DT.typography.heading,
+    fontSize: 9,
+    color: colors.surface,
+    letterSpacing: 0.5,
+  },
+  dateText: {
+    fontFamily: DT.typography.bodySemiBold,
+    fontSize: 10,
+    color: colors.muted,
+  },
+  itemTitle: {
+    fontFamily: DT.typography.heading,
+    fontSize: 16,
+    color: colors.text,
+    marginBottom: 8,
+  },
+  detailsGrid: {
+    gap: 6,
     marginBottom: 12,
+    backgroundColor: colors.background,
+    padding: 8,
+    borderWidth: 1.5,
+    borderColor: colors.text + '20',
+  },
+  detailItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  detailLabel: {
+    fontFamily: DT.typography.bodySemiBold,
+    fontSize: 10,
+    color: colors.muted,
+    flex: 1,
+  },
+  cardBottomRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderTopWidth: 1.5,
+    borderTopColor: colors.text + '10',
+    paddingTop: 10,
+  },
+  statusGroup: {
+    flexDirection: 'row',
+    gap: 4,
   },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderWidth: 2,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderWidth: 1.5,
     borderColor: colors.text,
     gap: 4,
   },
-  statusText: {
+  statusLabelText: {
     fontFamily: DT.typography.heading,
-    fontSize: 10,
+    fontSize: 9,
     color: colors.surface,
   },
   roleBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderWidth: 2,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderWidth: 1.5,
     borderColor: colors.text,
   },
-  roleText: {
+  roleLabelText: {
     fontFamily: DT.typography.heading,
-    fontSize: 10,
+    fontSize: 9,
     color: colors.surface,
   },
-  dateText: {
-    fontFamily: DT.typography.bodySemiBold,
-    fontSize: 12,
-    color: colors.muted,
-  },
-  itemDesc: {
-    fontFamily: DT.typography.heading,
-    fontSize: 18,
-    color: colors.text,
-    marginBottom: 16,
-    minHeight: 44,
-  },
-  cardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  priceStrip: {
     alignItems: 'flex-end',
-    borderTopWidth: 2,
-    borderTopColor: 'rgba(0,0,0,0.05)',
-    paddingTop: 12,
   },
-  priceContainer: {},
   priceLabel: {
     fontFamily: DT.typography.bodySemiBold,
-    fontSize: 10,
+    fontSize: 8,
     color: colors.muted,
-    marginBottom: 2,
+    letterSpacing: 0.5,
   },
   priceValue: {
     fontFamily: DT.typography.heading,
-    fontSize: 20,
+    fontSize: 18,
     color: colors.secondary,
   },
   centered: {
