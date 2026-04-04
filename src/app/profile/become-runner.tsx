@@ -20,7 +20,8 @@ const steps = [
   { icon: ShieldCheck, title: 'BVN Verification', desc: 'We verify your Bank Verification Number to confirm your identity. Takes 2 minutes.' },
   { icon: MapPin, title: 'Address Check', desc: 'Confirm your home area. This helps us match you with nearby wakas.' },
   { icon: Bike, title: 'Pickup Capability', desc: 'Tell us your mode of transport — bike, keke, or on foot for short runs.' },
-  { icon: Zap, title: 'Go Live!', desc: 'Once verified, your profile goes live and buyers can find and hire you.' },
+  { icon: Zap, title: 'Hourly Rate', desc: 'Set your preferred hourly rate for running errands.' },
+  { icon: CheckCircle2, title: 'Go Live!', desc: 'Once verified, your profile goes live and buyers can find and hire you.' },
 ];
 
 export default function BecomeRunnerScreen() {
@@ -35,6 +36,7 @@ export default function BecomeRunnerScreen() {
   const [bvn, setBvn] = useState('');
   const [address, setAddress] = useState('');
   const [transport, setTransport] = useState('');
+  const [hourlyRate, setHourlyRate] = useState('1500');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [selfieUri, setSelfieUri] = useState<string | null>(null);
@@ -352,6 +354,27 @@ export default function BecomeRunnerScreen() {
                 </View>
               )}
 
+              {currentStep === 3 && (
+                <View style={styles.inputWrapper}>
+                  <Text style={styles.inputLabel}>SET YOUR HOURLY RATE (₦)</Text>
+                  <View style={styles.rateInputRow}>
+                    <Text style={styles.rateSymbol}>₦</Text>
+                    <TextInput
+                      style={[styles.bvnInput, { color: colors.text, flex: 1, letterSpacing: 0, fontSize: 32 }]}
+                      keyboardType="number-pad"
+                      placeholder="1500"
+                      placeholderTextColor={colors.muted}
+                      value={hourlyRate}
+                      onChangeText={setHourlyRate}
+                    />
+                    <Text style={styles.rateUnit}>/hr</Text>
+                  </View>
+                  <Text style={styles.rateHint}>
+                    Most runners charge between ₦1,000 and ₦3,000 per hour.
+                  </Text>
+                </View>
+              )}
+
               <TouchableOpacity
                 style={[
                   styles.nextBtn, 
@@ -361,7 +384,8 @@ export default function BecomeRunnerScreen() {
                     (currentStep === 0 && bvnPhase === 2 && verificationMethod === 'otp' && otp.length !== 6) || 
                     (currentStep === 0 && bvnPhase === 2 && verificationMethod === 'liveness' && !selfieUri) ||
                     (currentStep === 1 && address.length < 5) ||
-                    (currentStep === 2 && !transport)
+                    (currentStep === 2 && !transport) ||
+                    (currentStep === 3 && (isNaN(Number(hourlyRate)) || Number(hourlyRate) < 500))
                   ) && styles.nextBtnDisabled
                 ]}
                 onPress={async () => {
@@ -372,7 +396,7 @@ export default function BecomeRunnerScreen() {
                       else setBvnPhase(2);
                     }
                     else if (bvnPhase === 2) setCurrentStep(c => c + 1);
-                  } else if (currentStep < 2) {
+                  } else if (currentStep < 3) {
                     setCurrentStep(c => c + 1);
                   } else {
                     // Final step — submit to backend
@@ -388,6 +412,7 @@ export default function BecomeRunnerScreen() {
                           bvn,
                           home_address: address,
                           transport_mode: transport,
+                          hourly_rate: Number(hourlyRate),
                           verification_method: verificationMethod || 'otp',
                         }),
                       });
@@ -395,7 +420,7 @@ export default function BecomeRunnerScreen() {
                         const err = await res.json().catch(() => ({}));
                         throw new Error(err.detail || `Error ${res.status}`);
                       }
-                      setCurrentStep(3); // Show success screen
+                      setCurrentStep(4); // Show success screen
                     } catch (e: any) {
                       showAlert('Submission Failed', e.message || 'Please try again.');
                     } finally {
@@ -409,13 +434,14 @@ export default function BecomeRunnerScreen() {
                   (currentStep === 0 && bvnPhase === 2 && verificationMethod === 'otp' && otp.length !== 6) || 
                   (currentStep === 0 && bvnPhase === 2 && verificationMethod === 'liveness' && !selfieUri) ||
                   (currentStep === 1 && address.length < 5) ||
-                  (currentStep === 2 && !transport)
+                  (currentStep === 2 && !transport) ||
+                  (currentStep === 3 && (isNaN(Number(hourlyRate)) || Number(hourlyRate) < 500))
                 }
               >
                 <Text style={styles.nextBtnText}>
                   {isSubmitting
                     ? <ActivityIndicator color={colors.surface} />
-                    : currentStep === 2
+                    : currentStep === 3
                       ? 'Submit Application'
                       : currentStep === 0 && bvnPhase === 2 && verificationMethod === 'liveness'
                         ? 'Verify Identity'
@@ -425,7 +451,7 @@ export default function BecomeRunnerScreen() {
             </>
           )}
 
-          {currentStep === 3 && (
+          {currentStep === 4 && (
             <View style={styles.successBox}>
               <View style={styles.successCircle}>
                 <CheckCircle2 size={64} color={colors.surface} strokeWidth={3} />
@@ -638,6 +664,27 @@ const getStyles = (colors: any) => StyleSheet.create({
     fontFamily: DT.typography.bodySemiBold,
     fontSize: 12,
     color: colors.muted,
+  },
+  rateInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: DT.spacing.sm,
+  },
+  rateSymbol: {
+    fontFamily: DT.typography.heading,
+    fontSize: 24,
+    color: colors.text,
+  },
+  rateUnit: {
+    fontFamily: DT.typography.heading,
+    fontSize: 20,
+    color: colors.muted,
+  },
+  rateHint: {
+    fontFamily: DT.typography.body,
+    fontSize: 12,
+    color: colors.muted,
+    marginTop: 8,
   },
   checkIcon: { position: 'absolute', bottom: -10, right: 20, backgroundColor: colors.surface, borderRadius: 20, borderWidth: 2, borderColor: colors.text, zIndex: 10 },
 });

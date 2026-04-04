@@ -10,8 +10,10 @@ import {
   Plus,
   ShieldCheck,
   ArrowRight,
-  Zap
+  Zap,
+  Power
 } from 'lucide-react-native';
+import { NeobrutalistToggle } from '../../components/ui/NeobrutalistToggle';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View, ScrollView } from 'react-native';
 import { Image } from 'expo-image';
@@ -31,8 +33,39 @@ const menuItems = [
 
 export default function ProfileScreen() {
   const { colors } = useTheme();
-  const { user, token, isAdmin } = useAuth();
+  const { user, token, isAdmin, refreshUser } = useAuth();
   const router = useRouter();
+
+  const [isOnline, setIsOnline] = React.useState(user?.runner_profile?.is_online ?? false);
+  const [isToggling, setIsToggling] = React.useState(false);
+
+  React.useEffect(() => {
+    if (user?.runner_profile) {
+      setIsOnline(user.runner_profile.is_online);
+    }
+  }, [user?.runner_profile?.is_online]);
+
+  const toggleAvailability = async (val: boolean) => {
+    if (!token || isToggling) return;
+    setIsOnline(val); // Optimistic
+    setIsToggling(true);
+    try {
+      const res = await fetch(`${API.API_URL}/auth/me`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ is_online: val })
+      });
+      if (!res.ok) throw new Error();
+      await refreshUser();
+    } catch (e) {
+      setIsOnline(!val); // Revert
+    } finally {
+      setIsToggling(false);
+    }
+  };
 
   const styles = getStyles(colors);
 
@@ -121,14 +154,60 @@ export default function ProfileScreen() {
             onPress={() => router.push('/admin' as any)}
           >
             <View style={styles.adminIconBox}>
-                <ShieldCheck size={20} color={DT.admin.accent} strokeWidth={2.5} />
+              <ShieldCheck size={20} color={DT.admin.accent} strokeWidth={2.5} />
             </View>
             <View style={styles.adminTextWrap}>
-                <Text style={styles.adminLabel}>ADMIN CONSOLE</Text>
-                <Text style={styles.adminSublabel}>Manage users, runners & support</Text>
+              <Text style={styles.adminLabel}>ADMIN CONSOLE</Text>
+              <Text style={styles.adminSublabel}>Manage users, runners & support</Text>
             </View>
             <ArrowRight size={20} color={colors.surface} />
           </TouchableOpacity>
+        )}
+
+        {/* Runner Hub (Only for Runners) */}
+        {user?.is_runner && (
+          <View style={styles.runnerHub}>
+            <View style={styles.runnerHubHeader}>
+              <View style={styles.runnerHubTitleRow}>
+                <Power size={18} color={isOnline ? colors.secondary : colors.muted} strokeWidth={2.5} />
+                <Text style={styles.runnerHubTitle}>RUNNER HUB</Text>
+              </View>
+              <View style={styles.onlineStatusRow}>
+                <Text style={[styles.onlineStatusText, { color: isOnline ? colors.secondary : colors.muted }]}>
+                  {isOnline ? 'ONLINE' : 'OFFLINE'}
+                </Text>
+                <NeobrutalistToggle
+                  value={isOnline}
+                  onValueChange={toggleAvailability}
+                  activeColor={colors.secondary}
+                  colors={colors}
+                />
+              </View>
+            </View>
+
+            <View style={styles.runnerStatsRow}>
+              <View style={styles.runnerStatCard}>
+                <Text style={styles.runnerStatValue}>{user.runner_profile?.stats_trips || 0}</Text>
+                <Text style={styles.runnerStatLabel}>TOTAL RUNS</Text>
+              </View>
+              <View style={[styles.runnerStatCard, { borderLeftWidth: 0, borderRightWidth: 0 }]}>
+                <Text style={styles.runnerStatValue}>{user.runner_profile?.stats_rating || '5.0'}★</Text>
+                <Text style={styles.runnerStatLabel}>RATING</Text>
+              </View>
+              <TouchableOpacity 
+                style={styles.runnerStatCard}
+                onPress={() => router.push('/profile/edit')}
+              >
+                <Text style={styles.runnerStatValue}>
+                  ₦{(user.runner_profile?.hourly_rate || 0).toLocaleString()}
+                </Text>
+                <Text style={styles.runnerStatLabel}>RATE / HR</Text>
+                <View style={styles.rateEditIcon}>
+                  <Edit3 size={10} color={colors.surface} strokeWidth={3} />
+                </View>
+              </TouchableOpacity>
+            </View>
+          </View>
         )}
 
         {/* Individual Chunky Stats */}
@@ -526,10 +605,25 @@ const getStyles = (colors: any) => StyleSheet.create({
     borderBottomColor: colors.text,
     paddingBottom: 8,
   },
+  runnerHubTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   runnerHubTitle: {
     fontFamily: DT.typography.heading,
     fontSize: 14,
     color: colors.text,
+    letterSpacing: 1,
+  },
+  onlineStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  onlineStatusText: {
+    fontFamily: DT.typography.heading,
+    fontSize: 12,
     letterSpacing: 1,
   },
   runnerStatsRow: {
@@ -555,5 +649,17 @@ const getStyles = (colors: any) => StyleSheet.create({
     color: colors.muted,
     letterSpacing: 0.5,
     marginTop: 2,
+  },
+  rateEditIcon: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: colors.primary,
+    width: 16,
+    height: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.text,
   },
 });

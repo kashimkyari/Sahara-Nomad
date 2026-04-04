@@ -23,6 +23,7 @@ export default function EditProfileScreen() {
   const [name, setName] = useState(user?.full_name || '');
   const [email, setEmail] = useState(user?.email || '');
   const [bio, setBio] = useState(user?.runner_profile?.bio || '');
+  const [hourlyRate, setHourlyRate] = useState(user?.runner_profile?.hourly_rate?.toString() || '0');
   const [location, setLocation] = useState('Lagos, Nigeria');
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -103,6 +104,7 @@ export default function EditProfileScreen() {
           full_name: name,
           email: email,
           bio: bio,
+          hourly_rate: user?.is_runner ? Number(hourlyRate) : undefined,
         }),
       });
 
@@ -225,6 +227,29 @@ export default function EditProfileScreen() {
           />
         </View>
         <Text style={styles.charCount}>{bio.length}/160</Text>
+
+        {user?.is_runner && (
+          <>
+            <Text style={[styles.sectionLabel, { marginTop: DT.spacing.sm }]}>RUNNER SETTINGS</Text>
+            <View style={styles.group}>
+              <View style={styles.fieldRow}>
+                <Text style={styles.fieldLabel}>Hourly Rate</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                  <Text style={{ fontFamily: DT.typography.heading, fontSize: 16, marginRight: 4 }}>₦</Text>
+                  <TextInput
+                    style={styles.fieldInput}
+                    value={hourlyRate}
+                    onChangeText={setHourlyRate}
+                    keyboardType="number-pad"
+                    placeholder="1500"
+                    placeholderTextColor={colors.muted}
+                  />
+                  <Text style={{ fontFamily: DT.typography.bodySemiBold, fontSize: 13, color: colors.muted }}>/ hr</Text>
+                </View>
+              </View>
+            </View>
+          </>
+        )}
 
         <TouchableOpacity 
           style={[styles.saveBtn, loading && { opacity: 0.7 }]} 
