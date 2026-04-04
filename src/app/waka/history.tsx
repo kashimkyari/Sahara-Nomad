@@ -19,7 +19,7 @@ import { MotiView } from 'moti';
 
 export default function WakaHistoryScreen() {
   const { colors } = useTheme();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const router = useRouter();
   const styles = getStyles(colors);
 
@@ -59,6 +59,8 @@ export default function WakaHistoryScreen() {
   const renderWaka = ({ item }: { item: any }) => {
     const { color, icon: StatusIcon } = getStatusStyle(item.status);
     const date = new Date(item.created_at).toLocaleDateString();
+    const isRunner = item.runner_id === user?.id;
+    const displayAmount = isRunner ? (item.runner_fee + item.flash_incentive) : item.total_price;
 
     return (
       <MotiView 
@@ -71,19 +73,24 @@ export default function WakaHistoryScreen() {
           onPress={() => router.push(`/waka/${item.id}` as any)}
         >
           <View style={styles.cardHeader}>
-            <View style={[styles.statusBadge, { backgroundColor: color }]}>
-              <StatusIcon size={12} color={colors.surface} strokeWidth={3} />
-              <Text style={styles.statusText}>{item.status.toUpperCase()}</Text>
+            <View style={{ flexDirection: 'row', gap: 6 }}>
+              <View style={[styles.statusBadge, { backgroundColor: color }]}>
+                <StatusIcon size={12} color={colors.surface} strokeWidth={3} />
+                <Text style={styles.statusText}>{item.status.toUpperCase()}</Text>
+              </View>
+              <View style={[styles.roleBadge, { backgroundColor: isRunner ? colors.accent : colors.secondary }]}>
+                <Text style={styles.roleText}>{isRunner ? 'RUNNER' : 'NOMAD'}</Text>
+              </View>
             </View>
-            <Text style={styles.dateText}>{date}</Text>
+            <Text style={styles.dateText}>{date || ''}</Text>
           </View>
 
           <Text style={styles.itemDesc} numberOfLines={2}>{item.item_description}</Text>
 
           <View style={styles.cardFooter}>
             <View style={styles.priceContainer}>
-              <Text style={styles.priceLabel}>TOTAL PAID</Text>
-              <Text style={styles.priceValue}>₦{item.total_price.toLocaleString()}</Text>
+              <Text style={styles.priceLabel}>{isRunner ? 'YOU EARNED' : 'TOTAL PAID'}</Text>
+              <Text style={styles.priceValue}>₦{displayAmount.toLocaleString()}</Text>
             </View>
             <ArrowRight size={20} color={colors.text} />
           </View>
@@ -204,6 +211,17 @@ const getStyles = (colors: any) => StyleSheet.create({
     gap: 4,
   },
   statusText: {
+    fontFamily: DT.typography.heading,
+    fontSize: 10,
+    color: colors.surface,
+  },
+  roleBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderWidth: 2,
+    borderColor: colors.text,
+  },
+  roleText: {
     fontFamily: DT.typography.heading,
     fontSize: 10,
     color: colors.surface,

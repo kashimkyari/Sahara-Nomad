@@ -36,6 +36,7 @@ interface User {
     hourly_rate?: number;
     stats_trips: number;
     stats_rating: number;
+    active_wakas: number;
     is_online: boolean;
     reviews?: Array<{
       id: string;

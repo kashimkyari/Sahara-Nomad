@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, update
+from sqlalchemy import select, func, update, or_
 from sqlalchemy.orm import selectinload
 from ...database import get_db
 from ...models.waka import Waka, WakaDecline
@@ -245,7 +245,10 @@ async def get_my_wakas(
     result = await db.execute(
         select(Waka)
         .options(selectinload(Waka.employer), selectinload(Waka.runner))
-        .where(Waka.employer_id == current_user.id, Waka.is_deleted == False)
+        .where(
+            or_(Waka.employer_id == current_user.id, Waka.runner_id == current_user.id),
+            Waka.is_deleted == False
+        )
         .order_by(Waka.created_at.desc())
     )
     return result.scalars().all()

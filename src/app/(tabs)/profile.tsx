@@ -136,7 +136,7 @@ export default function ProfileScreen() {
           {[
             { label: 'ERRANDS', value: user?.errands_count?.toString() || '0', route: '/waka/history' },
             { label: 'SPENT', value: `₦${(user?.spent_total || 0).toLocaleString()}` },
-            { label: 'RATING', value: `${Number(user?.stats_rating ?? 2.5).toFixed(1)}★` },
+            { label: 'RATING', value: `${Number(user?.stats_rating ?? 5.0).toFixed(1)}★` },
           ].map((stat, i) => (
             <TouchableOpacity 
               key={stat.label} 
@@ -153,6 +153,30 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           ))}
         </View>
+
+        {/* Runner Dashboard Segment (If Runner) */}
+        {user?.is_runner && (
+          <View style={styles.runnerHub}>
+            <View style={styles.runnerHubHeader}>
+              <Zap size={18} color={colors.accent} fill={colors.accent} />
+              <Text style={styles.runnerHubTitle}>RUNNER DASHBOARD</Text>
+            </View>
+            <View style={styles.runnerStatsRow}>
+              <TouchableOpacity style={styles.runnerStatCard} onPress={() => router.push('/(tabs)/home' as any)}>
+                <Text style={styles.runnerStatValue}>{user.runner_profile?.active_wakas || 0}</Text>
+                <Text style={styles.runnerStatLabel}>ACTIVE</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.runnerStatCard} onPress={() => router.push('/waka/history' as any)}>
+                <Text style={styles.runnerStatValue}>{user.runner_profile?.stats_trips || 0}</Text>
+                <Text style={styles.runnerStatLabel}>COMPLETED</Text>
+              </TouchableOpacity>
+              <View style={styles.runnerStatCard}>
+                <Text style={styles.runnerStatValue}>★ {user.runner_profile?.stats_rating?.toFixed(1) || '5.0'}</Text>
+                <Text style={styles.runnerStatLabel}>RATING</Text>
+              </View>
+            </View>
+          </View>
+        )}
 
         {/* Menu */}
         <View style={styles.menu}>
@@ -497,5 +521,57 @@ const getStyles = (colors: any) => StyleSheet.create({
     fontFamily: DT.typography.body, 
     fontSize: 11, 
     color: 'rgba(255,255,255,0.7)' 
+  },
+  runnerHub: {
+    marginHorizontal: DT.spacing.lg,
+    marginBottom: DT.spacing.lg,
+    backgroundColor: colors.surface,
+    borderWidth: 3,
+    borderColor: colors.text,
+    padding: DT.spacing.md,
+    shadowColor: colors.text,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
+  },
+  runnerHubHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: DT.spacing.md,
+    borderBottomWidth: 2,
+    borderBottomColor: colors.text,
+    paddingBottom: 8,
+  },
+  runnerHubTitle: {
+    fontFamily: DT.typography.heading,
+    fontSize: 14,
+    color: colors.text,
+    letterSpacing: 1,
+  },
+  runnerStatsRow: {
+    flexDirection: 'row',
+    gap: DT.spacing.sm,
+  },
+  runnerStatCard: {
+    flex: 1,
+    backgroundColor: colors.background,
+    borderWidth: 2,
+    borderColor: colors.text,
+    alignItems: 'center',
+    paddingVertical: DT.spacing.md,
+  },
+  runnerStatValue: {
+    fontFamily: DT.typography.heading,
+    fontSize: 18,
+    color: colors.text,
+  },
+  runnerStatLabel: {
+    fontFamily: DT.typography.bodySemiBold,
+    fontSize: 9,
+    color: colors.muted,
+    letterSpacing: 0.5,
+    marginTop: 2,
   },
 });
