@@ -45,7 +45,7 @@ export default function NewErrandScreen() {
   
   const [category, setCategory] = useState('package');
   const [urgency, setUrgency] = useState('standard'); // 'standard' | 'flash'
-  const [items, setItems] = useState('');
+  const [items, setItems] = useState<string[]>(['']); // Array of bullet points
   const [location, setLocation] = useState('');
   const [deliveryLocation, setDeliveryLocation] = useState('');
 
@@ -152,7 +152,7 @@ export default function NewErrandScreen() {
     })
   ).current;
 
-  const isFormValid = items.length > 0 && location.length > 0 && deliveryLocation.length > 0;
+  const isFormValid = items.some(i => i.trim().length > 0) && location.length > 0 && deliveryLocation.length > 0;
   const totalPrice = price + (urgency === 'flash' ? incentive : 0);
 
   const handleBroadcast = async () => {
@@ -162,7 +162,8 @@ export default function NewErrandScreen() {
     try {
       const payload = {
         category,
-        item_description: items,
+        items: items.filter(i => i.trim().length > 0),
+        item_description: items.filter(i => i.trim().length > 0).join(', '),
         pickup: {
           address: location,
           lat: pickupCoords?.lat ?? 0,
@@ -323,19 +324,48 @@ export default function NewErrandScreen() {
           </View>
         </View>
 
-        {/* Item Description */}
+        {/* Item Box & Bullet Points */}
         <View style={styles.field}>
-          <Text style={styles.fieldLabel}>What should they carry?</Text>
-          <TextInput
-            style={styles.textArea}
-            multiline
-            numberOfLines={4}
-            placeholder="Describe the item, reference sizes, constraints, etc."
-            placeholderTextColor={colors.muted}
-            value={items}
-            onChangeText={setItems}
-            textAlignVertical="top"
-          />
+          <View style={styles.itemBoxHeader}>
+            <Text style={styles.fieldLabel}>What should they carry?</Text>
+            <TouchableOpacity 
+              style={styles.addBtn}
+              onPress={() => setItems([...items, ''])}
+            >
+              <Text style={styles.addBtnText}>+ ADD ITEM</Text>
+            </TouchableOpacity>
+          </View>
+          
+          <View style={styles.itemBox}>
+            {items.map((item, idx) => (
+              <View key={idx} style={styles.itemRow}>
+                <View style={styles.bulletDot} />
+                <TextInput
+                  style={styles.itemInput}
+                  placeholder="e.g. 5kg Basmati Rice"
+                  placeholderTextColor={colors.muted}
+                  value={item}
+                  onChangeText={(text) => {
+                    const newItems = [...items];
+                    newItems[idx] = text;
+                    setItems(newItems);
+                  }}
+                />
+                {items.length > 1 && (
+                  <TouchableOpacity 
+                    style={styles.removeBtn}
+                    onPress={() => {
+                      const newItems = items.filter((_, i) => i !== idx);
+                      setItems(newItems);
+                    }}
+                  >
+                    <Text style={styles.removeBtnText}>✕</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            ))}
+          </View>
+          <Text style={styles.fieldHint}>List specific items for the runner to procure.</Text>
         </View>
 
         {/* Location Boxes */}
@@ -390,35 +420,33 @@ export default function NewErrandScreen() {
         </View>
 
         {/* Budget Range for Errands */}
-        {(category === 'market' || category === 'food' || category === 'custom') && (
-          <View style={styles.field}>
-            <Text style={styles.fieldLabel}>Shopping Budget Range (Optional)</Text>
-            <View style={styles.budgetRangeRow}>
-              <View style={styles.budgetInputWrap}>
-                <Text style={styles.budgetPre}>₦</Text>
-                <TextInput
-                  style={styles.budgetTextInput}
-                  placeholder="Min"
-                  keyboardType="numeric"
-                  value={budgetMin}
-                  onChangeText={setBudgetMin}
-                />
-              </View>
-              <View style={styles.budgetGap} />
-              <View style={styles.budgetInputWrap}>
-                <Text style={styles.budgetPre}>₦</Text>
-                <TextInput
-                  style={styles.budgetTextInput}
-                  placeholder="Max"
-                  keyboardType="numeric"
-                  value={budgetMax}
-                  onChangeText={setBudgetMax}
-                />
-              </View>
+        <View style={styles.field}>
+          <Text style={styles.fieldLabel}>Shopping Budget Range (Optional)</Text>
+          <View style={styles.budgetRangeRow}>
+            <View style={styles.budgetInputWrap}>
+              <Text style={styles.budgetPre}>₦</Text>
+              <TextInput
+                style={styles.budgetTextInput}
+                placeholder="Min"
+                keyboardType="numeric"
+                value={budgetMin}
+                onChangeText={setBudgetMin}
+              />
             </View>
-            <Text style={styles.fieldHint}>Estimated cost for the items only.</Text>
+            <View style={styles.budgetGap} />
+            <View style={styles.budgetInputWrap}>
+              <Text style={styles.budgetPre}>₦</Text>
+              <TextInput
+                style={styles.budgetTextInput}
+                placeholder="Max"
+                keyboardType="numeric"
+                value={budgetMax}
+                onChangeText={setBudgetMax}
+              />
+            </View>
           </View>
-        )}
+          <Text style={styles.fieldHint}>Estimated cost for the items only.</Text>
+        </View>
 
         {/* Urgency Toggles */}
         <View style={[styles.field, urgency === 'flash' && { marginBottom: 12 }]}>
@@ -841,6 +869,65 @@ const getStyles = (colors: any) => StyleSheet.create({
     fontSize: 16,
     color: colors.text,
     marginTop: DT.spacing.md,
+  },
+
+  itemBoxHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  addBtn: {
+    backgroundColor: colors.secondary,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderWidth: 2,
+    borderColor: colors.text,
+  },
+  addBtnText: {
+    fontFamily: DT.typography.heading,
+    fontSize: 10,
+    color: colors.surface,
+    letterSpacing: 0.5,
+  },
+  itemBox: {
+    backgroundColor: colors.surface,
+    borderWidth: 3,
+    borderColor: colors.text,
+    padding: DT.spacing.md,
+    shadowColor: colors.text,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
+    marginBottom: 4,
+  },
+  itemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 8,
+  },
+  bulletDot: {
+    width: 6,
+    height: 6,
+    backgroundColor: colors.text,
+    borderRadius: 0,
+  },
+  itemInput: {
+    flex: 1,
+    fontFamily: DT.typography.bodySemiBold,
+    fontSize: 15,
+    color: colors.text,
+    paddingVertical: 4,
+  },
+  removeBtn: {
+    padding: 6,
+  },
+  removeBtnText: {
+    fontFamily: DT.typography.heading,
+    fontSize: 14,
+    color: colors.muted,
   },
 
   textArea: {

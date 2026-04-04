@@ -20,12 +20,16 @@ class WakaCreate(BaseModel):
     target_runner_id: Optional[UUID] = None
     budget_min: Optional[float] = None
     budget_max: Optional[float] = None
+    items: Optional[list[str]] = None
 
 class WakaSourcingRequest(BaseModel):
     sourcing_budget: float
     bank_name: str
     account_number: str
     account_name: str
+
+class SourcingRejection(BaseModel):
+    item_list: Optional[list[str]] = None
 
 class WakaUser(BaseModel):
     id: UUID
@@ -61,6 +65,8 @@ class WakaResponse(BaseModel):
     is_sourcing_funded: bool = False
     budget_min: Optional[float] = None
     budget_max: Optional[float] = None
+    items: Optional[list[str]] = None
+    sourcing_status: Optional[str] = "pending"
     
     has_employer_reviewed: bool = False
     has_runner_reviewed: bool = False

@@ -70,6 +70,8 @@ export default function WakaStatusScreen() {
   const [accName, setAccName] = useState('');
   const [isSubmittingSourcing, setIsSubmittingSourcing] = useState(false);
   const [isFunding, setIsFunding] = useState(false);
+  const [removedItems, setRemovedItems] = useState<Set<number>>(new Set());
+  const [isRejecting, setIsRejecting] = useState(false);
 
   const showAlert = (title: string, message: string, buttons: any[] = [{ text: 'OK' }]) => {
     setAlertConfig({ title, message, buttons });
@@ -212,6 +214,32 @@ export default function WakaStatusScreen() {
       showAlert('Error', e.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRejectSourcing = async () => {
+    if (!token || !id || !waka) return;
+    try {
+      setIsRejecting(true);
+      // Filter out removed items
+      const finalItems = waka.items?.filter((val: string, index: number) => !removedItems.has(index)) || [];
+      
+      const res = await fetch(`${API.WAKA.GET(id)}/reject_sourcing`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}` 
+        },
+        body: JSON.stringify({ item_list: finalItems })
+      });
+      if (!res.ok) throw new Error('Failed to reject sourcing');
+      fetchWakaDetails();
+      setRemovedItems(new Set()); // Reset
+      showAlert('Declined', 'Bill declined. The runner has been notified and items have been updated.');
+    } catch (e: any) {
+      showAlert('Error', e.message);
+    } finally {
+      setIsRejecting(false);
     }
   };
 
@@ -425,8 +453,48 @@ export default function WakaStatusScreen() {
             <Text style={styles.priceValue}>₦{waka.total_price.toLocaleString()}</Text>
           </View>
 
-          {/* Body: Description */}
+          {/* Body: Description & Items */}
           <Text style={styles.cardTitle}>{waka.item_description}</Text>
+          
+          {waka.items && waka.items.length > 0 && (
+            <View style={styles.itemListContainer}>
+              <Text style={styles.listHeader}>ITEM LIST</Text>
+              {waka.items.map((itemValue: string, itemIdx: number) => {
+                const isRemoved = removedItems.has(itemIdx);
+                const isNomadVerifying = waka.status === 'sourcing_submitted' && user?.id === waka.employer_id;
+                
+                return (
+                  <TouchableOpacity 
+                    key={itemIdx} 
+                    style={styles.itemBulletRow}
+                    disabled={!isNomadVerifying}
+                    onPress={() => {
+                      const newSet = new Set(removedItems);
+                      if (isRemoved) newSet.delete(itemIdx);
+                      else newSet.add(itemIdx);
+                      setRemovedItems(newSet);
+                    }}
+                  >
+                    <View style={[styles.bulletDotSmall, isRemoved && { backgroundColor: colors.muted }]} />
+                    <Text style={[
+                      styles.itemBulletText, 
+                      isRemoved && { textDecorationLine: 'line-through', color: colors.muted }
+                    ]}>
+                      {itemValue}
+                    </Text>
+                    {isNomadVerifying && (
+                      <Text style={{ fontSize: 10, color: isRemoved ? colors.error : colors.muted }}>
+                        {isRemoved ? 'UNDO' : 'REMOVE'}
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+              {removedItems.size > 0 && (
+                <Text style={styles.removalHint}>* Items crossed out will be removed upon decline.</Text>
+              )}
+            </View>
+          )}
 
           {/* Details Grid */}
           <View style={styles.detailsGrid}>
@@ -454,6 +522,16 @@ export default function WakaStatusScreen() {
               )}
             </View>
           </View>
+
+          {/* Shopping Budget Range Display */}
+          {(waka.budget_min || waka.budget_max) && (
+            <View style={[styles.budgetRangeBanner, { marginTop: 12, backgroundColor: colors.background }]}>
+              <ShoppingBag size={14} color={colors.secondary} />
+              <Text style={styles.budgetRangeText}>
+                SHOPPING BUDGET: ₦{waka.budget_min?.toLocaleString() || '0'} — ₦{waka.budget_max?.toLocaleString() || '∞'}
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* Status Banner */}
@@ -582,7 +660,7 @@ export default function WakaStatusScreen() {
                   </TouchableOpacity>
                 )}
                 
-                {waka.step === 3 && (waka.category === 'market' || waka.category === 'food' || waka.category === 'custom') && waka.status !== 'sourcing_submitted' && !waka.is_sourcing_funded && (
+                {waka.step === 3 && waka.status !== 'sourcing_submitted' && !waka.is_sourcing_funded && (
                   <View style={styles.card}>
                     <Text style={styles.cardTitle}>Sourcing & Billing</Text>
                     {(waka.budget_min || waka.budget_max) && (
@@ -680,25 +758,53 @@ export default function WakaStatusScreen() {
         {/* Actions for Nomad (Employer) */}
         {user?.id === waka.employer_id && !waka.is_completed && waka.status !== 'cancelled' && (
           <View style={{ marginTop: DT.spacing.lg, gap: DT.spacing.md }}>
-            {waka.status === 'sourcing_submitted' && !waka.is_sourcing_funded && (
+            {/* Sourcing State: Submitted (Waiting for Nomad) */}
+            {waka.status === 'sourcing_submitted' && user?.id === waka.employer_id && (
               <View style={styles.card}>
-                <Text style={styles.cardTitle}>Sourcing Funding Required</Text>
+                <Text style={styles.cardTitle}>Bill Verification</Text>
+                
                 <View style={styles.billDetailRow}>
-                  <Text style={styles.billLabel}>Item Cost:</Text>
+                  <Text style={styles.billLabel}>Requested Amount</Text>
                   <Text style={styles.billValue}>₦{waka.sourcing_budget?.toLocaleString()}</Text>
                 </View>
+                
                 <View style={styles.bankInfoBox}>
-                  <Text style={styles.bankHeader}>PAY TO RUNNER:</Text>
+                  <Text style={styles.bankHeader}>TRANSFER TO SOURCING STORE / RUNNER</Text>
                   <Text style={styles.bankDetail}>{waka.sourcing_bank_name}</Text>
                   <Text style={styles.bankDetail}>{waka.sourcing_account_number}</Text>
                   <Text style={styles.bankDetail}>{waka.sourcing_account_name}</Text>
                 </View>
+
+                <View style={styles.negotiationActions}>
+                  <TouchableOpacity 
+                    style={[styles.negotiationBtn, styles.declineBtn]}
+                    onPress={handleRejectSourcing}
+                    disabled={loading}
+                  >
+                    <Text style={styles.declineBtnText}>DECLINE BILL</Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity 
+                    style={[styles.negotiationBtn, styles.approveBtn]}
+                    onPress={handleFundSourcing}
+                    disabled={loading}
+                  >
+                    <Text style={styles.approveBtnText}>APPROVE & FUND</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+
+            {/* Sourcing State: Rejected (Runner View) */}
+            {waka.status === 'sourcing_rejected' && user?.id === waka.runner_id && (
+              <View style={[styles.card, { borderColor: colors.error }]}>
+                <Text style={[styles.cardTitle, { color: colors.error }]}>BILL DECLINED</Text>
+                <Text style={styles.infoText}>The nomad has declined your sourcing request. Please review the items and resubmit a new bill.</Text>
                 <TouchableOpacity 
-                  style={[styles.primaryAction, { backgroundColor: colors.secondary }, isFunding && { opacity: 0.7 }]} 
-                  onPress={handleFundSourcing}
-                  disabled={isFunding}
+                  style={[styles.primaryAction, { marginTop: 16, backgroundColor: colors.secondary }]}
+                  onPress={fetchWakaDetails}
                 >
-                  {isFunding ? <ActivityIndicator color={colors.surface} /> : <Text style={styles.primaryActionText}>I HAVE FUNDED THIS BILL</Text>}
+                  <Text style={styles.primaryActionText}>RESUBMIT BILL</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -849,6 +955,75 @@ function getStyles(colors: any) {
       fontFamily: DT.typography.bodySemiBold,
       fontSize: 12,
       color: colors.secondary,
+    },
+    itemListContainer: {
+      backgroundColor: colors.background,
+      padding: 12,
+      marginBottom: 16,
+      borderWidth: 2,
+      borderColor: colors.text,
+      borderStyle: 'dashed',
+    },
+    itemBulletRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      marginBottom: 6,
+    },
+    bulletDotSmall: {
+      width: 5,
+      height: 5,
+      backgroundColor: colors.text,
+    },
+    itemBulletText: {
+      flex: 1,
+      fontFamily: DT.typography.bodySemiBold,
+      fontSize: 13,
+      color: colors.text,
+    },
+    negotiationActions: {
+      flexDirection: 'row',
+      gap: 12,
+      marginTop: 8,
+    },
+    negotiationBtn: {
+      flex: 1,
+      height: 48,
+      borderWidth: 3,
+      borderColor: colors.text,
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowColor: colors.text, shadowOffset: { width: 3, height: 3 }, shadowOpacity: 1, shadowRadius: 0, elevation: 3,
+    },
+    declineBtn: {
+      backgroundColor: '#FFE5E5',
+    },
+    approveBtn: {
+      backgroundColor: colors.primary,
+    },
+    declineBtnText: {
+      fontFamily: DT.typography.heading,
+      fontSize: 12,
+      color: colors.error,
+    },
+    approveBtnText: {
+      fontFamily: DT.typography.heading,
+      fontSize: 12,
+      color: colors.surface,
+    },
+    listHeader: {
+      fontFamily: DT.typography.heading,
+      fontSize: 10,
+      color: colors.muted,
+      marginBottom: 8,
+      letterSpacing: 1,
+    },
+    removalHint: {
+      fontFamily: DT.typography.bodySemiBold,
+      fontSize: 10,
+      color: colors.error,
+      marginTop: 8,
+      fontStyle: 'italic',
     },
     inputLabel: {
       fontFamily: DT.typography.heading,

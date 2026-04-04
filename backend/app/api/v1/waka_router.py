@@ -5,12 +5,12 @@ from sqlalchemy.orm import selectinload
 from ...database import get_db
 from ...models.waka import Waka, WakaDecline
 from ...models.user import User
-from ...schemas.waka import WakaCreate, WakaResponse, WakaSourcingRequest
+from ...schemas.waka import WakaCreate, WakaResponse, WakaSourcingRequest, SourcingRejection
 from ...schemas.review import ReviewBase, ReviewResponse
 from .deps import get_current_user
 from ...services.notification_service import notify_user
 import uuid
-from typing import List
+from typing import List, Optional
 
 router = APIRouter()
 
@@ -64,7 +64,8 @@ async def create_waka(
         status=status,
         step=1,
         budget_min=waka_in.budget_min,
-        budget_max=waka_in.budget_max
+        budget_max=waka_in.budget_max,
+        items=waka_in.items
     )
     db.add(db_obj)
     await db.commit()
@@ -310,6 +311,43 @@ async def fund_waka_sourcing(
         linked_entity_id=waka.id,
         linked_entity_type="waka"
     )
+    
+    await db.commit()
+    return await get_hydrated_waka(db, waka_id)
+
+@router.post("/{waka_id}/reject_sourcing", response_model=WakaResponse)
+async def reject_waka_sourcing(
+    waka_id: uuid.UUID,
+    rejection: SourcingRejection,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Employer rejects the runner's sourcing bill/items."""
+    waka = await get_hydrated_waka(db, waka_id)
+    if not waka:
+        raise HTTPException(status_code=404, detail="Waka not found")
+    
+    if waka.employer_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Only the employer can reject sourcing")
+    
+    if waka.status != "sourcing_submitted":
+        raise HTTPException(status_code=400, detail="No active sourcing request to reject")
+    
+    waka.status = "sourcing_rejected"
+    if rejection.item_list is not None:
+        waka.items = rejection.item_list
+    
+    # Notify runner
+    if waka.runner:
+        await notify_user(
+            db=db,
+            user=waka.runner,
+            title="Bill Declined ❌",
+            body=f"The employer declined your bill for '{waka.category}'. Items have been adjusted.",
+            type="warning",
+            linked_entity_id=waka.id,
+            linked_entity_type="waka"
+        )
     
     await db.commit()
     return await get_hydrated_waka(db, waka_id)

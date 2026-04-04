@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import String, Boolean, Numeric, ForeignKey, Text, Integer
+from sqlalchemy import String, Boolean, Numeric, ForeignKey, Text, Integer, JSON
 from sqlalchemy.dialects.postgresql import UUID
 from geoalchemy2 import Geography
 import uuid
@@ -35,7 +35,9 @@ class Waka(AuditableBase):
     status: Mapped[Optional[str]] = mapped_column(String(50), default="finding_runner", nullable=True)
     
     # Sourcing / Payment Details
+    items: Mapped[Optional[list[str]]] = mapped_column(JSON, nullable=True) # Bullet point list of items
     sourcing_budget: Mapped[Optional[float]] = mapped_column(Numeric(12, 2), nullable=True) # Cost of items
+    sourcing_status: Mapped[Optional[str]] = mapped_column(String(20), default="pending", nullable=True) # pending, approved, rejected
     budget_min: Mapped[Optional[float]] = mapped_column(Numeric(12, 2), nullable=True)
     budget_max: Mapped[Optional[float]] = mapped_column(Numeric(12, 2), nullable=True)
     
