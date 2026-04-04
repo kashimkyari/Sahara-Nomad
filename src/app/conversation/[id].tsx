@@ -20,7 +20,7 @@ import { useAuth } from '../../context/AuthContext';
 import API from '../../constants/api';
 import { ActivityIndicator } from 'react-native';
 import { MotiView, AnimatePresence } from 'moti';
-import { useAudioPlayerStatus } from 'expo-audio';
+import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import AudioModule from 'expo-audio/build/AudioModule';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
@@ -29,7 +29,7 @@ import { BrutalistAlert } from '../../components/ui/BrutalistAlert';
 
 // --- Small Audio Player Component ---
 const AudioPlayer = ({ uri, isMe, colors, styles, initialDuration, onLongPress }: { uri: string; isMe: boolean; colors: any; styles: any; initialDuration?: number; onLongPress?: () => void }) => {
-  // Work around the broken helper in expo-audio 55, which passes one extra constructor arg.
+  // Use the manual constructor that expects 3 arguments, matching live-support.tsx
   const player = useMemo(() => new (AudioModule as any).AudioPlayer({ uri }, 500, false), [uri]);
   const { playing, duration, currentTime } = useAudioPlayerStatus(player);
   const [audioDuration, setAudioDuration] = useState(initialDuration || 0);
@@ -72,19 +72,21 @@ const AudioPlayer = ({ uri, isMe, colors, styles, initialDuration, onLongPress }
   };
 
   return (
-    <TouchableOpacity 
+    <View 
       style={[styles.audioContainer, isMe ? styles.myAudio : styles.theirAudio]} 
-      onPress={togglePlayback}
-      onLongPress={onLongPress}
-      activeOpacity={0.9}
     >
-      <View style={styles.audioIconBox}>
+      <TouchableOpacity 
+        style={styles.audioIconBox} 
+        onPress={togglePlayback}
+        onLongPress={onLongPress}
+        activeOpacity={0.7}
+      >
         {playing ? (
           <Pause size={20} color={colors.text} fill={colors.text} strokeWidth={3} />
         ) : (
           <Play size={20} color={colors.text} fill={colors.text} strokeWidth={3} />
         )}
-      </View>
+      </TouchableOpacity>
       <View style={{ flex: 1, gap: 8 }}>
         <View style={styles.waveformRow}>
           {bars.map((bar, i) => {
@@ -113,7 +115,7 @@ const AudioPlayer = ({ uri, isMe, colors, styles, initialDuration, onLongPress }
         </Text>
       </View>
       <Music size={14} color={isMe ? 'rgba(255,255,255,0.7)' : colors.muted} />
-    </TouchableOpacity>
+    </View>
   );
 };
 
