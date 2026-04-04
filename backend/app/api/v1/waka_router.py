@@ -451,6 +451,20 @@ async def leave_waka_review(
         update(User).where(User.id == target_id).values(stats_rating=float(new_avg))
     )
     
+    # 6. Notify Target User
+    recipient_res = await db.execute(select(User).where(User.id == target_id))
+    recipient = recipient_res.scalars().first()
+    if recipient:
+        await notify_user(
+            db=db,
+            user=recipient,
+            title="New Review Received!",
+            body=f"{current_user.full_name} left you a {review_in.rating}-star review for the '{waka.category}' errand.",
+            type="success",
+            linked_entity_id=waka.id,
+            linked_entity_type="waka"
+        )
+    
     await db.commit()
     await db.refresh(review)
     return review
