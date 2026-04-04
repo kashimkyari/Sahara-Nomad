@@ -69,6 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [refreshToken, setRefreshTokenState] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [minSplashTimeFinished, setMinSplashTimeFinished] = useState(false);
   const segments = useSegments();
   const router = useRouter();
   const rootNavigationState = useRootNavigationState();
@@ -180,6 +181,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     loadToken();
+
+    // Minimum splash screen duration (2.5 seconds)
+    const splashTimer = setTimeout(() => {
+      setMinSplashTimeFinished(true);
+    }, 2500);
+
+    return () => clearTimeout(splashTimer);
   }, []);
 
   const signIn = async (accessToken: string, newRefreshToken: string) => {
@@ -194,7 +202,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Strictly enforce navigation guards
   useEffect(() => {
-    if (isLoading || !rootNavigationState?.key) return;
+    if (isLoading || !minSplashTimeFinished || !rootNavigationState?.key) return;
 
     const firstSegment = segments[0] as any;
     const isIndexRoute = firstSegment === 'index' || !firstSegment;
@@ -207,7 +215,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Authenticated users should not stay on splash/auth screens.
       router.replace('/(tabs)');
     }
-  }, [token, isLoading, segments, rootNavigationState?.key]);
+  }, [token, isLoading, minSplashTimeFinished, segments, rootNavigationState?.key]);
 
   // Sync Push Token when authenticated
   useEffect(() => {

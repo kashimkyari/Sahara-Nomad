@@ -34,11 +34,7 @@ export default function SplashScreen() {
       toValue: 1,
       duration: 2200,
       useNativeDriver: false,
-    }).start(({ finished }) => {
-      if (finished) {
-        router.replace('/onboarding');
-      }
-    });
+    }).start();
   }, []);
 
   const barWidth = progress.interpolate({
