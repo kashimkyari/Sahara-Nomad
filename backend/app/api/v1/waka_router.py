@@ -5,7 +5,7 @@ from sqlalchemy.orm import selectinload
 from ...database import get_db
 from ...models.waka import Waka, WakaDecline
 from ...models.user import User
-from ...schemas.waka import WakaCreate, WakaResponse
+from ...schemas.waka import WakaCreate, WakaResponse, WakaSourcingRequest
 from ...schemas.review import ReviewBase, ReviewResponse
 from .deps import get_current_user
 from ...services.notification_service import notify_user
@@ -62,7 +62,9 @@ async def create_waka(
         flash_incentive=waka_in.flash_incentive,
         total_price=waka_in.total_price,
         status=status,
-        step=1
+        step=1,
+        budget_min=waka_in.budget_min,
+        budget_max=waka_in.budget_max
     )
     db.add(db_obj)
     await db.commit()
@@ -232,6 +234,82 @@ async def update_waka_step(
     if step == 2: waka.status = "assigned"
     elif step == 3: waka.status = "sourcing"
     elif step == 4: waka.status = "delivering"
+    
+    await db.commit()
+    return await get_hydrated_waka(db, waka_id)
+
+@router.post("/{waka_id}/sourcing", response_model=WakaResponse)
+async def submit_waka_sourcing(
+    waka_id: uuid.UUID,
+    sourcing_in: WakaSourcingRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Runner submits sourcing details (budget + bank info)."""
+    waka = await get_hydrated_waka(db, waka_id)
+    if not waka:
+        raise HTTPException(status_code=404, detail="Waka not found")
+    
+    if waka.runner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Only the assigned runner can submit sourcing details")
+    
+    # Validate budget range if set
+    if waka.budget_min is not None and sourcing_in.sourcing_budget < waka.budget_min:
+        raise HTTPException(status_code=400, detail=f"Amount too low. Minimum allowed: ₦{waka.budget_min:,.2f}")
+    if waka.budget_max is not None and sourcing_in.sourcing_budget > waka.budget_max:
+        raise HTTPException(status_code=400, detail=f"Amount too high. Maximum allowed: ₦{waka.budget_max:,.2f}")
+
+    waka.sourcing_budget = sourcing_in.sourcing_budget
+    waka.sourcing_bank_name = sourcing_in.bank_name
+    waka.sourcing_account_number = sourcing_in.account_number
+    waka.sourcing_account_name = sourcing_in.account_name
+    waka.status = "sourcing_submitted"
+    
+    await db.commit()
+    
+    # Notify Employer
+    await notify_user(
+        db=db,
+        user=waka.employer,
+        title="Sourcing Bill Received",
+        body=f"{current_user.full_name} has updated the errand costs. Total: ₦{sourcing_in.sourcing_budget:,.2f}. Please review and fund.",
+        type="info",
+        linked_entity_id=waka.id,
+        linked_entity_type="waka"
+    )
+    
+    await db.commit()
+    return await get_hydrated_waka(db, waka_id)
+
+@router.post("/{waka_id}/fund_sourcing", response_model=WakaResponse)
+async def fund_waka_sourcing(
+    waka_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Employer confirms they have funded the sourcing budget."""
+    waka = await get_hydrated_waka(db, waka_id)
+    if not waka:
+        raise HTTPException(status_code=404, detail="Waka not found")
+    
+    if waka.employer_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Only the employer can fund the sourcing budget")
+    
+    waka.is_sourcing_funded = True
+    waka.status = "sourcing_funded"
+    
+    await db.commit()
+    
+    # Notify Runner
+    await notify_user(
+        db=db,
+        user=waka.runner,
+        title="Sourcing Budget Funded!",
+        body=f"{current_user.full_name} has funded the groceries budget. You can now proceed with the purchase.",
+        type="success",
+        linked_entity_id=waka.id,
+        linked_entity_type="waka"
+    )
     
     await db.commit()
     return await get_hydrated_waka(db, waka_id)

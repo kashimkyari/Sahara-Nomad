@@ -31,8 +31,18 @@ class Waka(AuditableBase):
     flash_incentive: Mapped[float] = mapped_column(Numeric(12, 2), default=0.0)
     total_price: Mapped[float] = mapped_column(Numeric(12, 2))
     
-    step: Mapped[int] = mapped_column(Integer, default=1) # 1:Finding, 2:EnRoute, 3:Sourcing, 4:Delivered
+    step: Mapped[int] = mapped_column(Integer, default=1) # 1:Finding, 2:EnRoute, 3:Sourcing, 4:Delivering, 5:Completed
     status: Mapped[Optional[str]] = mapped_column(String(50), default="finding_runner", nullable=True)
+    
+    # Sourcing / Payment Details
+    sourcing_budget: Mapped[Optional[float]] = mapped_column(Numeric(12, 2), nullable=True) # Cost of items
+    budget_min: Mapped[Optional[float]] = mapped_column(Numeric(12, 2), nullable=True)
+    budget_max: Mapped[Optional[float]] = mapped_column(Numeric(12, 2), nullable=True)
+    
+    sourcing_bank_name: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    sourcing_account_number: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    sourcing_account_name: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    is_sourcing_funded: Mapped[bool] = mapped_column(Boolean, default=False)
     
     is_completed: Mapped[bool] = mapped_column(Boolean, default=False)
     completed_by_runner: Mapped[bool] = mapped_column(Boolean, default=False)

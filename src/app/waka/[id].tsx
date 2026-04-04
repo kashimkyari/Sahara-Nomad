@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Animated,
+  TextInput,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -61,6 +62,14 @@ export default function WakaStatusScreen() {
     message: '',
     buttons: []
   });
+
+  // Sourcing form state
+  const [sourcingBudget, setSourcingBudget] = useState('');
+  const [bankName, setBankName] = useState('');
+  const [accNumber, setAccNumber] = useState('');
+  const [accName, setAccName] = useState('');
+  const [isSubmittingSourcing, setIsSubmittingSourcing] = useState(false);
+  const [isFunding, setIsFunding] = useState(false);
 
   const showAlert = (title: string, message: string, buttons: any[] = [{ text: 'OK' }]) => {
     setAlertConfig({ title, message, buttons });
@@ -250,6 +259,61 @@ export default function WakaStatusScreen() {
       fetchWakaDetails();
     } catch (e: any) {
       showAlert('Error', e.message);
+    }
+  };
+
+  const handleSubmitSourcing = async () => {
+    if (!token || !id || !sourcingBudget || !bankName || !accNumber || !accName) {
+      showAlert('Missing Info', 'Please fill all fields to submit the bill.');
+      return;
+    }
+    try {
+      setIsSubmittingSourcing(true);
+      const res = await fetch(`${API.WAKA.GET(id)}/sourcing`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          sourcing_budget: parseFloat(sourcingBudget),
+          bank_name: bankName,
+          account_number: accNumber,
+          account_name: accName
+        })
+      });
+      
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Failed to submit bill');
+      }
+      
+      showAlert('Bill Submitted', 'The nomad has been notified to fund the groceries.');
+      fetchWakaDetails();
+    } catch (e: any) {
+      showAlert('Error', e.message);
+    } finally {
+      setIsSubmittingSourcing(false);
+    }
+  };
+
+  const handleFundSourcing = async () => {
+    if (!token || !id) return;
+    try {
+      setIsFunding(true);
+      const res = await fetch(`${API.WAKA.GET(id)}/fund_sourcing`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (!res.ok) throw new Error('Failed to confirm funding');
+      
+      showAlert('Funding Confirmed', 'The runner has been notified to proceed with purchases.');
+      fetchWakaDetails();
+    } catch (e: any) {
+      showAlert('Error', e.message);
+    } finally {
+      setIsFunding(false);
     }
   };
 
@@ -517,15 +581,82 @@ export default function WakaStatusScreen() {
                     <Text style={styles.primaryActionText}>START ERRAND / SOURCING</Text>
                   </TouchableOpacity>
                 )}
-                {waka.step === 3 && (
+                
+                {waka.step === 3 && (waka.category === 'market' || waka.category === 'food' || waka.category === 'custom') && waka.status !== 'sourcing_submitted' && !waka.is_sourcing_funded && (
+                  <View style={styles.card}>
+                    <Text style={styles.cardTitle}>Sourcing & Billing</Text>
+                    {(waka.budget_min || waka.budget_max) && (
+                      <View style={styles.budgetRangeBanner}>
+                        <Clock size={14} color={colors.secondary} />
+                        <Text style={styles.budgetRangeText}>
+                          Budget Range: ₦{waka.budget_min?.toLocaleString() || '0'} — ₦{waka.budget_max?.toLocaleString() || '∞'}
+                        </Text>
+                      </View>
+                    )}
+                    
+                    <View style={{ gap: 12, marginTop: 8 }}>
+                      <View>
+                        <Text style={styles.inputLabel}>Total Grocery Cost (₦)</Text>
+                        <TextInput
+                          style={styles.brutalInput}
+                          placeholder="e.g. 5500"
+                          keyboardType="numeric"
+                          value={sourcingBudget}
+                          onChangeText={setSourcingBudget}
+                        />
+                      </View>
+                      
+                      <View>
+                        <Text style={styles.inputLabel}>Your Bank Details (for transfer)</Text>
+                        <TextInput
+                          style={[styles.brutalInput, { marginBottom: 8 }]}
+                          placeholder="Bank Name"
+                          value={bankName}
+                          onChangeText={setBankName}
+                        />
+                        <TextInput
+                          style={[styles.brutalInput, { marginBottom: 8 }]}
+                          placeholder="Account Number"
+                          keyboardType="numeric"
+                          value={accNumber}
+                          onChangeText={setAccNumber}
+                        />
+                        <TextInput
+                          style={styles.brutalInput}
+                          placeholder="Account Name"
+                          value={accName}
+                          onChangeText={setAccName}
+                        />
+                      </View>
+
+                      <TouchableOpacity 
+                        style={[styles.primaryAction, isSubmittingSourcing && { opacity: 0.7 }]} 
+                        onPress={handleSubmitSourcing}
+                        disabled={isSubmittingSourcing}
+                      >
+                        {isSubmittingSourcing ? <ActivityIndicator color={colors.surface} /> : <Text style={styles.primaryActionText}>SUBMIT BILL TO NOMAD</Text>}
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                )}
+
+                {waka.status === 'sourcing_submitted' && (
+                  <View style={[styles.infoBanner, { backgroundColor: colors.surface, borderColor: colors.secondary }]}>
+                    <Clock size={16} color={colors.secondary} />
+                    <Text style={[styles.infoText, { color: colors.secondary }]}>Bill Sent. Awaiting Funding...</Text>
+                  </View>
+                )}
+
+                {waka.is_sourcing_funded && waka.step === 3 && (
                   <TouchableOpacity 
                     style={styles.primaryAction} 
                     onPress={() => handleUpdateStep(4)}
                   >
                     <MapPin size={20} color={colors.surface} strokeWidth={2.5} />
-                    <Text style={styles.primaryActionText}>OUT FOR DELIVERY</Text>
+                    <Text style={styles.primaryActionText}>PROCEED TO DELIVERY</Text>
                   </TouchableOpacity>
                 )}
+
                 {waka.step === 4 && !waka.completed_by_runner && (
                   <TouchableOpacity 
                     style={[styles.primaryAction, { backgroundColor: colors.secondary }]} 
@@ -549,6 +680,29 @@ export default function WakaStatusScreen() {
         {/* Actions for Nomad (Employer) */}
         {user?.id === waka.employer_id && !waka.is_completed && waka.status !== 'cancelled' && (
           <View style={{ marginTop: DT.spacing.lg, gap: DT.spacing.md }}>
+            {waka.status === 'sourcing_submitted' && !waka.is_sourcing_funded && (
+              <View style={styles.card}>
+                <Text style={styles.cardTitle}>Sourcing Funding Required</Text>
+                <View style={styles.billDetailRow}>
+                  <Text style={styles.billLabel}>Item Cost:</Text>
+                  <Text style={styles.billValue}>₦{waka.sourcing_budget?.toLocaleString()}</Text>
+                </View>
+                <View style={styles.bankInfoBox}>
+                  <Text style={styles.bankHeader}>PAY TO RUNNER:</Text>
+                  <Text style={styles.bankDetail}>{waka.sourcing_bank_name}</Text>
+                  <Text style={styles.bankDetail}>{waka.sourcing_account_number}</Text>
+                  <Text style={styles.bankDetail}>{waka.sourcing_account_name}</Text>
+                </View>
+                <TouchableOpacity 
+                  style={[styles.primaryAction, { backgroundColor: colors.secondary }, isFunding && { opacity: 0.7 }]} 
+                  onPress={handleFundSourcing}
+                  disabled={isFunding}
+                >
+                  {isFunding ? <ActivityIndicator color={colors.surface} /> : <Text style={styles.primaryActionText}>I HAVE FUNDED THIS BILL</Text>}
+                </TouchableOpacity>
+              </View>
+            )}
+
             {waka.step >= 4 && !waka.completed_by_employer && (
               <TouchableOpacity 
                 style={[styles.primaryAction, { backgroundColor: colors.secondary }]} 
@@ -681,6 +835,69 @@ function getStyles(colors: any) {
       fontSize: 16,
       color: colors.text,
       flex: 1,
+    },
+    budgetRangeBanner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      backgroundColor: '#F0F9FF',
+      padding: 8,
+      borderWidth: 2,
+      borderColor: colors.text,
+    },
+    budgetRangeText: {
+      fontFamily: DT.typography.bodySemiBold,
+      fontSize: 12,
+      color: colors.secondary,
+    },
+    inputLabel: {
+      fontFamily: DT.typography.heading,
+      fontSize: 12,
+      color: colors.muted,
+      marginBottom: 4,
+    },
+    brutalInput: {
+      height: 48,
+      borderWidth: 3,
+      borderColor: colors.text,
+      backgroundColor: colors.background,
+      paddingHorizontal: 12,
+      fontFamily: DT.typography.heading,
+      fontSize: 14,
+      color: colors.text,
+    },
+    billDetailRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: 12,
+    },
+    billLabel: {
+      fontFamily: DT.typography.heading,
+      fontSize: 16,
+      color: colors.muted,
+    },
+    billValue: {
+      fontFamily: DT.typography.heading,
+      fontSize: 20,
+      color: colors.text,
+    },
+    bankInfoBox: {
+      backgroundColor: colors.background,
+      padding: 12,
+      borderWidth: 2,
+      borderColor: colors.text,
+      marginBottom: 16,
+    },
+    bankHeader: {
+      fontFamily: DT.typography.heading,
+      fontSize: 10,
+      color: colors.muted,
+      marginBottom: 4,
+    },
+    bankDetail: {
+      fontFamily: DT.typography.heading,
+      fontSize: 15,
+      color: colors.text,
     },
     stepperRow: {
       flexDirection: 'row',

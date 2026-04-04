@@ -18,6 +18,14 @@ class WakaCreate(BaseModel):
     flash_incentive: float = 0
     total_price: float
     target_runner_id: Optional[UUID] = None
+    budget_min: Optional[float] = None
+    budget_max: Optional[float] = None
+
+class WakaSourcingRequest(BaseModel):
+    sourcing_budget: float
+    bank_name: str
+    account_number: str
+    account_name: str
 
 class WakaUser(BaseModel):
     id: UUID
@@ -44,6 +52,16 @@ class WakaResponse(BaseModel):
     is_completed: bool
     completed_by_runner: bool
     completed_by_employer: bool
+    
+    # Sourcing Details
+    sourcing_budget: Optional[float] = None
+    sourcing_bank_name: Optional[str] = None
+    sourcing_account_number: Optional[str] = None
+    sourcing_account_name: Optional[str] = None
+    is_sourcing_funded: bool = False
+    budget_min: Optional[float] = None
+    budget_max: Optional[float] = None
+    
     has_employer_reviewed: bool = False
     has_runner_reviewed: bool = False
     created_at: datetime

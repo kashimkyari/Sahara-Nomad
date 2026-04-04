@@ -58,6 +58,8 @@ export default function NewErrandScreen() {
   const [isBroadcasting, setIsBroadcasting] = useState(false);
   
   const [price, setPrice] = useState(5000);
+  const [budgetMin, setBudgetMin] = useState('');
+  const [budgetMax, setBudgetMax] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
   const [scrollEnabled, setScrollEnabled] = useState(true);
 
@@ -176,6 +178,8 @@ export default function NewErrandScreen() {
         flash_incentive: urgency === 'flash' ? incentive : 0,
         total_price: totalPrice,
         target_runner_id: runnerId,
+        budget_min: budgetMin ? parseFloat(budgetMin) : null,
+        budget_max: budgetMax ? parseFloat(budgetMax) : null,
       };
 
       const res = await fetch(API.WAKA.CREATE, {
@@ -384,6 +388,37 @@ export default function NewErrandScreen() {
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* Budget Range for Errands */}
+        {(category === 'market' || category === 'food' || category === 'custom') && (
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>Shopping Budget Range (Optional)</Text>
+            <View style={styles.budgetRangeRow}>
+              <View style={styles.budgetInputWrap}>
+                <Text style={styles.budgetPre}>₦</Text>
+                <TextInput
+                  style={styles.budgetTextInput}
+                  placeholder="Min"
+                  keyboardType="numeric"
+                  value={budgetMin}
+                  onChangeText={setBudgetMin}
+                />
+              </View>
+              <View style={styles.budgetGap} />
+              <View style={styles.budgetInputWrap}>
+                <Text style={styles.budgetPre}>₦</Text>
+                <TextInput
+                  style={styles.budgetTextInput}
+                  placeholder="Max"
+                  keyboardType="numeric"
+                  value={budgetMax}
+                  onChangeText={setBudgetMax}
+                />
+              </View>
+            </View>
+            <Text style={styles.fieldHint}>Estimated cost for the items only.</Text>
+          </View>
+        )}
 
         {/* Urgency Toggles */}
         <View style={[styles.field, urgency === 'flash' && { marginBottom: 12 }]}>
@@ -606,6 +641,44 @@ const getStyles = (colors: any) => StyleSheet.create({
     fontSize: 16,
     color: colors.text,
     marginBottom: 8,
+  },
+  fieldHint: {
+    fontFamily: DT.typography.body,
+    fontSize: 12,
+    color: colors.muted,
+    marginTop: 4,
+  },
+  budgetRangeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  budgetInputWrap: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: colors.text,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 12,
+    height: 52,
+  },
+  budgetPre: {
+    fontFamily: DT.typography.heading,
+    fontSize: 16,
+    color: colors.muted,
+    marginRight: 4,
+  },
+  budgetTextInput: {
+    flex: 1,
+    fontFamily: DT.typography.heading,
+    fontSize: 16,
+    color: colors.text,
+  },
+  budgetGap: {
+    width: 12,
+    height: 2,
+    backgroundColor: colors.text,
+    marginHorizontal: 12,
   },
   
   // Categories
