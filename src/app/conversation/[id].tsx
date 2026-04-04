@@ -161,7 +161,61 @@ const ActiveAudioPlayer = ({ player, uri, isMe, colors, styles, initialDuration,
     </View>
   );
 };
+const SourcingActionCard = ({ metadata, onApprove, onDecline, isMe, colors, styles, loading, wakaStatus, onViewDetails }: any) => {
+  const currentStatus = wakaStatus || metadata.waka_status;
+  const isPending = currentStatus === 'sourcing_submitted';
+  
+  return (
+    <View style={[styles.actionCard, isMe ? styles.myActionCard : styles.theirActionCard]}>
+      <TouchableOpacity onPress={onViewDetails} activeOpacity={0.8}>
+        <View style={styles.actionHeader}>
+          <Package size={18} color={colors.text} />
+          <Text style={styles.actionTitle}>SOURCING BILL</Text>
+          <ExternalLink size={14} color={colors.muted} style={{ marginLeft: 'auto' }} />
+        </View>
+        
+        <View style={styles.actionBody}>
+          <Text style={styles.actionAmount}>₦{metadata.amount?.toLocaleString()}</Text>
+          <Text style={styles.actionSub}>Requested for groceries & items</Text>
+          
+          {metadata.items && metadata.items.length > 0 && (
+            <View style={styles.miniItemList}>
+              {metadata.items.slice(0, 3).map((item: string, i: number) => (
+                <Text key={i} style={styles.miniItem}>• {item}</Text>
+              ))}
+              {metadata.items.length > 3 && <Text style={styles.miniItem}>+ {metadata.items.length - 3} more</Text>}
+            </View>
+          )}
+        </View>
+      </TouchableOpacity>
 
+      {isPending && !isMe ? (
+        <View style={styles.actionFooter}>
+          <TouchableOpacity 
+            style={[styles.smallActionBtn, styles.declineBtnSmall]} 
+            onPress={onDecline}
+            disabled={loading}
+          >
+            <Text style={styles.declineBtnTextSmall}>DECLINE</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.smallActionBtn, styles.approveBtnSmall]} 
+            onPress={onApprove}
+            disabled={loading}
+          >
+            <Text style={styles.approveBtnTextSmall}>APPROVE</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <View style={styles.resolvedBadge}>
+          <Text style={styles.resolvedText}>
+            {isMe ? (isPending ? 'WAITING FOR APPROVAL' : 'RESOLVED') : (currentStatus === 'funded' ? 'PAID & FUNDED' : 'RESOLVED')}
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+};
 
 export default function ConversationScreen() {
   const { colors } = useTheme();
@@ -182,6 +236,14 @@ export default function ConversationScreen() {
   const [isDeleteAlertVisible, setIsDeleteAlertVisible] = useState(false);
   const [selectedMessageForDelete, setSelectedMessageForDelete] = useState<any>(null);
   
+  const [alertConfig, setAlertConfig] = useState<any>({ title: '', message: '', buttons: [] });
+  const [isAlertVisible, setIsAlertVisible] = useState(false);
+  
+  const showAlert = (title: string, message: string, buttons: any[] = [{ text: 'OK', onPress: () => setIsAlertVisible(false) }]) => {
+    setAlertConfig({ title, message, buttons });
+    setIsAlertVisible(true);
+  };
+
   const scrollRef = useRef<ScrollView>(null);
   const ws = useRef<WebSocket | null>(null);
   const styles = getStyles(colors);
@@ -414,6 +476,42 @@ export default function ConversationScreen() {
     } catch (e) {
       console.error('Delete error:', e);
     }
+  };  const handleApproveSourcing = async (wakaId: string) => {
+    try {
+      setLoading(true);
+      const res = await fetch(`${API.WAKA.GET(wakaId)}/fund_sourcing`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error('Failed to approve');
+      showAlert('Success', 'Bill approved and funded!');
+      fetchHistory();
+    } catch (e: any) {
+      showAlert('Error', e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeclineSourcing = async (wakaId: string) => {
+    try {
+      setLoading(true);
+      const res = await fetch(`${API.WAKA.GET(wakaId)}/reject_sourcing`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}` 
+        },
+        body: JSON.stringify({ item_list: null }) // Decline full amount
+      });
+      if (!res.ok) throw new Error('Failed to decline');
+      showAlert('Declined', 'Bill declined. Runner notified.');
+      fetchHistory();
+    } catch (e: any) {
+      showAlert('Error', e.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -588,6 +686,18 @@ export default function ConversationScreen() {
                                   initialDuration={msg.attachment_metadata?.duration}
                                   onLongPress={() => onLongPressMessage(msg)}
                                 />
+                              ) : msg.attachment_metadata?.type === 'sourcing_request' ? (
+                                <SourcingActionCard 
+                                  metadata={msg.attachment_metadata}
+                                  wakaStatus={conversation?.waka_status}
+                                  isMe={isMe}
+                                  colors={colors}
+                                  styles={styles}
+                                  loading={loading}
+                                  onApprove={() => handleApproveSourcing(msg.attachment_metadata.waka_id)}
+                                  onDecline={() => handleDeclineSourcing(msg.attachment_metadata.waka_id)}
+                                  onViewDetails={() => router.push(`/waka/${msg.attachment_metadata.waka_id}` as any)}
+                                />
                               ) : (
                                 <TouchableOpacity 
                                   style={styles.fileLink} 
@@ -599,6 +709,7 @@ export default function ConversationScreen() {
                                   <ExternalLink size={14} color={colors.muted} />
                                 </TouchableOpacity>
                               )}
+                              
                               {!msg.content_text && (
                                 <View style={[styles.bubbleFooter, { marginTop: 4 }]}>
                                   <Text style={styles.bubbleTime}>
@@ -714,6 +825,13 @@ export default function ConversationScreen() {
         </TouchableOpacity>
       </Modal>
 
+      <BrutalistAlert
+        visible={isAlertVisible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        buttons={alertConfig.buttons}
+        onClose={() => setIsAlertVisible(false)}
+      />
       <BrutalistAlert
         visible={isDeleteAlertVisible}
         title="Delete Message?"
@@ -1017,4 +1135,102 @@ const getStyles = (colors: any) => StyleSheet.create({
     height: 48, justifyContent: 'flex-start', overflow: 'hidden' 
   },
   waveformBar: { width: 3, minHeight: 4, borderRadius: 1.5 },
+
+  // --- Action Card Styles ---
+  actionCard: {
+    width: 260,
+    borderWidth: 3,
+    borderColor: colors.text,
+    backgroundColor: colors.surface,
+    shadowColor: colors.text, shadowOffset: { width: 4, height: 4 }, shadowOpacity: 1, shadowRadius: 0,
+    padding: 12,
+    marginVertical: 4,
+  },
+  myActionCard: {
+    backgroundColor: colors.primary,
+    alignSelf: 'flex-end',
+  },
+  theirActionCard: {
+    backgroundColor: colors.surface,
+    alignSelf: 'flex-start',
+  },
+  actionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderBottomWidth: 2,
+    borderBottomColor: colors.text,
+    paddingBottom: 8,
+    marginBottom: 8,
+  },
+  actionTitle: {
+    fontFamily: DT.typography.heading,
+    fontSize: 12,
+    color: colors.text,
+    letterSpacing: 1,
+  },
+  actionBody: {
+    marginBottom: 12,
+  },
+  actionAmount: {
+    fontFamily: DT.typography.heading,
+    fontSize: 24,
+    color: colors.text,
+  },
+  actionSub: {
+    fontFamily: DT.typography.bodySemiBold,
+    fontSize: 11,
+    color: colors.muted,
+    marginTop: 2,
+  },
+  miniItemList: {
+    marginTop: 8,
+    gap: 4,
+  },
+  miniItem: {
+    fontFamily: DT.typography.bodySemiBold,
+    fontSize: 12,
+    color: colors.text,
+  },
+  actionFooter: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  smallActionBtn: {
+    flex: 1,
+    height: 36,
+    borderWidth: 2,
+    borderColor: colors.text,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  declineBtnSmall: {
+    backgroundColor: '#FFE5E5',
+  },
+  approveBtnSmall: {
+    backgroundColor: colors.primary,
+  },
+  declineBtnTextSmall: {
+    fontFamily: DT.typography.heading,
+    fontSize: 10,
+    color: colors.error,
+  },
+  approveBtnTextSmall: {
+    fontFamily: DT.typography.heading,
+    fontSize: 10,
+    color: colors.surface,
+  },
+  resolvedBadge: {
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    paddingVertical: 6,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.text,
+    borderStyle: 'dashed',
+  },
+  resolvedText: {
+    fontFamily: DT.typography.heading,
+    fontSize: 9,
+    color: colors.muted,
+  },
 });

@@ -10,7 +10,7 @@ from ...schemas.review import ReviewBase, ReviewResponse
 from .deps import get_current_user
 from ...services.notification_service import notify_user
 import uuid
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 
 router = APIRouter()
 

@@ -41,6 +41,7 @@ class ConversationRead(ConversationBase):
     last_message_status: Optional[str] = None # 'sent' or 'read'
     waka_title: Optional[str] = None
     waka_emoji: Optional[str] = None
+    waka_status: Optional[str] = None
     
     model_config = ConfigDict(from_attributes=True)
 

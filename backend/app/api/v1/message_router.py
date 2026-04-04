@@ -39,8 +39,9 @@ async def enrich_conversation(db: AsyncSession, conv: Conversation, current_user
     unread_count = unread_res.scalar() or 0
     
     # Get Waka info if available
-    waka_title = None
-    waka_emoji = None
+    waka_title: Optional[str] = None
+    waka_emoji: Optional[str] = None
+    waka_status: Optional[str] = None
     if conv.waka_id:
         waka_stmt = select(Waka).where(Waka.id == conv.waka_id)
         waka_res = await db.execute(waka_stmt)
@@ -48,6 +49,7 @@ async def enrich_conversation(db: AsyncSession, conv: Conversation, current_user
         if waka:
             waka_title = waka.item_description
             waka_emoji = "🛒" # Default emoji for errands
+            waka_status = waka.sourcing_status
     
     # Determine status of the last message (sent by current_user)
     last_msg_status = None
@@ -66,6 +68,7 @@ async def enrich_conversation(db: AsyncSession, conv: Conversation, current_user
     conv_dict.unread_count = unread_count
     conv_dict.waka_title = waka_title
     conv_dict.waka_emoji = waka_emoji
+    conv_dict.waka_status = waka_status
     conv_dict.last_message_status = last_msg_status
     
     if other_user:
