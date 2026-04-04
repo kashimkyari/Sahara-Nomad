@@ -407,9 +407,12 @@ export default function HomeScreen() {
                   <View style={styles.runnerCardHeader}>
                     <View style={styles.runnerImageWrap}>
                       <Image 
-                        source={runner.image.startsWith('http') 
-                          ? { uri: runner.image } 
-                          : { uri: `${API.API_URL}${runner.image}`, headers: { Authorization: `Bearer ${token}` } }
+                        source={
+                          runner.image && typeof runner.image === 'string'
+                            ? runner.image.startsWith('http') 
+                              ? { uri: runner.image } 
+                              : { uri: `${API.API_URL}${runner.image}`, headers: { Authorization: `Bearer ${token}` } }
+                            : { uri: 'https://i.pravatar.cc/150?u=runner' }
                         } 
                         style={styles.runnerImageFull} 
                       />

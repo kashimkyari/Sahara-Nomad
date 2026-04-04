@@ -42,7 +42,7 @@ class Waka(AuditableBase):
     sourcing_bank_name: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     sourcing_account_number: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     sourcing_account_name: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
-    is_sourcing_funded: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_sourcing_funded: Mapped[bool] = mapped_column(Boolean, server_default='false', default=False, nullable=False)
     
     is_completed: Mapped[bool] = mapped_column(Boolean, default=False)
     completed_by_runner: Mapped[bool] = mapped_column(Boolean, default=False)
