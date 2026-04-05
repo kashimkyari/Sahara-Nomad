@@ -7,6 +7,7 @@ from ...models.user import User, UserRole
 from ...models.search import SearchHistory
 from ...models.waka import Waka
 from ...schemas.search import SearchResponse, RunnerSearchResponse, SearchRecord, LeaderboardResponse, LeaderboardItem
+from ...schemas.waka import WakaResponse
 from .deps import get_current_user
 from typing import List
 from datetime import datetime, timedelta
@@ -281,3 +282,43 @@ async def get_leaderboard(
         top_runners=top_runners,
         city=city
     )
+
+@router.get("/shared-errands", response_model=List[WakaResponse])
+async def get_shared_errands(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """List online shared errands that have available spots near the user."""
+    user_location = current_user.last_location
+    
+    stmt = (
+        select(Waka)
+        .where(
+            Waka.is_shared == True,
+            Waka.parent_waka_id == None,
+            Waka.is_completed == False,
+            Waka.status.notin_(['cancelled', 'completed'])
+        )
+    )
+
+    if user_location:
+         # Filter within 50km radius
+         from geoalchemy2 import Geography
+         stmt = stmt.where(
+             func.ST_Distance(func.cast(Waka.pickup_location, Geography), func.cast(user_location, Geography)) <= 50000
+         )
+    
+    result = await db.execute(stmt)
+    parents = result.scalars().all()
+    
+    av_groups = []
+    for p in parents:
+        # Check current spots
+        s_stmt = select(func.count(Waka.id)).where(Waka.parent_waka_id == p.id)
+        s_res = await db.execute(s_stmt)
+        count = s_res.scalar() or 0
+        
+        if (count + 1) < p.max_spots:
+            av_groups.append(p)
+            
+    return av_groups

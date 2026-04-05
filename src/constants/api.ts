@@ -17,6 +17,7 @@ export default {
         COMPLETE: (id: string) => `${API_URL}/waka/${id}/complete`,
         ACCEPT: (id: string) => `${API_URL}/waka/${id}/accept`,
         DECLINE: (id: string) => `${API_URL}/waka/${id}/decline`,
+        JOIN: (id: string) => `${API_URL}/waka/join/${id}`,
     },
     WALLET: {
         BALANCE: (userId: string) => `${API_URL}/wallet/${userId}/balance`,
@@ -60,7 +61,8 @@ export default {
             return url.slice(0, -1);
         },
         RECORD: `${API_URL}/search/record`,
-        LEADERBOARD: `${API_URL}/search/leaderboard`
+        LEADERBOARD: `${API_URL}/search/leaderboard`,
+        SHARED_ERRANDS: `${API_URL}/search/shared-errands`
     },
     SUPPORT: {
         LIST: `${API_URL}/support/`,

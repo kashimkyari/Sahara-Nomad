@@ -107,7 +107,7 @@ export default function SearchScreen() {
 
   const fetchSharedErrands = async () => {
     try {
-      const res = await fetch(`${API.API_URL}/search/shared-errands`, {
+      const res = await fetch(API.SEARCH.SHARED_ERRANDS, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
@@ -120,7 +120,7 @@ export default function SearchScreen() {
   const handleJoinGroup = async (wakaId: string) => {
     setIsJoining(wakaId);
     try {
-      const res = await fetch(`${API.API_URL}/waka/join/${wakaId}`, {
+      const res = await fetch(API.WAKA.JOIN(wakaId), {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` }
       });
