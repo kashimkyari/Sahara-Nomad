@@ -30,6 +30,9 @@ class Waka(AuditableBase):
     
     urgency: Mapped[str] = mapped_column(String(20)) # standard, flash
     
+    surge_multiplier: Mapped[float] = mapped_column(Numeric(4, 2), server_default="1.0")
+    surge_reason: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    
     runner_fee: Mapped[float] = mapped_column(Numeric(12, 2))
     original_runner_fee: Mapped[Optional[float]] = mapped_column(Numeric(12, 2), nullable=True)
     flash_incentive: Mapped[float] = mapped_column(Numeric(12, 2), default=0.0)

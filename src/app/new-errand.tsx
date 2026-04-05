@@ -49,6 +49,7 @@ export default function NewErrandScreen() {
   const [items, setItems] = useState<string[]>(['']); // Array of bullet points
   const [location, setLocation] = useState('');
   const [deliveryLocation, setDeliveryLocation] = useState('');
+  const [dropType, setDropType] = useState('doorstep'); // 'doorstep' | 'locker'
 
   // GPS coordinates stored alongside the address strings
   const [pickupCoords, setPickupCoords] = useState<{ lat: number; lng: number } | null>(null);
@@ -193,6 +194,7 @@ export default function NewErrandScreen() {
         payment_method: paymentMethod,
         is_shared: isShared,
         max_spots: isShared ? maxSpots : 1,
+        drop_type: dropType,
       };
 
       const endpoint = frequency === 'once' ? API.WAKA.CREATE : `${API.API_URL}/scheduling/`;
@@ -519,6 +521,25 @@ export default function NewErrandScreen() {
               )}
             </TouchableOpacity>
           </View>
+          <View style={{ flexDirection: 'row', gap: 12, marginTop: 12 }}>
+            <TouchableOpacity
+              style={[styles.freqChip, dropType === 'doorstep' && styles.freqChipActive]}
+              onPress={() => setDropType('doorstep')}
+            >
+              <Text style={[styles.freqText, dropType === 'doorstep' && styles.freqTextActive]}>Hand to Me</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.freqChip, dropType === 'locker' && styles.freqChipActive]}
+              onPress={() => setDropType('locker')}
+            >
+              <Text style={[styles.freqText, dropType === 'locker' && styles.freqTextActive]}>Safe Drop (Locker/PIN)</Text>
+            </TouchableOpacity>
+          </View>
+          {dropType === 'locker' && (
+            <Text style={[styles.fieldHint, { marginTop: 4, color: colors.secondary }]}>
+              A 6-digit PIN will be generated for the runner to deposit or deliver contactlessly.
+            </Text>
+          )}
         </View>
 
         {/* Budget Range for Errands */}

@@ -2,7 +2,8 @@ import asyncio
 from datetime import datetime, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from ..database import SessionLocal
+from sqlalchemy.orm import joinedload
+from ..database import SessionLocal, get_db_session
 from ..models.scheduling import ScheduledWaka
 from ..models.waka import Waka
 from ..schemas.waka import WakaCreate
@@ -123,8 +124,38 @@ async def process_escrow_auto_release():
                     
         await db.commit()
 
+async def detect_runner_anomalies():
+    """Detect if a runner on an active errand has gone offline (stale GPS > 15m)."""
+    async for db in get_db_session():
+        stmt = select(Waka).options(joinedload(Waka.runner)).where(
+            Waka.status.in_(["sourcing", "delivering"])
+        )
+        wakas = (await db.execute(stmt)).scalars().all()
+        now = datetime.utcnow()
+        
+        for waka in wakas:
+            runner = waka.runner
+            if runner and runner.updated_at:
+                diff = now - runner.updated_at
+                if diff.total_seconds() > 15 * 60:
+                    from ..services.notification_service import notify_user
+                    try:
+                        await notify_user(
+                            db=db,
+                            user=runner,
+                            title="Are you still there?",
+                            body="We noticed your location hasn't updated in 15 minutes. Please check-in to keep this errand active.",
+                            type="warning",
+                            linked_entity_id=waka.id,
+                            linked_entity_type="waka"
+                        )
+                    except Exception:
+                        pass
+        await db.commit()
+
 async def scheduler_loop():
     while True:
         await process_scheduled_wakas()
         await process_escrow_auto_release()
+        await detect_runner_anomalies()
         await asyncio.sleep(60) # Check every minute

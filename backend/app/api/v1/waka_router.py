@@ -12,6 +12,7 @@ from ...schemas.review import ReviewBase, ReviewResponse
 from .deps import get_current_user
 from ...services.notification_service import notify_user
 from ...services.watermark_service import apply_pod_watermark
+from ...services.surge_service import calculate_environmental_surge
 import uuid
 from typing import List, Optional, Dict, Any
 
@@ -134,6 +135,13 @@ async def create_waka(
     status = "assigned" if waka_in.target_runner_id else "finding_runner"
     runner_id = waka_in.target_runner_id
     
+    surge = calculate_environmental_surge(waka_in.pickup.lat, waka_in.pickup.lng)
+    
+    safe_drop_pin = None
+    import random
+    if waka_in.drop_type == "locker":
+        safe_drop_pin = str(random.randint(100000, 999999))
+        
     db_obj = Waka(
         employer_id=employer_id,
         runner_id=runner_id,
@@ -143,10 +151,14 @@ async def create_waka(
         pickup_location=f"SRID=4326;POINT({waka_in.pickup.lng} {waka_in.pickup.lat})" if waka_in.pickup.lng and waka_in.pickup.lat else None,
         dropoff_address=waka_in.dropoff.address,
         dropoff_location=f"SRID=4326;POINT({waka_in.dropoff.lng} {waka_in.dropoff.lat})" if waka_in.dropoff.lng and waka_in.dropoff.lat else None,
+        drop_type=waka_in.drop_type,
+        safe_drop_pin=safe_drop_pin,
         urgency=waka_in.urgency,
-        runner_fee=waka_in.base_fee,
+        surge_multiplier=surge.multiplier,
+        surge_reason=surge.reason,
+        runner_fee=waka_in.base_fee * float(surge.multiplier),
         flash_incentive=waka_in.flash_incentive,
-        total_price=waka_in.total_price,
+        total_price=waka_in.total_price * float(surge.multiplier),
         status=status,
         step=1,
         budget_min=waka_in.budget_min,

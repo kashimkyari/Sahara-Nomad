@@ -87,6 +87,8 @@ class WakaResponse(BaseModel):
     dropoff_lat: Optional[float] = None
     dropoff_lng: Optional[float] = None
     urgency: str
+    surge_multiplier: float = 1.0
+    surge_reason: Optional[str] = None
     runner_fee: float
     flash_incentive: float
     total_price: float
