@@ -221,7 +221,8 @@ async def complete_waka(
             amount=total_payout,
             tx_type="waka_fee",
             reference=f"waka_fee_{waka.id}",
-            is_cash=(waka.payment_method == "cash")
+            is_cash=(waka.payment_method == "cash"),
+            commission_rate=Decimal("0.10")
         )
         
         if not success:

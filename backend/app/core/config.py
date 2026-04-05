@@ -26,6 +26,9 @@ class Settings(BaseSettings):
             return self.SQLALCHEMY_DATABASE_URI
         return f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}/{self.POSTGRES_DB}"
 
+    # Platform Revenue
+    SYSTEM_USER_ID: str = "00000000-0000-0000-0000-000000000000"
+
     EXPO_ACCESS_TOKEN: Optional[str] = None
     
     model_config = SettingsConfigDict(env_file=".env")
