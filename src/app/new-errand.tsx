@@ -1,6 +1,6 @@
 import * as Location from 'expo-location';
 import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
-import { ChevronLeft, MapPin, Package, ShoppingCart, Utensils, Zap, Clock, User as UserIcon, Users, Calendar, Repeat, Plus, Trash2, Mic } from 'lucide-react-native';
+import { ChevronLeft, MapPin, Package, ShoppingCart, Utensils, Zap, Clock, User as UserIcon, Users, Calendar, Repeat, Plus, Trash2, Mic, Play, Pause, Circle } from 'lucide-react-native';
 import React, { useRef, useState, useEffect } from 'react';
 import {
   ActivityIndicator,
@@ -38,6 +38,50 @@ const SLIDER_WIDTH = width - DT.spacing.lg * 2 - 4; // subtract padding
 const MIN_PRICE = 3000;
 const MAX_PRICE = 30000;
 const SLIDER_TICKS = [5000, 10000, 15000, 20000, 25000];
+
+function VoicePlayer({ uri, styles }: { uri: string, styles: any }) {
+  const { colors } = useTheme();
+  const player = useAudioPlayer(uri);
+  const status = useAudioPlayerStatus(player);
+  const playing = status.playing;
+
+  const togglePlay = () => {
+    if (playing) {
+      player.pause();
+    } else {
+      player.play();
+    }
+  };
+
+  const progress = status.duration ? status.currentTime / status.duration : 0;
+
+  return (
+    <View style={styles.voicePlayerCard}>
+      <TouchableOpacity 
+        style={styles.playBtn} 
+        onPress={togglePlay}
+      >
+        {playing ? (
+          <Pause size={20} color={colors.surface} fill={colors.surface} />
+        ) : (
+          <Play size={20} color={colors.surface} fill={colors.surface} />
+        )}
+      </TouchableOpacity>
+      <View style={styles.playerInfo}>
+        <View style={styles.playerHeader}>
+          <Text style={styles.playerTitle}>RECORDING REVIEW</Text>
+          <Text style={styles.playerTime}>
+            {Math.floor(status.currentTime)}s / {Math.floor(status.duration)}s
+          </Text>
+        </View>
+        <View style={styles.progressBar}>
+          <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
+        </View>
+      </View>
+    </View>
+  );
+}
+
 
 const CATEGORIES = [
   { id: 'package', label: 'Package', icon: Package },
@@ -490,9 +534,6 @@ export default function NewErrandScreen() {
                 activeOpacity={0.7}
               >
                 <Mic size={14} color={isRecording ? "#FFF" : colors.primary} strokeWidth={3} />
-                <Text style={[styles.addBtnText, isRecording && { color: "#FFF" }]}>
-                  {isRecording ? 'RECORDING...' : 'HOLD TO TALK'}
-                </Text>
               </TouchableOpacity>
               <TouchableOpacity 
                 style={styles.addBtn}
@@ -502,16 +543,6 @@ export default function NewErrandScreen() {
               </TouchableOpacity>
             </View>
           </View>
-          
-          {voiceNoteUri && (
-            <View style={styles.voiceNotePreview}>
-              <Mic size={16} color={colors.text} />
-              <Text style={styles.voiceNoteText}>Voice note attached</Text>
-              <TouchableOpacity onPress={() => setVoiceNoteUri(null)}>
-                <Trash2 size={16} color={colors.secondary} />
-              </TouchableOpacity>
-            </View>
-          )}
 
           <View style={styles.itemBox}>
             {items.map((item, idx) => (
@@ -543,6 +574,39 @@ export default function NewErrandScreen() {
             ))}
           </View>
           <Text style={styles.fieldHint}>List specific items for the runner to procure.</Text>
+        </View>
+
+        {/* Voice Description Section */}
+        <View style={styles.field}>
+          <View style={styles.voiceSection}>
+            <View style={styles.voiceHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Mic size={18} color={isRecording ? colors.error : colors.text} />
+                <Text style={styles.fieldLabel}>Voice Description</Text>
+              </View>
+              {voiceNoteUri && (
+                <TouchableOpacity onPress={() => setVoiceNoteUri(null)}>
+                  <Trash2 size={16} color={colors.secondary} strokeWidth={2.5} />
+                </TouchableOpacity>
+              )}
+            </View>
+            
+            {!voiceNoteUri ? (
+              <TouchableOpacity 
+                style={[styles.pttBtn, isRecording && styles.pttBtnActive]}
+                onPressIn={startRecording}
+                onPressOut={stopRecording}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.pttBtnText, isRecording && { color: "#FFF" }]}>
+                  {isRecording ? 'RELEASE TO SAVE' : 'HOLD TO RECORD CLARIFICATION'}
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <VoicePlayer uri={voiceNoteUri} styles={styles} />
+            )}
+          </View>
+          <Text style={styles.fieldHint}>Explain any details the runner should know.</Text>
         </View>
 
         {/* Location Boxes */}
@@ -953,6 +1017,102 @@ const getStyles = (colors: any) => {
   fieldHint: {
     fontFamily: DT.typography.body,
     fontSize: 12,
+    color: colors.muted,
+    marginTop: 4,
+  },
+  emptyText: { fontFamily: DT.typography.body, color: colors.muted },
+  voiceSection: {
+    backgroundColor: colors.surface,
+    borderWidth: 2,
+    borderColor: colors.text,
+    padding: 12,
+    marginTop: 8,
+    shadowColor: colors.text,
+    shadowOffset: { width: 3, height: 3 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 3,
+  },
+  voiceHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  pttBtn: {
+    height: 54,
+    backgroundColor: colors.background,
+    borderWidth: 2,
+    borderColor: colors.text,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: colors.text,
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 2,
+  },
+  pttBtnActive: {
+    backgroundColor: colors.error,
+    borderColor: colors.text,
+    transform: [{ scale: 0.98 }, { translateX: 2 }, { translateY: 2 }],
+    shadowOffset: { width: 0, height: 0 },
+  },
+  pttBtnText: {
+    fontFamily: DT.typography.heading,
+    fontSize: 14,
+    color: colors.text,
+    letterSpacing: 1,
+  },
+  voicePlayerCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 4,
+  },
+  playBtn: {
+    width: 44,
+    height: 44,
+    backgroundColor: colors.primary,
+    borderWidth: 2,
+    borderColor: colors.text,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: colors.text,
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+  },
+  playerInfo: {
+    flex: 1,
+  },
+  playerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  playerTitle: {
+    fontFamily: DT.typography.heading,
+    fontSize: 10,
+    color: colors.muted,
+  },
+  playerTime: {
+    fontFamily: DT.typography.bodySemiBold,
+    fontSize: 10,
+    color: colors.text,
+  },
+  progressBar: {
+    height: 6,
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.text,
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: colors.secondary,
+  },
+  successProgres: {
     color: colors.muted,
     marginTop: 4,
   },
