@@ -37,14 +37,19 @@ import {
 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import UserAvatar from '@/components/ui/UserAvatar';
+import InventoryProposalModal from '@/components/ui/InventoryProposalModal';
+import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import AudioModule from 'expo-audio/build/AudioModule';
+import { Play, Pause, Music, Trash2 as TrashIcon } from 'lucide-react-native';
 import * as Clipboard from 'expo-clipboard';
 import { DesignTokens as DT } from '../../constants/design';
 import { useTheme } from '../../hooks/use-theme';
 import { useAuth } from '../../context/AuthContext';
 import API from '../../constants/api';
 import { ActivityIndicator } from 'react-native';
-import { BrutalistAlert } from '../../components/ui/BrutalistAlert';
-import { ReviewForm } from '../../components/ui/ReviewForm';
+import { BrutalistAlert } from '@/components/ui/BrutalistAlert';
+import { ReviewForm } from '@/components/ui/ReviewForm';
 
 // Mock data removed in favor of real API calls
 
@@ -60,6 +65,35 @@ export default function WakaStatusScreen() {
   const { user, token } = useAuth();
   const router = useRouter();
   const { id, initialStatus } = useLocalSearchParams<{ id: string, initialStatus: string }>();
+  
+  const styles = getStyles(colors);
+
+  const AudioPlayer = ({ uri }: { uri: string }) => {
+    const player = useAudioPlayer(uri);
+    const status = useAudioPlayerStatus(player);
+    
+    return (
+      <View style={styles.audioContainer}>
+        <TouchableOpacity 
+          style={styles.audioPlayBtn}
+          onPress={() => status.playing ? player.pause() : player.play()}
+        >
+          {status.playing ? (
+            <Pause size={20} color={colors.surface} fill={colors.surface} />
+          ) : (
+            <Play size={20} color={colors.surface} fill={colors.surface} />
+          )}
+        </TouchableOpacity>
+        <View style={styles.audioInfo}>
+          <Text style={styles.audioTitle}>VOICE INSTRUCTIONS</Text>
+          <Text style={styles.audioDuration}>
+            {Math.floor(status.duration / 1000)}s — {status.playing ? 'PLAYING' : 'READY'}
+          </Text>
+        </View>
+        <Music size={24} color={colors.muted} />
+      </View>
+    );
+  };
   
   const [waka, setWaka] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
@@ -94,10 +128,9 @@ export default function WakaStatusScreen() {
   
   // Inventory Proposal State
   const [showInventoryForm, setShowInventoryForm] = useState(false);
-  const [newItemName, setNewItemName] = useState('');
-  const [newItemPrice, setNewItemPrice] = useState('');
   const [newItemPhoto, setNewItemPhoto] = useState<string | null>(null);
-  const [isProposingItem, setIsProposingItem] = useState(false);
+  const [itemProposalName, setItemProposalName] = useState("");
+  const [itemProposalPrice, setItemProposalPrice] = useState("");
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef<any>(null);
   const [showCamera, setShowCamera] = useState(false);
@@ -114,7 +147,7 @@ export default function WakaStatusScreen() {
     setAlertVisible(true);
   };
 
-  const styles = getStyles(colors);
+
 
   const getArea = (address: string) => {
     if (!address) return 'Nearby';
@@ -573,70 +606,6 @@ export default function WakaStatusScreen() {
     }
   };
 
-  const handleProposeItem = async () => {
-    if (!token || !id || !newItemName || !newItemPrice) {
-      showAlert('Missing Info', 'Please provide a name and price for the item.');
-      return;
-    }
-    
-    setIsProposingItem(true);
-    try {
-      let photoUrl = null;
-      if (newItemPhoto) {
-        // Upload photo first
-        const formData = new FormData();
-        const uriParts = newItemPhoto.split('.');
-        const fileType = uriParts[uriParts.length - 1];
-        formData.append('file', {
-          uri: newItemPhoto,
-          name: `inventory_${id}_${Date.now()}.${fileType}`,
-          type: `image/${fileType}`,
-        } as any);
-
-        const uploadRes = await fetch(`${API.API_URL}/media/upload`, {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
-          body: formData,
-        });
-        if (uploadRes.ok) {
-          const uploadData = await uploadRes.json();
-          photoUrl = uploadData.url;
-        }
-      }
-
-      if (!photoUrl && !newItemPhoto) {
-        throw new Error('You must include a photo of the item showing its price tag.');
-      }
-
-      const res = await fetch(`${API.API_URL}/inventory/propose`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          waka_id: id,
-          name: newItemName,
-          price: parseFloat(newItemPrice),
-          photo_url: photoUrl
-        })
-      });
-      
-      if (!res.ok) throw new Error('Failed to propose item');
-      
-      showAlert('Proposed', 'The nomad has been notified of your proposal.');
-      fetchWakaDetails();
-      setShowInventoryForm(false);
-      setNewItemName('');
-      setNewItemPrice('');
-      setNewItemPhoto(null);
-    } catch (e: any) {
-      showAlert('Error', e.message);
-    } finally {
-      setIsProposingItem(false);
-    }
-  };
-
   const pickInventoryPhoto = async () => {
     const result = await ImagePicker.launchCameraAsync({
       mediaTypes: ['images'],
@@ -814,6 +783,10 @@ export default function WakaStatusScreen() {
           {waka.items && waka.items.length > 0 && (
             <View style={styles.itemListContainer}>
               <Text style={styles.listHeader}>ITEM LIST</Text>
+              {waka.voice_note_url && (
+                <AudioPlayer uri={waka.voice_note_url} />
+              )}
+              <View style={styles.itemsList}>
               {waka.items.map((itemValue: string, itemIdx: number) => {
                 const isRemoved = removedItems.has(itemIdx);
                 const isNomadVerifying = waka.status === 'sourcing_submitted' && user?.id === waka.employer_id;
@@ -848,6 +821,7 @@ export default function WakaStatusScreen() {
               {removedItems.size > 0 && (
                 <Text style={styles.removalHint}>* Items crossed out will be removed upon decline.</Text>
               )}
+              </View>
             </View>
           )}
 
@@ -926,17 +900,10 @@ export default function WakaStatusScreen() {
               onPress={() => router.push(`/runner/${displayUser.id}`)}
               activeOpacity={0.7}
             >
-              <Image 
-                source={displayUser.avatar_url 
-                  ? { 
-                      uri: `${API.API_URL}${displayUser.avatar_url}`,
-                      headers: { Authorization: `Bearer ${token}` }
-                    } 
-                  : { uri: `https://i.pravatar.cc/150?u=${displayUser.id}` }
-                }
-                style={styles.runnerAvatar} 
-                contentFit="cover"
-                transition={200}
+              <UserAvatar 
+                url={displayUser.avatar_url}
+                size={60} 
+                borderColor={colors.text}
               />
               <View style={styles.runnerInfo}>
                 <Text style={styles.runnerName}>{displayUser.full_name}</Text>
@@ -1449,75 +1416,31 @@ export default function WakaStatusScreen() {
         onClose={() => setAlertVisible(false)}
       />
 
-      {/* Inventory Proposal Modal Refined */}
-      <Modal visible={showInventoryForm} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>PROPOSE ITEM</Text>
-              <TouchableOpacity onPress={() => setShowInventoryForm(false)}>
-                <X size={24} color={colors.text} />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView showsVerticalScrollIndicator={false}>
-              <Text style={styles.inputLabel}>ITEM NAME</Text>
-              <TextInput
-                style={[styles.brutalInput, { marginBottom: 16 }]}
-                value={newItemName}
-                onChangeText={setNewItemName}
-                placeholder="e.g. 1kg Tomatoes"
-              />
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
-                {['Water', 'Bread', 'Cooking Oil', 'Rice', 'Milk'].map(tag => (
-                  <TouchableOpacity 
-                    key={tag}
-                    style={[styles.categoryChip, { backgroundColor: newItemName === tag ? colors.text : colors.surface }]}
-                    onPress={() => setNewItemName(tag)}
-                  >
-                    <Text style={[styles.categoryText, { color: newItemName === tag ? colors.surface : colors.text }]}>{tag}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              <Text style={styles.inputLabel}>PRICE (₦)</Text>
-              <TextInput
-                style={[styles.brutalInput, { marginBottom: 16 }]}
-                value={newItemPrice}
-                onChangeText={setNewItemPrice}
-                placeholder="0.00"
-                keyboardType="numeric"
-              />
-
-              <Text style={styles.inputLabel}>PHOTO (MUST SHOW PRICE TAG)</Text>
-              <TouchableOpacity 
-                style={styles.photoPicker} 
-                onPress={() => {
-                  if (permission?.granted) setShowCamera(true);
-                  else requestPermission();
-                }}
-              >
-                {newItemPhoto ? (
-                  <Image source={{ uri: newItemPhoto }} style={styles.pickedImage} />
-                ) : (
-                  <>
-                    <Camera size={32} color={colors.text} />
-                    <Text style={styles.photoPickerText}>OPEN CAMERA</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={[styles.primaryAction, { marginTop: 24, width: '100%' }, isProposingItem && { opacity: 0.7 }]} 
-                onPress={handleProposeItem}
-                disabled={isProposingItem}
-              >
-                {isProposingItem ? <ActivityIndicator color={colors.surface} /> : <Text style={styles.primaryActionText}>SEND PROPOSAL</Text>}
-              </TouchableOpacity>
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
+      <InventoryProposalModal
+        visible={showInventoryForm}
+        onClose={() => setShowInventoryForm(false)}
+        onProposed={() => {
+          fetchWakaDetails();
+          setNewItemPhoto(null);
+          setItemProposalName("");
+          setItemProposalPrice("");
+        }}
+        wakaId={id as string}
+        token={token!}
+        colors={colors}
+        externalPhoto={newItemPhoto}
+        name={itemProposalName}
+        setName={setItemProposalName}
+        price={itemProposalPrice}
+        setPrice={setItemProposalPrice}
+        openCamera={async () => {
+          const { granted } = await requestPermission();
+          if (granted) {
+            setShowInventoryForm(false); // Hide form to avoid modal conflict
+            setShowCamera(true);
+          }
+        }}
+      />
 
       {/* Expo Camera Modal */}
       <Modal visible={showCamera} animationType="slide">
@@ -1526,30 +1449,42 @@ export default function WakaStatusScreen() {
             style={{ flex: 1 }} 
             facing="back"
             ref={cameraRef}
-          >
-            <View style={styles.cameraOverlay}>
-              <TouchableOpacity style={styles.camClose} onPress={() => setShowCamera(false)}>
-                <X size={32} color="#FFF" />
-              </TouchableOpacity>
-              <View style={styles.camGuides}>
-                <View style={styles.camTarget}>
-                  <Text style={styles.camGuideText}>ALIGN ITEM & PRICE TAG</Text>
-                </View>
+          />
+          <View style={styles.cameraOverlay}>
+            <TouchableOpacity 
+              style={styles.camClose} 
+              onPress={() => {
+                setShowCamera(false);
+                setShowInventoryForm(true); // Always restore form when closing camera from this path
+              }}
+            >
+              <X size={32} color="#FFF" />
+            </TouchableOpacity>
+            <View style={styles.camGuides}>
+              <View style={styles.camTarget}>
+                <Text style={styles.camGuideText}>ALIGN ITEM & PRICE TAG</Text>
               </View>
-              <TouchableOpacity 
-                style={styles.captureBtn} 
-                onPress={async () => {
-                  if (cameraRef.current) {
-                    const photo = await cameraRef.current.takePictureAsync();
-                    setNewItemPhoto(photo.uri);
-                    setShowCamera(false);
-                  }
-                }}
-              >
-                <View style={styles.captureInner} />
-              </TouchableOpacity>
             </View>
-          </CameraView>
+            <TouchableOpacity 
+              style={styles.captureBtn} 
+              onPress={async () => {
+                if (cameraRef.current) {
+                  try {
+                    const photo = await cameraRef.current.takePictureAsync();
+                    if (photo) {
+                      setNewItemPhoto(photo.uri);
+                      setShowCamera(false);
+                      setShowInventoryForm(true); // Restore form after photo
+                    }
+                  } catch (e) {
+                    console.error("Camera capture error:", e);
+                  }
+                }
+              }}
+            >
+              <View style={styles.captureInner} />
+            </TouchableOpacity>
+          </View>
         </View>
       </Modal>
 
@@ -1580,9 +1515,10 @@ export default function WakaStatusScreen() {
 
             {invitedFriend && (
               <View style={styles.friendConfirmBox}>
-                <Image 
-                  source={invitedFriend.avatar_url ? { uri: `${API.API_URL}${invitedFriend.avatar_url}` } : { uri: 'https://i.pravatar.cc/150?u=friend' }} 
-                  style={styles.friendAvatar} 
+                <UserAvatar 
+                  url={invitedFriend.avatar_url}
+                  size={50}
+                  borderColor={colors.text}
                 />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.friendName}>{invitedFriend.full_name}</Text>
@@ -1760,6 +1696,13 @@ function getStyles(colors: any) {
       fontSize: 12,
       color: colors.muted,
       marginBottom: 4,
+    },
+    cameraOverlay: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: 'transparent',
+      justifyContent: 'space-between',
+      padding: 24,
+      zIndex: 10,
     },
     modalOverlay: {
       flex: 1,
@@ -2262,11 +2205,7 @@ function getStyles(colors: any) {
       color: colors.surface,
     },
     // New Styles for Camera & Invitations
-    cameraOverlay: {
-      flex: 1,
-      justifyContent: 'space-between',
-      padding: 40,
-    },
+
     camClose: {
       alignSelf: 'flex-end',
     },
@@ -2350,8 +2289,41 @@ function getStyles(colors: any) {
     },
     inviteConfirmText: {
       fontFamily: DT.typography.heading,
+      fontSize: 14,
+      color: colors.primary,
+    },
+    audioContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.surface,
+      padding: 12,
+      borderWidth: 3,
+      borderColor: colors.text,
+      marginBottom: 16,
+      gap: 12,
+    },
+    audioPlayBtn: {
+      width: 44,
+      height: 44,
+      backgroundColor: colors.text,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    audioInfo: {
+      flex: 1,
+    },
+    audioTitle: {
+      fontFamily: DT.typography.heading,
       fontSize: 12,
-      color: colors.surface,
+      color: colors.text,
+    },
+    audioDuration: {
+      fontFamily: DT.typography.bodySemiBold,
+      fontSize: 10,
+      color: colors.muted,
+    },
+    itemsList: {
+      gap: 12,
     },
   });
 }

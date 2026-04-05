@@ -1,4 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException
+from typing import List, Dict, Any
+import uuid
+import os
+import shutil
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from ...database import get_db
@@ -7,10 +11,35 @@ from ...models.waka import Waka
 from ...models.inventory import WakaInventoryItem
 from ...schemas.inventory import InventoryItemCreate, InventoryItemUpdate, InventoryItemResponse
 from .deps import get_current_user
-import uuid
-from typing import List
 
 router = APIRouter()
+
+UPLOAD_DIR = "uploads/inventory"
+if not os.path.exists(UPLOAD_DIR):
+    os.makedirs(UPLOAD_DIR)
+
+@router.post("/upload_image", response_model=Dict[str, Any])
+async def upload_inventory_image(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user)
+):
+    """Upload a photo of a proposed item."""
+    file_ext = os.path.splitext(file.filename)[1]
+    file_name = f"{uuid.uuid4()}{file_ext}"
+    file_path = os.path.join(UPLOAD_DIR, file_name)
+    
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+        
+    return {"url": f"/api/v1/inventory/image/{file_name}"}
+
+@router.get("/image/{filename}")
+async def get_inventory_image(filename: str):
+    from fastapi.responses import FileResponse
+    file_path = os.path.join(UPLOAD_DIR, filename)
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Image not found")
+    return FileResponse(file_path)
 
 @router.post("/propose", response_model=InventoryItemResponse)
 async def propose_item(

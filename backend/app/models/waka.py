@@ -25,6 +25,8 @@ class Waka(AuditableBase):
     dropoff_address: Mapped[str] = mapped_column(String(512))
     dropoff_location: Mapped[Optional[Geography]] = mapped_column(Geography(geometry_type='POINT', srid=4326), nullable=True)
     
+    waypoints: Mapped[Optional[list]] = mapped_column(JSON, nullable=True) # list of {address, lat, lng}
+    
     drop_type: Mapped[str] = mapped_column(String(20), server_default="doorstep") # doorstep, locker
     safe_drop_pin: Mapped[Optional[str]] = mapped_column(String(6), nullable=True)
     
@@ -43,6 +45,7 @@ class Waka(AuditableBase):
     
     # Sourcing / Payment Details
     items: Mapped[Optional[list[str]]] = mapped_column(JSON, nullable=True) # Bullet point list of items
+    voice_note_url: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
     sourcing_budget: Mapped[Optional[float]] = mapped_column(Numeric(12, 2), nullable=True) # Cost of items
     sourcing_status: Mapped[Optional[str]] = mapped_column(String(20), default="pending", nullable=True) # pending, approved, rejected
     budget_min: Mapped[Optional[float]] = mapped_column(Numeric(12, 2), nullable=True)

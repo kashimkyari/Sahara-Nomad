@@ -14,11 +14,13 @@ class WakaCreate(BaseModel):
     item_description: str
     pickup: LocationSchema
     dropoff: LocationSchema
+    waypoints: Optional[List[LocationSchema]] = None
     urgency: str # standard | flash
     base_fee: float
     flash_incentive: float = 0
     total_price: float
     target_runner_id: Optional[UUID] = None
+    voice_note_url: Optional[str] = None
     budget_min: Optional[float] = None
     budget_max: Optional[float] = None
     items: Optional[list[str]] = None
@@ -82,6 +84,7 @@ class WakaResponse(BaseModel):
     pickup_lat: Optional[float] = None
     pickup_lng: Optional[float] = None
     dropoff_address: str
+    waypoints: Optional[List[LocationSchema]] = None
     drop_type: str = "doorstep"
     safe_drop_pin: Optional[str] = None
     dropoff_lat: Optional[float] = None
@@ -104,6 +107,7 @@ class WakaResponse(BaseModel):
     sourcing_account_number: Optional[str] = None
     sourcing_account_name: Optional[str] = None
     is_sourcing_funded: bool = False
+    voice_note_url: Optional[str] = None
     budget_min: Optional[float] = None
     budget_max: Optional[float] = None
     items: Optional[list[str]] = None

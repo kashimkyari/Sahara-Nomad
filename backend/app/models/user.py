@@ -52,6 +52,11 @@ class User(AuditableBase):
     is_available: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     stats_trips: Mapped[int] = mapped_column(Integer, default=0)
     errands_count: Mapped[int] = mapped_column(Integer, default=0)
+    
+    # Gamification & Milestones
+    streak_count: Mapped[int] = mapped_column(Integer, default=0)
+    last_streak_update: Mapped[Optional[datetime]] = mapped_column(nullable=True)
+    platform_fee_discount: Mapped[float] = mapped_column(Numeric(4, 2), server_default="0.0") # e.g. 0.05 for 5% off
 
     otp_code: Mapped[Optional[str]] = mapped_column(String(6), nullable=True)
     otp_expires_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)

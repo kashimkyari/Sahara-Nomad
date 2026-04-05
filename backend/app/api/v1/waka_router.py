@@ -480,6 +480,10 @@ async def complete_waka(
         if waka.runner:
             if waka.runner.stats_trips >= 50: commission_rate = Decimal("0.05")
             elif waka.runner.stats_trips >= 10: commission_rate = Decimal("0.075")
+            
+            # Apply temporary streak-based discount (Phase 8)
+            discount = Decimal(str(waka.runner.platform_fee_discount or 0))
+            commission_rate = max(Decimal("0.0"), commission_rate - discount)
 
         success = await wallet_service.transfer_funds(
             db=db,
@@ -513,6 +517,33 @@ async def complete_waka(
         # Increment Runner & Employer Counts
         if waka.runner:
             waka.runner.stats_trips += 1
+            
+            # --- RUNNER STREAK & FEE DISCOUNT (Phase 8) ---
+            now = datetime.utcnow()
+            if waka.runner.last_streak_update:
+                # Reset streak if last update was more than 7 days ago
+                if now - waka.runner.last_streak_update > timedelta(days=7):
+                    waka.runner.streak_count = 1
+                else:
+                    waka.runner.streak_count += 1
+            else:
+                waka.runner.streak_count = 1
+            
+            waka.runner.last_streak_update = now
+            
+            # Unlock 5% discount if streak hits 10
+            if waka.runner.streak_count >= 10:
+                waka.runner.platform_fee_discount = float(0.05)
+                # Notify about milestone
+                await notify_user(
+                    db=db,
+                    user=waka.runner,
+                    title="STREAK MASTER! 🔥",
+                    body="You've completed 10 errands this week! You now have a temporary 5% platform fee reduction.",
+                    type="success",
+                    linked_entity_id=waka.id,
+                    linked_entity_type="waka"
+                )
         waka.employer.errands_count += 1
             
         # --- REFERRAL REWARD (₦500 for first errand) ---

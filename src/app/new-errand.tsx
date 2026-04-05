@@ -1,6 +1,6 @@
 import * as Location from 'expo-location';
 import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
-import { ChevronLeft, MapPin, Package, ShoppingCart, Utensils, Zap, Clock, User as UserIcon, Users, Calendar, Repeat } from 'lucide-react-native';
+import { ChevronLeft, MapPin, Package, ShoppingCart, Utensils, Zap, Clock, User as UserIcon, Users, Calendar, Repeat, Plus, Trash2, Mic } from 'lucide-react-native';
 import React, { useRef, useState, useEffect } from 'react';
 import {
   ActivityIndicator,
@@ -24,6 +24,8 @@ import { useAuth } from '../context/AuthContext';
 import API from '../constants/api';
 import { BrutalistAlert } from '../components/ui/BrutalistAlert';
 import AddressSelector from '../components/ui/AddressSelector';
+import { useAudioRecorder, useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import AudioModule from 'expo-audio/build/AudioModule';
 
 const { width } = Dimensions.get('window');
 const SLIDER_WIDTH = width - DT.spacing.lg * 2 - 4; // subtract padding
@@ -40,7 +42,7 @@ const CATEGORIES = [
 
 export default function NewErrandScreen() {
   const { colors } = useTheme();
-  const { token } = useAuth();
+  const { user, token } = useAuth();
   const router = useRouter();
   const { runnerId, runnerName } = useLocalSearchParams<{ runnerId?: string; runnerName?: string }>();
   
@@ -50,6 +52,7 @@ export default function NewErrandScreen() {
   const [location, setLocation] = useState('');
   const [deliveryLocation, setDeliveryLocation] = useState('');
   const [dropType, setDropType] = useState('doorstep'); // 'doorstep' | 'locker'
+  const [waypoints, setWaypoints] = useState<{ address: string; lat: number; lng: number }[]>([]);
 
   // GPS coordinates stored alongside the address strings
   const [pickupCoords, setPickupCoords] = useState<{ lat: number; lng: number } | null>(null);
@@ -95,6 +98,56 @@ export default function NewErrandScreen() {
 
   const [incentive, setIncentive] = useState(1000); // Default user-controlled flash incentive
   const [isCustomIncentive, setIsCustomIncentive] = useState(false);
+
+  // Sync slider animation if price changes externally
+  // Voice Note State
+  const recorder = useAudioRecorder({
+    android: {
+      extension: '.m4a',
+      outputFormat: 6, // MPEG_4
+      audioEncoder: 3, // AAC
+      sampleRate: 44100,
+      numberOfChannels: 2,
+      bitRate: 128000,
+    },
+    ios: {
+      extension: '.m4a',
+      outputFormat: 'mpeg4aac',
+      audioQuality: 'high',
+      sampleRate: 44100,
+      numberOfChannels: 2,
+      bitRate: 128000,
+      linearPCMBitDepth: 16,
+      linearPCMIsBigEndian: false,
+      linearPCMIsFloat: false,
+    }
+  } as any);
+  const [isRecording, setIsRecording] = useState(false);
+  const [voiceNoteUri, setVoiceNoteUri] = useState<string | null>(null);
+
+  const startRecording = async () => {
+    try {
+      const permission = await AudioModule.requestRecordingPermissionsAsync();
+      if (!permission.granted) return;
+      
+      setIsRecording(true);
+      await recorder.prepareToRecordAsync();
+      recorder.record();
+    } catch (e) {
+      console.error(e);
+      setIsRecording(false);
+    }
+  };
+
+  const stopRecording = async () => {
+    try {
+      await recorder.stop();
+      setIsRecording(false);
+      setVoiceNoteUri(recorder.uri);
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   // Sync slider animation if price changes externally
   useEffect(() => {
@@ -195,7 +248,31 @@ export default function NewErrandScreen() {
         is_shared: isShared,
         max_spots: isShared ? maxSpots : 1,
         drop_type: dropType,
+        waypoints: waypoints,
+        voice_note_url: null, // Placeholder
       };
+
+      if (voiceNoteUri) {
+        const formData = new FormData();
+        formData.append('file', {
+          uri: voiceNoteUri,
+          name: 'voice_note.m4a',
+          type: 'audio/m4a'
+        } as any);
+
+        const uploadRes = await fetch(`${API.API_URL}/media/upload`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`
+          },
+          body: formData
+        });
+
+        if (uploadRes.ok) {
+          const uploadData = await uploadRes.json();
+          payload.voice_note_url = uploadData.url;
+        }
+      }
 
       const endpoint = frequency === 'once' ? API.WAKA.CREATE : `${API.API_URL}/scheduling/`;
       const finalPayload = frequency === 'once' ? payload : {
@@ -414,14 +491,35 @@ export default function NewErrandScreen() {
         <View style={styles.field}>
           <View style={styles.itemBoxHeader}>
             <Text style={styles.fieldLabel}>What should they carry?</Text>
-            <TouchableOpacity 
-              style={styles.addBtn}
-              onPress={() => setItems([...items, ''])}
-            >
-              <Text style={styles.addBtnText}>+ ADD ITEM</Text>
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <TouchableOpacity 
+                style={[styles.addBtn, isRecording && { backgroundColor: colors.secondary }]}
+                onPress={isRecording ? stopRecording : startRecording}
+              >
+                <Mic size={14} color={isRecording ? "#FFF" : colors.primary} strokeWidth={3} />
+                <Text style={[styles.addBtnText, isRecording && { color: "#FFF" }]}>
+                  {isRecording ? 'STOP' : 'VOICE'}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.addBtn}
+                onPress={() => setItems([...items, ''])}
+              >
+                <Text style={styles.addBtnText}>+ ADD ITEM</Text>
+              </TouchableOpacity>
+            </View>
           </View>
           
+          {voiceNoteUri && (
+            <View style={styles.voiceNotePreview}>
+              <Mic size={16} color={colors.text} />
+              <Text style={styles.voiceNoteText}>Voice note attached</Text>
+              <TouchableOpacity onPress={() => setVoiceNoteUri(null)}>
+                <Trash2 size={16} color={colors.secondary} />
+              </TouchableOpacity>
+            </View>
+          )}
+
           <View style={styles.itemBox}>
             {items.map((item, idx) => (
               <View key={idx} style={styles.itemRow}>
@@ -487,6 +585,52 @@ export default function NewErrandScreen() {
               )}
             </TouchableOpacity>
           </View>
+        </View>
+        
+        {/* Intermediate Stops (Waypoints) */}
+        <View style={styles.field}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={styles.fieldLabel}>Intermediate Stops (Optional)</Text>
+            <TouchableOpacity 
+              onPress={() => setWaypoints([...waypoints, { address: '', lat: 0, lng: 0 }])}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+            >
+              <Plus size={14} color={colors.primary} strokeWidth={3} />
+              <Text style={{ fontFamily: DT.typography.heading, fontSize: 10, color: colors.primary }}>ADD STOP</Text>
+            </TouchableOpacity>
+          </View>
+          
+          {waypoints.map((wp, idx) => (
+            <View key={idx} style={{ marginTop: 12 }}>
+              <AddressSelector 
+                type="pickup" // reusing for search
+                onSelect={(addr) => {
+                  const newWps = [...waypoints];
+                  newWps[idx] = { address: addr.address, lat: addr.lat, lng: addr.lng };
+                  setWaypoints(newWps);
+                }}
+              />
+              <View style={styles.locationInput}>
+                <TextInput
+                  style={[styles.locationTextInput, { flex: 1 }]}
+                  placeholder="Additional stop address..."
+                  placeholderTextColor={colors.muted}
+                  value={wp.address}
+                  onChangeText={(text) => {
+                    const newWps = [...waypoints];
+                    newWps[idx].address = text;
+                    setWaypoints(newWps);
+                  }}
+                />
+                <TouchableOpacity 
+                  onPress={() => setWaypoints(waypoints.filter((_, i) => i !== idx))}
+                  style={{ padding: 10 }}
+                >
+                  <Trash2 size={18} color={colors.secondary} strokeWidth={2.5} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          ))}
         </View>
 
         <View style={styles.field}>
@@ -764,7 +908,8 @@ export default function NewErrandScreen() {
   );
 }
 
-const getStyles = (colors: any) => StyleSheet.create({
+const getStyles = (colors: any) => {
+  return StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: colors.background,
@@ -1327,6 +1472,22 @@ const getStyles = (colors: any) => StyleSheet.create({
   broadcastTextDisabled: {
     color: colors.muted,
   },
+  voiceNotePreview: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: colors.surface,
+    padding: 12,
+    borderWidth: 2,
+    borderColor: colors.text,
+    marginBottom: 12,
+  },
+  voiceNoteText: {
+    fontFamily: DT.typography.bodySemiBold,
+    fontSize: 13,
+    color: colors.text,
+    flex: 1,
+  },
   successOverlay: {
     flex: 1,
     backgroundColor: 'rgba(15,15,15,0.75)',
@@ -1371,4 +1532,5 @@ const getStyles = (colors: any) => StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.text,
   },
-});
+  });
+};
