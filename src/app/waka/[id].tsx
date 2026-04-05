@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useMemo, useRef, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -40,7 +40,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import UserAvatar from '@/components/ui/UserAvatar';
 import InventoryProposalModal from '@/components/ui/InventoryProposalModal';
-import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import { useAudioPlayerStatus } from 'expo-audio';
 import AudioModule from 'expo-audio/build/AudioModule';
 import { Play, Pause, Music, Trash2 as TrashIcon } from 'lucide-react-native';
 import * as Clipboard from 'expo-clipboard';
@@ -70,7 +70,9 @@ export default function WakaStatusScreen() {
   const styles = getStyles(colors);
 
   const AudioPlayer = ({ uri }: { uri: string }) => {
-    const player = useAudioPlayer({ uri });
+    const player = useMemo(() => {
+      return new (AudioModule as any).AudioPlayer({ uri }, 100, 0);
+    }, [uri]);
     const status = useAudioPlayerStatus(player);
 
     useEffect(() => {

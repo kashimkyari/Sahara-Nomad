@@ -164,6 +164,8 @@ async def create_waka(
         budget_min=waka_in.budget_min,
         budget_max=waka_in.budget_max,
         items=waka_in.items,
+        voice_note_url=waka_in.voice_note_url,
+        payment_method=waka_in.payment_method,
         insurance_opt_in=waka_in.insurance_opt_in,
         is_shared=waka_in.is_shared,
         parent_waka_id=waka_in.parent_waka_id,
@@ -226,7 +228,11 @@ async def create_waka(
             
             await db.commit()
 
-    return db_obj
+    hydrated_waka = await get_hydrated_waka(db, db_obj.id)
+    if not hydrated_waka:
+        raise HTTPException(status_code=500, detail="Failed to reload created waka")
+
+    return hydrated_waka
 
 @router.post("/{waka_id}/milestones/{index}/release", response_model=Dict[str, Any])
 async def release_waka_milestone(
