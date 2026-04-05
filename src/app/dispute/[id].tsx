@@ -16,6 +16,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import API from '../../constants/api';
 import { DesignTokens as DT } from '../../constants/design';
+import { BrutalistAlert } from '../../components/ui/BrutalistAlert';
 
 export default function DisputeScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -25,14 +26,24 @@ export default function DisputeScreen() {
   const [reason, setReason] = useState('');
   const [details, setDetails] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [alert, setAlert] = useState<{ visible: boolean; title: string; message: string; buttons: any[] }>({
+    visible: false,
+    title: '',
+    message: '',
+    buttons: [],
+  });
+
+  const showAlert = (title: string, message: string, buttons: any[] = [{ text: 'OK' }]) => {
+    setAlert({ visible: true, title, message, buttons });
+  };
 
   const handleSubmit = async () => {
     if (!reason.trim()) {
-      Alert.alert('Required', 'Please select a reason for the dispute.');
+      showAlert('Required', 'Please select a reason for the dispute.');
       return;
     }
     if (details.trim().length < 20) {
-      Alert.alert('More Details', 'Please provide at least 20 characters describing the issue.');
+      showAlert('More Details', 'Please provide at least 20 characters describing the issue.');
       return;
     }
 
@@ -51,7 +62,7 @@ export default function DisputeScreen() {
       });
 
       if (res.ok) {
-        Alert.alert('Dispute Raised', 'Our trust & safety team has been notified. We will review this within 24 hours.', [
+        showAlert('Dispute Raised', 'Our trust & safety team has been notified. We will review this within 24 hours.', [
           { text: 'OK', onPress: () => router.back() }
         ]);
       } else {
@@ -59,7 +70,7 @@ export default function DisputeScreen() {
         throw new Error(err.detail || 'Failed to raise dispute');
       }
     } catch (e: any) {
-      Alert.alert('Error', e.message);
+      showAlert('Error', e.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -150,6 +161,14 @@ export default function DisputeScreen() {
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <BrutalistAlert
+        visible={alert.visible}
+        title={alert.title}
+        message={alert.message}
+        buttons={alert.buttons}
+        onClose={() => setAlert({ ...alert, visible: false })}
+      />
     </View>
   );
 }

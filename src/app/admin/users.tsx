@@ -15,6 +15,7 @@ import { DesignTokens as DT } from '../../constants/design';
 import { useAuth } from '../../context/AuthContext';
 import API from '../../constants/api';
 import { MotiView } from 'moti';
+import { BrutalistAlert } from '../../components/ui/BrutalistAlert';
 
 export default function AdminUsersScreen() {
   const { token, isSuperAdmin } = useAuth();
@@ -24,6 +25,16 @@ export default function AdminUsersScreen() {
 
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [alert, setAlert] = useState<{ visible: boolean; title: string; message: string; buttons: any[] }>({
+    visible: false,
+    title: '',
+    message: '',
+    buttons: [],
+  });
+
+  const showAlert = (title: string, message: string, buttons: any[] = [{ text: 'OK' }]) => {
+    setAlert({ visible: true, title, message, buttons });
+  };
 
   useEffect(() => {
     fetchUsers();
@@ -48,14 +59,14 @@ export default function AdminUsersScreen() {
 
   const handleUpdateRole = async (userId: string, currentRole: string) => {
     if (!isSuperAdmin) {
-        Alert.alert('Permission Denied', 'Only Super Admins can assign roles.');
+        showAlert('Permission Denied', 'Only Super Admins can assign roles.');
         return;
     }
 
     const roles = ['user', 'support_admin', 'super_admin'];
     const nextRole = roles[(roles.indexOf(currentRole) + 1) % roles.length];
 
-    Alert.alert(
+    showAlert(
         'Update Role',
         `Change role from ${currentRole} to ${nextRole}?`,
         [
@@ -129,6 +140,14 @@ export default function AdminUsersScreen() {
         ListEmptyComponent={
             loading ? <ActivityIndicator color={colors.primary} style={{ marginTop: 40 }} /> : <Text style={styles.emptyText}>No users found</Text>
         }
+      />
+
+      <BrutalistAlert
+        visible={alert.visible}
+        title={alert.title}
+        message={alert.message}
+        buttons={alert.buttons}
+        onClose={() => setAlert({ ...alert, visible: false })}
       />
     </SafeAreaView>
   );

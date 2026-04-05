@@ -14,6 +14,7 @@ import { DesignTokens as DT } from '../../constants/design';
 import { useAuth } from '../../context/AuthContext';
 import API from '../../constants/api';
 import { MotiView } from 'moti';
+import { BrutalistAlert } from '../../components/ui/BrutalistAlert';
 
 export default function AdminRunnerAppsScreen() {
   const { token, isAdmin } = useAuth();
@@ -23,6 +24,16 @@ export default function AdminRunnerAppsScreen() {
 
   const [apps, setApps] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [alert, setAlert] = useState<{ visible: boolean; title: string; message: string; buttons: any[] }>({
+    visible: false,
+    title: '',
+    message: '',
+    buttons: [],
+  });
+
+  const showAlert = (title: string, message: string, buttons: any[] = [{ text: 'OK' }]) => {
+    setAlert({ visible: true, title, message, buttons });
+  };
 
   useEffect(() => {
     fetchApps();
@@ -46,7 +57,7 @@ export default function AdminRunnerAppsScreen() {
   };
 
   const handleReview = async (appId: string, approved: boolean) => {
-    Alert.alert(
+    showAlert(
         approved ? 'Approve Application' : 'Reject Application',
         `Are you sure you want to ${approved ? 'approve' : 'reject'} this runner?`,
         [
@@ -128,6 +139,14 @@ export default function AdminRunnerAppsScreen() {
         ListEmptyComponent={
             loading ? <ActivityIndicator color={colors.primary} style={{ marginTop: 40 }} /> : <Text style={styles.emptyText}>No pending applications</Text>
         }
+      />
+
+      <BrutalistAlert
+        visible={alert.visible}
+        title={alert.title}
+        message={alert.message}
+        buttons={alert.buttons}
+        onClose={() => setAlert({ ...alert, visible: false })}
       />
     </SafeAreaView>
   );
