@@ -413,21 +413,34 @@ export default function HomeScreen() {
                   style={styles.runnerCard}
                   onPress={() => router.push(`/runner/${runner.id}` as any)}
                 >
+                  {(() => {
+                    const avatarUrl = runner.avatar_url || runner.image || null;
+                    const avatarSource = avatarUrl && typeof avatarUrl === 'string'
+                      ? avatarUrl.startsWith('http')
+                        ? { uri: avatarUrl }
+                        : { uri: `${API.API_URL}${avatarUrl}`, headers: { Authorization: `Bearer ${token}` } }
+                      : null;
+
+                    return (
                   <View style={styles.runnerCardHeader}>
                     <View style={styles.runnerImageWrap}>
-                      <Image 
-                        source={
-                          runner.image && typeof runner.image === 'string'
-                            ? runner.image.startsWith('http') 
-                              ? { uri: runner.image } 
-                              : { uri: `${API.API_URL}${runner.image}`, headers: { Authorization: `Bearer ${token}` } }
-                            : { uri: 'https://i.pravatar.cc/150?u=runner' }
-                        } 
-                        style={styles.runnerImageFull} 
-                      />
+                      {avatarSource ? (
+                        <Image 
+                          source={avatarSource}
+                          style={styles.runnerImageFull} 
+                        />
+                      ) : (
+                        <View style={[styles.runnerImageFull, styles.runnerAvatarFallback]}>
+                          <Text style={styles.runnerAvatarFallbackText}>
+                            {(runner.name || '?').slice(0, 1).toUpperCase()}
+                          </Text>
+                        </View>
+                      )}
                       {runner.is_online && <View style={styles.onlineDot} />}
                     </View>
                   </View>
+                    );
+                  })()}
 
                   <View style={styles.runnerCardBody}>
                     <Text style={styles.runnerNameFull}>{runner.name}</Text>
@@ -693,6 +706,16 @@ const getStyles = (colors: any) => StyleSheet.create({
   runnerImageFull: {
     width: '100%',
     height: '100%',
+  },
+  runnerAvatarFallback: {
+    backgroundColor: colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  runnerAvatarFallbackText: {
+    fontFamily: DT.typography.heading,
+    fontSize: 22,
+    color: colors.text,
   },
   onlineDot: {
     position: 'absolute',
