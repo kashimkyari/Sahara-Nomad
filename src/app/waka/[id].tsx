@@ -40,7 +40,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import UserAvatar from '@/components/ui/UserAvatar';
 import InventoryProposalModal from '@/components/ui/InventoryProposalModal';
-import { useAudioPlayerStatus } from 'expo-audio';
+import { setAudioModeAsync, useAudioPlayerStatus } from 'expo-audio';
 import AudioModule from 'expo-audio/build/AudioModule';
 import { Play, Pause, Music, Trash2 as TrashIcon } from 'lucide-react-native';
 import * as Clipboard from 'expo-clipboard';
@@ -51,6 +51,7 @@ import API from '../../constants/api';
 import { ActivityIndicator } from 'react-native';
 import { BrutalistAlert } from '@/components/ui/BrutalistAlert';
 import { ReviewForm } from '@/components/ui/ReviewForm';
+import { normalizeAudioUri } from '../../utils/audio-cache';
 
 // Mock data removed in favor of real API calls
 
@@ -70,6 +71,10 @@ export default function WakaStatusScreen() {
   const styles = getStyles(colors);
 
   const AudioPlayer = ({ uri }: { uri: string }) => {
+    return <ActiveAudioPlayer uri={normalizeAudioUri(uri)} />;
+  };
+
+  const ActiveAudioPlayer = ({ uri }: { uri: string }) => {
     const player = useMemo(() => {
       return new (AudioModule as any).AudioPlayer({ uri }, 100, 0);
     }, [uri]);
@@ -89,7 +94,17 @@ export default function WakaStatusScreen() {
       <View style={styles.audioContainer}>
         <TouchableOpacity 
           style={styles.audioPlayBtn}
-          onPress={() => status.playing ? player.pause() : player.play()}
+          onPress={async () => {
+            await setAudioModeAsync({
+              allowsRecording: false,
+              playsInSilentMode: true,
+            });
+            if (status.playing) {
+              player.pause();
+            } else {
+              player.play();
+            }
+          }}
         >
           {status.playing ? (
             <Pause size={20} color={colors.surface} fill={colors.surface} />

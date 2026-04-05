@@ -22,28 +22,24 @@ import { useTheme } from '../../hooks/use-theme';
 import { useAuth } from '../../context/AuthContext';
 import API from '../../constants/api';
 import { MotiView, AnimatePresence } from 'moti';
-import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import { setAudioModeAsync, useAudioPlayerStatus } from 'expo-audio';
 import AudioModule from 'expo-audio/build/AudioModule';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { Play, Pause, Music, Trash2 } from 'lucide-react-native';
 import { BrutalistAlert } from '../../components/ui/BrutalistAlert';
-import { getCachedAudioUri } from '../../utils/audio-cache';
+import { normalizeAudioUri } from '../../utils/audio-cache';
 
 // --- Small Audio Player Component ---
 const AudioPlayer = (props: any) => {
   const [hasStarted, setHasStarted] = useState(false);
-  const [resolvedUri, setResolvedUri] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (hasStarted && !resolvedUri) {
-      getCachedAudioUri(props.uri).then(setResolvedUri);
-    }
-  }, [hasStarted, props.uri, resolvedUri]);
+  const resolvedUri = useMemo(() => {
+    return hasStarted ? normalizeAudioUri(props.uri) : null;
+  }, [hasStarted, props.uri]);
 
   const player = useMemo(() => {
     if (!resolvedUri) return null;
-    return new (AudioModule as any).AudioPlayer({ uri: resolvedUri }, 100, true);
+    return new (AudioModule as any).AudioPlayer({ uri: resolvedUri }, 100, 0);
   }, [resolvedUri]);
 
   if (!hasStarted || !player) {
@@ -107,7 +103,12 @@ const ActiveAudioPlayer = ({ player, uri, isMe, colors, styles, initialDuration,
     height: 12 + Math.random() * 26
   })), []);
 
-  const togglePlayback = () => {
+  const togglePlayback = async () => {
+    await setAudioModeAsync({
+      allowsRecording: false,
+      playsInSilentMode: true,
+    });
+
     if (playing) {
       player.pause();
     } else {
@@ -466,7 +467,7 @@ export default function ConversationScreen() {
       
       if (uri.match(/\.(mp3|wav|m4a|aac|ogg|opus)(\?.*)?$/i)) {
         try {
-          const tempPlayer = new (AudioModule as any).AudioPlayer({ uri }, 500, false);
+          const tempPlayer = new (AudioModule as any).AudioPlayer({ uri }, 500, 0);
           await new Promise(resolve => setTimeout(resolve, 1000));
           if (tempPlayer.duration > 0) metadata.duration = tempPlayer.duration;
           if (typeof tempPlayer.release === 'function') tempPlayer.release();
