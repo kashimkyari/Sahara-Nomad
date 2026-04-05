@@ -775,7 +775,7 @@ export default function WakaStatusScreen() {
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         
         {/* Live Tracking Map */}
-        {waka.status !== 'finding_runner' && waka.status !== 'cancelled' && waka.pickup_lat && (
+        {waka.status !== 'finding_runner' && waka.status !== 'cancelled' && typeof waka.pickup_lat === 'number' && typeof waka.dropoff_lat === 'number' && (
           <WakaLiveMap 
             runnerLocation={runnerLocation}
             pickupLocation={{ latitude: waka.pickup_lat, longitude: waka.pickup_lng }}
