@@ -1344,15 +1344,6 @@ export default function WakaStatusScreen() {
               </TouchableOpacity>
             )}
 
-            {isNomad && waka.status !== 'completed' && waka.status !== 'cancelled' && (
-              <TouchableOpacity 
-                style={[styles.actionBtn, { marginTop: 12, borderColor: colors.error }]} 
-                onPress={handleReportIssue}
-              >
-                <AlertTriangle size={20} color={colors.error} />
-                <Text style={[styles.actionBtnText, { color: colors.error }]}>REPORT ISSUE</Text>
-              </TouchableOpacity>
-            )}
 
             <TouchableOpacity 
               style={[styles.cancelBtn, isCancelling && { opacity: 0.5 }, { marginTop: 12 }]} 
