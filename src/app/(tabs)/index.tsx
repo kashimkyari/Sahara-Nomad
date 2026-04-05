@@ -378,10 +378,10 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* ── Runner Radar (Demand) ── */}
-        {user?.is_runner && (
+        {/* ── Employer Supply View ── */}
+        {!user?.is_runner && (
           <View style={styles.section}>
-            <Text style={styles.sectionLabel}>DEMAND RADAR</Text>
+            <Text style={styles.sectionLabel}>RUNNER COVERAGE MAP</Text>
             <MapDemand />
           </View>
         )}
