@@ -266,18 +266,16 @@ async def tip_waka(
 
     from ...services.wallet_service import wallet_service
     from decimal import Decimal
-    
     amount = Decimal(str(tip_in.amount))
     
-    # Tips are 1:1, no platform commission
-    success = await wallet_service.transfer_funds(
+    # Simplified transfer for tips (no commission, direct user-to-user)
+    success = await wallet_service.simple_transfer(
         db=db,
         from_user_id=current_user.id,
         to_user_id=waka.runner_id,
         amount=amount,
         tx_type="waka_tip",
-        reference=f"tip_{waka.id}_{uuid.uuid4().hex[:8]}",
-        is_cash=False # Tips must be digital for platform verification
+        reference=f"tip_{waka.id}_{uuid.uuid4().hex[:8]}"
     )
     
     if not success:

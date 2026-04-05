@@ -51,10 +51,12 @@ class WalletService:
         from_wallet = await WalletService.get_wallet(db, from_user_id)
         to_wallet = await WalletService.get_wallet(db, to_user_id)
         
-        # System wallet for revenue
-        from ..core.config import settings
-        system_user_id = uuid.UUID(settings.SYSTEM_USER_ID)
-        system_wallet = await WalletService.get_wallet(db, system_user_id)
+        # System wallet for revenue - Only fetch if there's a fee
+        system_wallet = None
+        if platform_fee > 0:
+            from ..core.config import settings
+            system_user_id = uuid.UUID(settings.SYSTEM_USER_ID)
+            system_wallet = await WalletService.get_wallet(db, system_user_id)
 
         # 4. Check balance
         if not is_cash and from_wallet.balance < amount:
@@ -63,17 +65,19 @@ class WalletService:
         # 5. Perform Transfer
         from_prev = from_wallet.balance
         to_prev = to_wallet.balance
-        sys_prev = system_wallet.balance
+        sys_prev = system_wallet.balance if system_wallet else Decimal("0.00")
         
         if not is_cash:
             # Ensure Decimal for all wallets (SQLAlchemy might return float if default was float)
             from_wallet.balance = Decimal(str(from_wallet.balance))
             to_wallet.balance = Decimal(str(to_wallet.balance))
-            system_wallet.balance = Decimal(str(system_wallet.balance))
+            if system_wallet:
+                system_wallet.balance = Decimal(str(system_wallet.balance))
             
             from_wallet.balance -= amount
             to_wallet.balance += net_amount
-            system_wallet.balance += platform_fee
+            if system_wallet:
+                system_wallet.balance += platform_fee
             
         # 6. Create Transactions
         # Debit from Nomad
@@ -101,7 +105,7 @@ class WalletService:
         ))
         
         # Credit to System (Commission)
-        if platform_fee > 0:
+        if platform_fee > 0 and system_wallet:
             db.add(Transaction(
                 wallet_id=system_wallet.id,
                 amount=platform_fee,
@@ -124,6 +128,68 @@ class WalletService:
             previous_balance=from_prev,
             new_balance=from_prev
         ))
+        
+        return True
+
+    @staticmethod
+    async def simple_transfer(
+        db: AsyncSession,
+        from_user_id: uuid.UUID,
+        to_user_id: uuid.UUID,
+        amount: Decimal,
+        tx_type: str,
+        reference: str
+    ) -> bool:
+        """
+        Lightweight user-to-user transfer with no commissions or complex markers.
+        Used for tipping and direct person-to-person payments.
+        """
+        amount = Decimal(str(amount))
+        if amount <= 0: return True
+        
+        # 1. Idempotency Check
+        exists = await db.execute(select(Transaction).where(Transaction.reference == reference))
+        if exists.scalars().first(): return True
+        
+        # 2. Get Wallets
+        from_wall = await WalletService.get_wallet(db, from_user_id)
+        to_wall = await WalletService.get_wallet(db, to_user_id)
+        
+        # 3. Check Balance
+        # Force Decimal for precision
+        from_balance = Decimal(str(from_wall.balance))
+        if from_balance < amount:
+            return False
+            
+        # 4. Atomic Update
+        from_prev = from_wall.balance
+        to_prev = to_wall.balance
+        
+        from_wall.balance = Decimal(str(from_wall.balance)) - amount
+        to_wall.balance = Decimal(str(to_wall.balance)) + amount
+        
+        # 5. Log Transactions
+        db.add(Transaction(
+            wallet_id=from_wall.id,
+            amount=amount,
+            type=f"{tx_type}_debit",
+            reference=f"{reference}_debit",
+            is_completed=True,
+            previous_balance=from_prev,
+            new_balance=from_wall.balance
+        ))
+        
+        db.add(Transaction(
+            wallet_id=to_wall.id,
+            amount=amount,
+            type=f"{tx_type}_credit",
+            reference=f"{reference}_credit",
+            is_completed=True,
+            previous_balance=to_prev,
+            new_balance=to_wall.balance
+        ))
+        
+        return True
         
     @staticmethod
     async def release_milestone(
