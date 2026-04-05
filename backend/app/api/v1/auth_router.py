@@ -512,7 +512,7 @@ async def get_referral_stats(
     if wallet_id:
         reward_stmt = select(func.sum(Transaction.amount)).where(
             Transaction.wallet_id == wallet_id,
-            Transaction.type == "referral_bonus",
+            Transaction.type == "referral_bonus_credit",
             Transaction.is_completed == True
         )
         total_earned = await db.scalar(reward_stmt) or 0.0
@@ -522,7 +522,7 @@ async def get_referral_stats(
         select(Transaction)
         .where(
             Transaction.wallet_id == wallet_id,
-            Transaction.type == "referral_bonus",
+            Transaction.type == "referral_bonus_credit",
             Transaction.is_completed == True
         )
         .order_by(Transaction.created_at.desc())

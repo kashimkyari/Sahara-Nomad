@@ -51,6 +51,7 @@ class User(AuditableBase):
     is_online: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     is_available: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     stats_trips: Mapped[int] = mapped_column(Integer, default=0)
+    errands_count: Mapped[int] = mapped_column(Integer, default=0)
 
     otp_code: Mapped[Optional[str]] = mapped_column(String(6), nullable=True)
     otp_expires_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)

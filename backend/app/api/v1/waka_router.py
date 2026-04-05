@@ -303,10 +303,6 @@ async def complete_waka(
         from ...services.wallet_service import wallet_service
         from decimal import Decimal
         
-        # --- AUTOMATED Payout (Wallet or Virtual Cash Audit) ---
-        from ...services.wallet_service import wallet_service
-        from decimal import Decimal
-        
         # --- DYNAMIC COMMISSION BASED ON RUNNER TIER ---
         # Bronze: 10%, Silver: 7.5%, Gold: 5%
         commission_rate = Decimal("0.10")
@@ -343,9 +339,10 @@ async def complete_waka(
         )
         waka.step = 5 # Success state
         
-        # Increment Runner Trip Count
+        # Increment Runner & Employer Counts
         if waka.runner:
             waka.runner.stats_trips += 1
+        waka.employer.errands_count += 1
             
         # --- REFERRAL REWARD (₦500 for first errand) ---
         if waka.employer.errands_count == 1 and waka.employer.referred_by_id:
