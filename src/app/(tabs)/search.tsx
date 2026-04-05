@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Image, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Search, MapPin, Star, History, ArrowRight, TrendingUp, X, ShoppingBag, Award } from 'lucide-react-native';
+import { Search, MapPin, Star, History, ArrowRight, TrendingUp, X, ShoppingBag, Award, Users } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { DesignTokens as DT } from '../../constants/design';
 import { useTheme } from '../../hooks/use-theme';
@@ -26,6 +26,9 @@ export default function SearchScreen() {
   const [loading, setLoading] = useState(false);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [trendingSearches, setTrendingSearches] = useState<string[]>([]);
+  const [sharedWakas, setSharedWakas] = useState<any[]>([]);
+  const [searchMode, setSearchMode] = useState<'runners' | 'groups'>('runners');
+  const [isJoining, setIsJoining] = useState<string | null>(null);
   const styles = getStyles(colors);
 
   useEffect(() => {
@@ -92,10 +95,45 @@ export default function SearchScreen() {
           setSelectedMarket(data.markets[0]);
         }
       }
+
+      // Fetch Shared Errands too
+      fetchSharedErrands();
     } catch (e) {
       console.error('Search failed:', e);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchSharedErrands = async () => {
+    try {
+      const res = await fetch(`${API.API_URL}/search/shared-errands`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      setSharedWakas(data || []);
+    } catch (e) {
+      console.error('Failed to fetch shared errands:', e);
+    }
+  };
+
+  const handleJoinGroup = async (wakaId: string) => {
+    setIsJoining(wakaId);
+    try {
+      const res = await fetch(`${API.API_URL}/waka/join/${wakaId}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        router.push(`/waka/${data.id}`);
+      } else {
+        alert(data.detail || 'Failed to join group');
+      }
+    } catch (e) {
+      console.error('Join failed:', e);
+    } finally {
+      setIsJoining(null);
     }
   };
 
@@ -225,89 +263,167 @@ export default function SearchScreen() {
           </View>
         </View>
 
-        {/* Active Runners Feed */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionLabel}>RUNNERS IN {user?.city?.toUpperCase() || 'YOUR AREA'} · NEAR {selectedMarket.toUpperCase()}</Text>
-          </View>
-          
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.runnerScroll}
+        {/* Mode Toggle */}
+        <View style={styles.modeToggleContainer}>
+          <TouchableOpacity 
+            style={[styles.modeBtn, searchMode === 'runners' && styles.modeBtnActive]}
+            onPress={() => setSearchMode('runners')}
           >
-            {loading ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={colors.primary} />
-                <Text style={styles.loadingText}>Fetching nearby runners...</Text>
-              </View>
-            ) : runners.length > 0 ? (
-              runners.map(runner => (
-                <TouchableOpacity 
-                  key={runner.id} 
-                  style={styles.runnerCard}
-                  onPress={() => router.push(`/runner/${runner.id}` as any)}
-                >
-                  <View style={styles.runnerHeader}>
-                    <View style={styles.runnerAvatarWrap}>
-                      <Image 
-                        source={runner.avatar_url.startsWith('http') 
-                          ? { uri: runner.avatar_url } 
-                          : { uri: `${API.API_URL}${runner.avatar_url}`, headers: { Authorization: `Bearer ${token}` } }
-                        } 
-                        style={styles.runnerAvatar} 
-                      />
-                      {runner.is_online && <View style={styles.onlineDot} />}
-                    </View>
-                    <View style={styles.runnerHeaderInfo}>
-                      <View style={styles.runnerTitleRow}>
-                        <View style={styles.nameBadgeRow}>
-                          <Text style={styles.runnerName} numberOfLines={1}>{runner.name}</Text>
-                          {runner.loyalty_badge && (
-                            <Award size={14} color={colors.primary} />
-                          )}
-                        </View>
-                        <Text style={styles.runnerPrice}>₦{runner.hourly_rate.toLocaleString()}/hr</Text>
-                      </View>
-                      <View style={styles.runnerMeta}>
-                        <Star size={12} color={colors.accent} fill={colors.accent} />
-                        <Text style={styles.runnerRating}>{runner.rating}</Text>
-                        <Text style={styles.metaDot}>•</Text>
-                        <ShoppingBag size={12} color={colors.muted} />
-                        <Text style={styles.statsText}>{runner.stats_trips} trips</Text>
-                        {runner.active_waka_count > 0 && (
-                          <>
-                            <Text style={styles.metaDot}>•</Text>
-                            <Text style={styles.wakaCountText}>{runner.active_waka_count} Active</Text>
-                          </>
-                        )}
-                      </View>
-                    </View>
-                  </View>
+            <ShoppingBag size={18} color={searchMode === 'runners' ? colors.surface : colors.text} />
+            <Text style={[styles.modeBtnText, searchMode === 'runners' && styles.modeBtnTextActive]}>RUNNERS</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.modeBtn, searchMode === 'groups' && styles.modeBtnActive]}
+            onPress={() => setSearchMode('groups')}
+          >
+            <Users size={18} color={searchMode === 'groups' ? colors.surface : colors.text} />
+            <Text style={[styles.modeBtnText, searchMode === 'groups' && styles.modeBtnTextActive]}>WAKA-SHARE</Text>
+            {sharedWakas.length > 0 && <View style={styles.badgeCount}><Text style={styles.badgeText}>{sharedWakas.length}</Text></View>}
+          </TouchableOpacity>
+        </View>
 
-                  <View style={styles.runnerFooter}>
-                    <View style={styles.distanceBadge}>
-                      <MapPin size={12} color={colors.surface} />
-                      <Text style={styles.distanceText}>{runner.distance_km}km</Text>
-                    </View>
-                    <TouchableOpacity 
-                      style={styles.hireBtn} 
-                      onPress={() => router.push({
-                        pathname: '/new-errand',
-                        params: { runnerId: runner.id, runnerName: runner.name }
-                      } as any)}
-                    >
-                      <Text style={styles.hireBtnText}>HIRE</Text>
-                    </TouchableOpacity>
+        {/* Dynamic Feed based on Mode */}
+        <View style={styles.section}>
+          {searchMode === 'runners' ? (
+            <>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionLabel}>RUNNERS IN {user?.city?.toUpperCase() || 'YOUR AREA'} · NEAR {selectedMarket.toUpperCase()}</Text>
+              </View>
+              
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.runnerScroll}
+              >
+                {loading ? (
+                  <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color={colors.primary} />
+                    <Text style={styles.loadingText}>Fetching nearby runners...</Text>
                   </View>
-                </TouchableOpacity>
-              ))
-            ) : (
-                <View style={styles.emptyContainer}>
-                    <Text style={styles.emptyText}>No runners found near {selectedMarket}.</Text>
-                </View>
-            )}
-          </ScrollView>
+                ) : runners.length > 0 ? (
+                  runners.map(runner => (
+                    <TouchableOpacity 
+                      key={runner.id} 
+                      style={styles.runnerCard}
+                      onPress={() => router.push(`/runner/${runner.id}` as any)}
+                    >
+                      <View style={styles.runnerHeader}>
+                        <View style={styles.runnerAvatarWrap}>
+                          <Image 
+                            source={runner.avatar_url.startsWith('http') 
+                              ? { uri: runner.avatar_url } 
+                              : { uri: `${API.API_URL}${runner.avatar_url}`, headers: { Authorization: `Bearer ${token}` } }
+                            } 
+                            style={styles.runnerAvatar} 
+                          />
+                          {runner.is_online && <View style={styles.onlineDot} />}
+                        </View>
+                        <View style={styles.runnerHeaderInfo}>
+                          <View style={styles.runnerTitleRow}>
+                            <View style={styles.nameBadgeRow}>
+                              <Text style={styles.runnerName} numberOfLines={1}>{runner.name}</Text>
+                              {runner.loyalty_badge && (
+                                <Award size={14} color={colors.primary} />
+                              )}
+                            </View>
+                            <Text style={styles.runnerPrice}>₦{runner.hourly_rate.toLocaleString()}/hr</Text>
+                          </View>
+                          <View style={styles.runnerMeta}>
+                            <Star size={12} color={colors.accent} fill={colors.accent} />
+                            <Text style={styles.runnerRating}>{runner.rating}</Text>
+                            <Text style={styles.metaDot}>•</Text>
+                            <ShoppingBag size={12} color={colors.muted} />
+                            <Text style={styles.statsText}>{runner.stats_trips} trips</Text>
+                            {runner.active_waka_count > 0 && (
+                              <>
+                                <Text style={styles.metaDot}>•</Text>
+                                <Text style={styles.wakaCountText}>{runner.active_waka_count} Active</Text>
+                              </>
+                            )}
+                          </View>
+                        </View>
+                      </View>
+
+                      <View style={styles.runnerFooter}>
+                        <View style={styles.distanceBadge}>
+                          <MapPin size={12} color={colors.surface} />
+                          <Text style={styles.distanceText}>{runner.distance_km}km</Text>
+                        </View>
+                        <TouchableOpacity 
+                          style={styles.hireBtn} 
+                          onPress={() => router.push({
+                            pathname: '/new-errand',
+                            params: { runnerId: runner.id, runnerName: runner.name }
+                          } as any)}
+                        >
+                          <Text style={styles.hireBtnText}>HIRE</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </TouchableOpacity>
+                  ))
+                ) : (
+                    <View style={styles.emptyContainer}>
+                        <Text style={styles.emptyText}>No runners found near {selectedMarket}.</Text>
+                    </View>
+                )}
+              </ScrollView>
+            </>
+          ) : (
+            <>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionLabel}>SHARED GROUPS · JOIN & SPLIT FEES</Text>
+              </View>
+              
+              <View style={styles.groupGrid}>
+                {sharedWakas.length > 0 ? (
+                  sharedWakas.map(waka => (
+                    <TouchableOpacity 
+                      key={waka.id} 
+                      style={styles.groupCard}
+                      onPress={() => router.push(`/waka/${waka.id}` as any)}
+                    >
+                      <View style={styles.groupTop}>
+                        <View style={styles.categoryWrap}>
+                          <ShoppingBag size={14} color={colors.surface} />
+                          <Text style={styles.categoryMini}>{waka.category.toUpperCase()}</Text>
+                        </View>
+                        <View style={styles.spotsBadge}>
+                          <Users size={12} color={colors.text} />
+                          <Text style={styles.spotsText}>JOINED</Text>
+                        </View>
+                      </View>
+                      
+                      <Text style={styles.groupTitle} numberOfLines={2}>{waka.item_description}</Text>
+                      
+                      <View style={styles.groupPriceRow}>
+                        <View>
+                          <Text style={styles.priceLabel}>EST. SPLIT FEE</Text>
+                          <Text style={styles.priceVal}>₦{(parseFloat(waka.original_runner_fee || waka.runner_fee) / 2).toLocaleString()}<Text style={styles.priceSub}>/ea</Text></Text>
+                        </View>
+                        <TouchableOpacity 
+                          style={styles.joinBtn}
+                          onPress={() => handleJoinGroup(waka.id)}
+                          disabled={isJoining === waka.id}
+                        >
+                          {isJoining === waka.id ? (
+                            <ActivityIndicator size="small" color={colors.surface} />
+                          ) : (
+                            <Text style={styles.joinBtnText}>JOIN GROUP</Text>
+                          )}
+                        </TouchableOpacity>
+                      </View>
+                    </TouchableOpacity>
+                  ))
+                ) : (
+                  <View style={styles.brutalEmpty}>
+                    <Users size={48} color={colors.muted} strokeWidth={1} />
+                    <Text style={styles.emptyHeading}>NO GROUPS ACTIVE</Text>
+                    <Text style={styles.emptySub}>Share your next errand to start a group and split fees!</Text>
+                  </View>
+                )}
+              </View>
+            </>
+          )}
         </View>
 
         {/* Search Recommendations (Trending & Recent) */}
@@ -458,6 +574,173 @@ const getStyles = (colors: any) => StyleSheet.create({
   section: {
     paddingHorizontal: DT.spacing.lg,
     marginBottom: DT.spacing.xl,
+  },
+  modeToggleContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: DT.spacing.lg,
+    marginBottom: DT.spacing.lg,
+    gap: 12,
+  },
+  modeBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 48,
+    borderWidth: 3,
+    borderColor: colors.text,
+    backgroundColor: colors.surface,
+    gap: 8,
+    shadowColor: colors.text,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
+  },
+  modeBtnActive: {
+    backgroundColor: colors.text,
+    transform: [{ translateX: 2 }, { translateY: 2 }],
+    shadowOffset: { width: 2, height: 2 },
+  },
+  modeBtnText: {
+    fontFamily: DT.typography.heading,
+    fontSize: 12,
+    color: colors.text,
+  },
+  modeBtnTextActive: {
+    color: colors.surface,
+  },
+  badgeCount: {
+    backgroundColor: colors.primary,
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 1.5,
+    borderColor: colors.text,
+  },
+  badgeText: {
+    fontFamily: DT.typography.heading,
+    fontSize: 10,
+    color: colors.surface,
+  },
+  groupGrid: {
+    gap: 16,
+  },
+  groupCard: {
+    backgroundColor: colors.surface,
+    borderWidth: 3,
+    borderColor: colors.text,
+    padding: 16,
+    shadowColor: colors.text,
+    shadowOffset: { width: 5, height: 5 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 5,
+  },
+  groupTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  categoryWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.text,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    gap: 6,
+  },
+  categoryMini: {
+    fontFamily: DT.typography.heading,
+    fontSize: 10,
+    color: colors.surface,
+  },
+  spotsBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: colors.text,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    gap: 4,
+  },
+  spotsText: {
+    fontFamily: DT.typography.heading,
+    fontSize: 10,
+    color: colors.text,
+  },
+  groupTitle: {
+    fontFamily: DT.typography.heading,
+    fontSize: 18,
+    color: colors.text,
+    marginBottom: 16,
+    lineHeight: 22,
+  },
+  groupPriceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    borderTopWidth: 2,
+    borderTopColor: colors.border,
+    paddingTop: 12,
+  },
+  priceLabel: {
+    fontFamily: DT.typography.heading,
+    fontSize: 10,
+    color: colors.muted,
+    marginBottom: 2,
+  },
+  priceVal: {
+    fontFamily: DT.typography.heading,
+    fontSize: 22,
+    color: colors.primary,
+  },
+  priceSub: {
+    fontSize: 12,
+    color: colors.muted,
+  },
+  joinBtn: {
+    backgroundColor: colors.secondary,
+    borderWidth: 3,
+    borderColor: colors.text,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    shadowColor: colors.text,
+    shadowOffset: { width: 3, height: 3 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+  },
+  joinBtnText: {
+    fontFamily: DT.typography.heading,
+    fontSize: 12,
+    color: colors.surface,
+  },
+  brutalEmpty: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+    borderWidth: 3,
+    borderColor: colors.text,
+    borderStyle: 'dashed',
+    backgroundColor: colors.background,
+  },
+  emptyHeading: {
+    fontFamily: DT.typography.heading,
+    fontSize: 20,
+    color: colors.text,
+    marginTop: 16,
+  },
+  emptySub: {
+    fontFamily: DT.typography.body,
+    fontSize: 14,
+    color: colors.muted,
+    textAlign: 'center',
+    marginTop: 8,
+    paddingHorizontal: 40,
   },
   sectionHeader: {
     flexDirection: 'row',

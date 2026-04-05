@@ -1,6 +1,6 @@
 import * as Location from 'expo-location';
 import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
-import { ChevronLeft, MapPin, Package, ShoppingCart, Utensils, Zap, Clock, User as UserIcon } from 'lucide-react-native';
+import { ChevronLeft, MapPin, Package, ShoppingCart, Utensils, Zap, Clock, User as UserIcon, Users, Calendar, Repeat } from 'lucide-react-native';
 import React, { useRef, useState, useEffect } from 'react';
 import {
   ActivityIndicator,
@@ -62,6 +62,12 @@ export default function NewErrandScreen() {
   const [budgetMin, setBudgetMin] = useState('');
   const [budgetMax, setBudgetMax] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'wallet' | 'cash'>('wallet');
+  
+  // V3 Logistics State
+  const [frequency, setFrequency] = useState<'once' | 'daily' | 'weekly' | 'monthly'>('once');
+  const [isShared, setIsShared] = useState(false);
+  const [maxSpots, setMaxSpots] = useState(3);
+  const [isInsuranceOptedIn, setIsInsuranceOptedIn] = useState(false);
   const [scrollEnabled, setScrollEnabled] = useState(true);
   const [selectedPickupId, setSelectedPickupId] = useState<string>();
   const [selectedDropoffId, setSelectedDropoffId] = useState<string>();
@@ -185,15 +191,26 @@ export default function NewErrandScreen() {
         budget_min: budgetMin ? parseFloat(budgetMin) : null,
         budget_max: budgetMax ? parseFloat(budgetMax) : null,
         payment_method: paymentMethod,
+        is_shared: isShared,
+        max_spots: isShared ? maxSpots : 1,
       };
 
-      const res = await fetch(API.WAKA.CREATE, {
+      const endpoint = frequency === 'once' ? API.WAKA.CREATE : `${API.API_URL}/scheduling/`;
+      const finalPayload = frequency === 'once' ? payload : {
+        title: `Recurring ${category} errand`,
+        frequency,
+        waka_template: payload,
+        next_run: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // Tomorrow
+        is_active: true
+      };
+
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(finalPayload),
       });
 
       if (!res.ok) {
@@ -202,9 +219,16 @@ export default function NewErrandScreen() {
       }
 
       const waka = await res.json();
-      showAlert('Waka Sent! 🎉', 'Runners nearby are being pinged right now. Get ready!', [
-        { text: 'AWESOME', onPress: () => router.replace(`/waka/${waka.id}` as any) }
-      ]);
+      if (frequency === 'once') {
+        showAlert(isShared ? 'Group Started! 🤝' : 'Waka Sent! 🎉', 
+          isShared ? 'Your shared errand is now discoverable by others.' : 'Runners nearby are being pinged right now.', [
+          { text: 'AWESOME', onPress: () => router.replace(`/waka/${waka.id}` as any) }
+        ]);
+      } else {
+        showAlert('Schedule Set! 🗓️', `Your ${frequency} errand has been scheduled.`, [
+          { text: 'AWESOME', onPress: () => router.replace('/(tabs)/profile' as any) }
+        ]);
+      }
     } catch (e: any) {
       showAlert('Broadcast Failed', e.message || 'Something went wrong. Please try again.');
     } finally {
@@ -303,7 +327,65 @@ export default function NewErrandScreen() {
           </View>
         )}
 
-        {/* Category Pills */}
+        {/* Recurring / Scheduling Section */}
+        <View style={styles.field}>
+          <Text style={styles.fieldLabel}>Frequency</Text>
+          <View style={styles.frequencyRow}>
+            {[
+              { id: 'once', label: 'Once', icon: Calendar },
+              { id: 'daily', label: 'Daily', icon: Repeat },
+              { id: 'weekly', label: 'Weekly', icon: Repeat },
+              { id: 'monthly', label: 'Monthly', icon: Repeat },
+            ].map((freq) => {
+              const active = frequency === freq.id;
+              const Icon = freq.icon;
+              return (
+                <TouchableOpacity
+                  key={freq.id}
+                  style={[styles.freqChip, active && styles.freqChipActive]}
+                  onPress={() => setFrequency(freq.id as any)}
+                >
+                  <Icon size={14} color={active ? colors.surface : colors.text} />
+                  <Text style={[styles.freqText, active && styles.freqTextActive]}>{freq.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+          {frequency !== 'once' && (
+            <Text style={styles.fieldHint}>This errand will be automatically re-created {frequency}.</Text>
+          )}
+        </View>
+
+        {/* Waka-Share Toggle */}
+        <View style={styles.field}>
+          <View style={styles.toggleRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.fieldLabel}>Initiate Waka-Share?</Text>
+              <Text style={styles.fieldHint}>Allow others in your area to join and split the ₦{price.toLocaleString()} fee.</Text>
+            </View>
+            <TouchableOpacity 
+              style={[styles.brutalToggle, isShared && styles.brutalToggleActive]}
+              onPress={() => setIsShared(!isShared)}
+            >
+              <View style={[styles.toggleThumb, isShared && styles.toggleThumbActive]} />
+            </TouchableOpacity>
+          </View>
+          
+          {isShared && (
+            <View style={styles.spotsContainer}>
+              <Text style={styles.fieldLabel}>Max Participants</Text>
+              <View style={styles.stepper}>
+                <TouchableOpacity onPress={() => setMaxSpots(Math.max(2, maxSpots - 1))} style={styles.stepBtn}>
+                  <Text style={styles.stepBtnText}>-</Text>
+                </TouchableOpacity>
+                <Text style={styles.stepVal}>{maxSpots}</Text>
+                <TouchableOpacity onPress={() => setMaxSpots(Math.min(5, maxSpots + 1))} style={styles.stepBtn}>
+                  <Text style={styles.stepBtnText}>+</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+        </View>
         <View style={styles.field}>
           <Text style={styles.fieldLabel}>Errand Type</Text>
           <View style={styles.categoryRow}>
@@ -790,6 +872,94 @@ const getStyles = (colors: any) => StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
+  },
+  frequencyRow: {
+    flexDirection: 'row',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  freqChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 2,
+    borderColor: colors.text,
+    backgroundColor: colors.surface,
+  },
+  freqChipActive: {
+    backgroundColor: colors.text,
+  },
+  freqText: {
+    fontFamily: DT.typography.heading,
+    fontSize: 12,
+    color: colors.text,
+  },
+  freqTextActive: {
+    color: colors.surface,
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  brutalToggle: {
+    width: 60,
+    height: 32,
+    borderWidth: 3,
+    borderColor: colors.text,
+    backgroundColor: colors.border,
+    padding: 3,
+  },
+  brutalToggleActive: {
+    backgroundColor: colors.primary,
+  },
+  toggleThumb: {
+    width: 20,
+    height: 20,
+    backgroundColor: colors.text,
+  },
+  toggleThumbActive: {
+    backgroundColor: colors.surface,
+    transform: [{ translateX: 28 }],
+  },
+  spotsContainer: {
+    marginTop: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 12,
+    borderWidth: 2,
+    borderColor: colors.text,
+    borderStyle: 'dashed',
+  },
+  stepper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  stepBtn: {
+    width: 32,
+    height: 32,
+    borderWidth: 2,
+    borderColor: colors.text,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepBtnText: {
+    fontFamily: DT.typography.heading,
+    fontSize: 18,
+    color: colors.text,
+  },
+  stepVal: {
+    fontFamily: DT.typography.heading,
+    fontSize: 18,
+    color: colors.text,
+    minWidth: 20,
+    textAlign: 'center',
   },
   categoryChip: {
     flexDirection: 'row',

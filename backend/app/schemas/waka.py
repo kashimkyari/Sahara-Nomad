@@ -2,6 +2,7 @@ from pydantic import BaseModel, Field
 from uuid import UUID
 from typing import Optional, List
 from datetime import datetime
+from .inventory import InventoryItemResponse
 
 class LocationSchema(BaseModel):
     address: str
@@ -110,6 +111,7 @@ class WakaResponse(BaseModel):
     parent_waka_id: Optional[UUID] = None
     max_spots: int = 1
     milestones: Optional[list] = None
+    inventory_items: Optional[List[InventoryItemResponse]] = None
     
     created_at: datetime
     

@@ -111,7 +111,8 @@ async def create_waka(
         insurance_opt_in=waka_in.insurance_opt_in,
         is_shared=waka_in.is_shared,
         parent_waka_id=waka_in.parent_waka_id,
-        max_spots=waka_in.max_spots
+        max_spots=waka_in.max_spots,
+        original_runner_fee=waka_in.base_fee if waka_in.is_shared else None
     )
     db.add(db_obj)
     await db.commit()
@@ -158,9 +159,9 @@ async def create_waka(
             participants = [parent] + siblings
             num_participants = len(participants)
             
-            # Simple splitting logic: base_fee / num_participants
-            # In a real app, you'd add a small overhead for extra stops
-            base_fee = float(parent.runner_fee) # assuming all siblings use parent's original base_fee
+            # Robust splitting logic: original_base_fee / num_participants
+            # We use parent.original_runner_fee to avoid halving issues
+            base_fee = float(parent.original_runner_fee or parent.runner_fee)
             split_fee = base_fee / num_participants
             
             for p in participants:
@@ -1079,3 +1080,87 @@ async def leave_waka_review(
     await db.commit()
     await db.refresh(review)
     return review
+
+@router.post("/join/{parent_id}", response_model=WakaResponse)
+async def join_shared_errand(
+    parent_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """A nomad joins an existing shared errand."""
+    # 1. Fetch Parent
+    parent = await db.get(Waka, parent_id)
+    if not parent:
+        raise HTTPException(status_code=404, detail="Parent errand not found")
+        
+    if not parent.is_shared:
+        raise HTTPException(status_code=400, detail="This errand is not shareable")
+        
+    if parent.parent_waka_id:
+        raise HTTPException(status_code=400, detail="Cannot join a child errand. Join the parent.")
+        
+    # 2. Check Capacity
+    siblings_stmt = select(func.count(Waka.id)).where(Waka.parent_waka_id == parent.id)
+    s_res = await db.execute(siblings_stmt)
+    count = s_res.scalar() or 0
+    if (count + 1) >= parent.max_spots:
+        raise HTTPException(status_code=400, detail="This group is full")
+        
+    # 3. Create Child Waka
+    child = Waka(
+        employer_id=current_user.id,
+        runner_id=parent.runner_id,
+        category=parent.category,
+        item_description=f"Joining: {parent.item_description}",
+        pickup_address=parent.pickup_address,
+        dropoff_address=current_user.address or parent.dropoff_address, # Use joining nomad's address if available
+        urgency=parent.urgency,
+        runner_fee=parent.runner_fee, # Will be recalculated
+        total_price=parent.runner_fee, # Will be recalculated
+        status=parent.status,
+        step=parent.step,
+        items=[], # Joining nomad adds their own items later
+        is_shared=True,
+        parent_waka_id=parent.id,
+        original_runner_fee=parent.original_runner_fee or parent.runner_fee
+    )
+    db.add(child)
+    await db.commit()
+    await db.refresh(child)
+    
+    # 4. Trigger Fee Recalculation
+    # Find all siblings (including the new child)
+    all_participants_stmt = select(Waka).where(
+        (Waka.id == parent.id) | (Waka.parent_waka_id == parent.id)
+    )
+    p_res = await db.execute(all_participants_stmt)
+    participants = p_res.scalars().all()
+    num_p = len(participants)
+    
+    base_fee = float(parent.original_runner_fee or parent.runner_fee)
+    split_fee = base_fee / num_p
+    
+    for p in participants:
+        p.runner_fee = split_fee
+        p.total_price = split_fee + float(p.flash_incentive or 0)
+        
+    await db.commit()
+    
+    # 5. Notify Parent Nomad & Runner
+    await notify_user(
+        db=db,
+        user=parent.employer,
+        title="Someone Joined Your Group! 🤝",
+        body=f"{current_user.full_name} has joined your shared errand to {parent.category}. Your fee is now ₦{split_fee:,.2f}!",
+        type="success"
+    )
+    if parent.runner:
+        await notify_user(
+            db=db,
+            user=parent.runner,
+            title="Group Size Increased!",
+            body=f"{current_user.full_name} joined the errand to {parent.category}. More delivery stops added!",
+            type="info"
+        )
+        
+    return await get_hydrated_waka(db, child.id)

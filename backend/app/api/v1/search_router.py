@@ -158,3 +158,43 @@ async def search_runners(
         trending_searches=trending_searches,
         markets=markets
     )
+
+@router.get("/shared-errands")
+async def search_shared_errands(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Find shared errands that have open spots."""
+    # Subquery for current spots taken
+    spots_taken_sq = (
+        select(func.count(Waka.id))
+        .where(Waka.parent_waka_id == Waka.id)
+        .scalar_subquery()
+    )
+
+    # Find parent wakas that are shared and not full
+    # Note: participation logic might need participant join table but for now count children
+    stmt = select(Waka).where(
+        Waka.is_shared == True,
+        Waka.parent_waka_id == None,
+        Waka.is_completed == False,
+        Waka.status.in_(['finding_runner', 'sourcing', 'delivery'])
+    )
+    
+    result = await db.execute(stmt)
+    wakas = result.scalars().all()
+    
+    # Filter by spots manually or in query (simplified here)
+    available_wakas = []
+    for w in wakas:
+        # Count participants (parent + siblings)
+        participants_stmt = select(func.count(Waka.id)).where(
+            (Waka.id == w.id) | (Waka.parent_waka_id == w.id)
+        )
+        p_res = await db.execute(participants_stmt)
+        count = p_res.scalar()
+        
+        if count < w.max_spots:
+            available_wakas.append(w)
+            
+    return available_wakas

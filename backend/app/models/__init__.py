@@ -7,6 +7,8 @@ from .waka import Waka, WakaDispute
 from .notification import InAppNotification
 from .message import Conversation, Message
 from .search import SearchHistory
+from .inventory import WakaInventoryItem
+from .scheduling import ScheduledWaka
 
 __all__ = [
     "Base",
@@ -23,5 +25,7 @@ __all__ = [
     "InAppNotification",
     "Conversation",
     "Message",
-    "SearchHistory"
+    "SearchHistory",
+    "WakaInventoryItem",
+    "ScheduledWaka"
 ]

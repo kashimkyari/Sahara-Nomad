@@ -10,6 +10,8 @@ from .runner_application_router import router as runner_application_router
 from .support_router import router as support_router
 from .media_router import router as media_router
 from .admin_router import router as admin_router
+from .inventory_router import router as inventory_router
+from .scheduling_router import router as scheduling_router
 
 api_router = APIRouter()
 
@@ -24,3 +26,5 @@ api_router.include_router(runner_application_router, prefix="/runner-application
 api_router.include_router(support_router, prefix="/support", tags=["support"])
 api_router.include_router(media_router, prefix="/media", tags=["media"])
 api_router.include_router(admin_router, prefix="/admin", tags=["admin"])
+api_router.include_router(inventory_router, prefix="/inventory", tags=["inventory"])
+api_router.include_router(scheduling_router, prefix="/scheduling", tags=["scheduling"])

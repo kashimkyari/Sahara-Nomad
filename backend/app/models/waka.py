@@ -28,6 +28,7 @@ class Waka(AuditableBase):
     urgency: Mapped[str] = mapped_column(String(20)) # standard, flash
     
     runner_fee: Mapped[float] = mapped_column(Numeric(12, 2))
+    original_runner_fee: Mapped[Optional[float]] = mapped_column(Numeric(12, 2), nullable=True)
     flash_incentive: Mapped[float] = mapped_column(Numeric(12, 2), default=0.0)
     total_price: Mapped[float] = mapped_column(Numeric(12, 2))
     
@@ -63,6 +64,7 @@ class Waka(AuditableBase):
     # Relationships
     employer: Mapped["User"] = relationship("User", foreign_keys=[employer_id])
     runner: Mapped[Optional["User"]] = relationship("User", foreign_keys=[runner_id])
+    inventory_items: Mapped[list["WakaInventoryItem"]] = relationship("WakaInventoryItem", back_populates="waka")
 
 class WakaDecline(AuditableBase):
     __tablename__ = "waka_declines"

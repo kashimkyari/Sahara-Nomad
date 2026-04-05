@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Animated,
   TextInput,
+  Modal,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -25,7 +26,8 @@ import {
   Navigation,
   Package,
   Camera,
-  Eye
+  Eye,
+  X,
 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { DesignTokens as DT } from '../../constants/design';
@@ -82,6 +84,13 @@ export default function WakaStatusScreen() {
   const [tipAmount, setTipAmount] = useState("");
   const [podImage, setPodImage] = useState<string | null>(null);
   const [isUploadingPOD, setIsUploadingPOD] = useState(false);
+  
+  // Inventory Proposal State
+  const [showInventoryForm, setShowInventoryForm] = useState(false);
+  const [newItemName, setNewItemName] = useState('');
+  const [newItemPrice, setNewItemPrice] = useState('');
+  const [newItemPhoto, setNewItemPhoto] = useState<string | null>(null);
+  const [isProposingItem, setIsProposingItem] = useState(false);
 
   const showAlert = (title: string, message: string, buttons: any[] = [{ text: 'OK' }]) => {
     setAlertConfig({ title, message, buttons });
@@ -539,6 +548,100 @@ export default function WakaStatusScreen() {
     }
   };
 
+  const handleRespondToBid = async (itemId: string, approved: boolean) => {
+    if (!token || !id) return;
+    try {
+      setLoading(true);
+      const res = await fetch(`${API.API_URL}/inventory/${itemId}/respond?approved=${approved}`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Failed to respond to bid');
+      }
+      
+      fetchWakaDetails();
+      showAlert(approved ? 'Item Approved' : 'Item Declined', approved ? 'Your budget has been updated.' : 'Runner has been notified.');
+    } catch (e: any) {
+      showAlert('Error', e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleProposeItem = async () => {
+    if (!token || !id || !newItemName || !newItemPrice) {
+      showAlert('Missing Info', 'Please provide a name and price for the item.');
+      return;
+    }
+    
+    setIsProposingItem(true);
+    try {
+      let photoUrl = null;
+      if (newItemPhoto) {
+        // Upload photo first
+        const formData = new FormData();
+        const uriParts = newItemPhoto.split('.');
+        const fileType = uriParts[uriParts.length - 1];
+        formData.append('file', {
+          uri: newItemPhoto,
+          name: `inventory_${id}_${Date.now()}.${fileType}`,
+          type: `image/${fileType}`,
+        } as any);
+
+        const uploadRes = await fetch(`${API.API_URL}/media/upload`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+        });
+        if (uploadRes.ok) {
+          const uploadData = await uploadRes.json();
+          photoUrl = uploadData.url;
+        }
+      }
+
+      const res = await fetch(`${API.API_URL}/inventory/propose`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          waka_id: id,
+          name: newItemName,
+          price: parseFloat(newItemPrice),
+          photo_url: photoUrl
+        })
+      });
+      
+      if (!res.ok) throw new Error('Failed to propose item');
+      
+      showAlert('Proposed', 'The nomad has been notified of your proposal.');
+      fetchWakaDetails();
+      setShowInventoryForm(false);
+      setNewItemName('');
+      setNewItemPrice('');
+      setNewItemPhoto(null);
+    } catch (e: any) {
+      showAlert('Error', e.message);
+    } finally {
+      setIsProposingItem(false);
+    }
+  };
+
+  const pickInventoryPhoto = async () => {
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      quality: 0.7,
+    });
+    if (!result.canceled) {
+      setNewItemPhoto(result.assets[0].uri);
+    }
+  };
+
 
 
   useEffect(() => {
@@ -773,6 +876,16 @@ export default function WakaStatusScreen() {
                 <Text style={[styles.actionBtnText, { color: colors.surface }]}>CALL</Text>
               </TouchableOpacity>
             </View>
+            
+            {actingAsRunner && waka.status === 'sourcing' && (
+              <TouchableOpacity 
+                style={[styles.actionBtn, { marginTop: 12, backgroundColor: colors.primary, width: '100%' }]}
+                onPress={() => setShowInventoryForm(true)}
+              >
+                <ShoppingBag size={20} color={colors.surface} strokeWidth={2.5} />
+                <Text style={[styles.actionBtnText, { color: colors.surface }]}>PROPOSE ITEM BID</Text>
+              </TouchableOpacity>
+            )}
           </View>
         ) : (waka.status !== 'cancelled' && (
           <View style={styles.runnerCard}>
@@ -796,6 +909,53 @@ export default function WakaStatusScreen() {
           >
             <Text style={styles.cancelText}>RAISE DISPUTE / REPORT ISSUE</Text>
           </TouchableOpacity>
+        )}
+
+        {/* Live Inventory Bidding Section */}
+        {waka.inventory_items && waka.inventory_items.length > 0 && (
+          <View style={[styles.card, { marginTop: 20, borderColor: colors.secondary }]}>
+            <View style={styles.cardTopRow}>
+              <Text style={styles.cardTitle}>LIVE INVENTORY BIDS</Text>
+              <View style={[styles.livePill, { backgroundColor: colors.secondary }]}>
+                <Text style={styles.liveText}>ACTION REQUIRED</Text>
+              </View>
+            </View>
+            <Text style={styles.listHeader}>Tap to add/remove from your errand budget</Text>
+            
+            {waka.inventory_items.map((item: any) => (
+              <View key={item.id} style={[styles.itemBulletRow, { paddingVertical: 12, borderBottomWidth: 1, borderColor: '#EEE' }]}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.runnerName}>{item.name}</Text>
+                  <Text style={[styles.priceValue, { fontSize: 16 }]}>₦{item.price.toLocaleString()}</Text>
+                </View>
+                
+                {item.status === 'proposed' ? (
+                  isNomad ? (
+                    <View style={{ flexDirection: 'row', gap: 8 }}>
+                      <TouchableOpacity 
+                        style={[styles.areaBadge, { backgroundColor: colors.error }]}
+                        onPress={() => handleRespondToBid(item.id, false)}
+                      >
+                        <Text style={[styles.areaLabel, { color: colors.surface }]}>DECLINE</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity 
+                        style={[styles.areaBadge, { backgroundColor: colors.secondary }]}
+                        onPress={() => handleRespondToBid(item.id, true)}
+                      >
+                        <Text style={[styles.areaLabel, { color: colors.surface }]}>APPROVE</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    <Text style={styles.standardHintText}>AWAITING NOMAD</Text>
+                  )
+                ) : (
+                  <View style={[styles.categoryBadge, { backgroundColor: item.status === 'approved' ? colors.secondary : colors.error }]}>
+                    <Text style={[styles.categoryLabel, { color: colors.surface }]}>{item.status.toUpperCase()}</Text>
+                  </View>
+                )}
+              </View>
+            ))}
+          </View>
         )}
 
         {/* Tipping Section (Nomad only, if completed) */}
@@ -1182,6 +1342,73 @@ export default function WakaStatusScreen() {
         onClose={() => setDisputeVisible(false)}
         onSubmit={handleRaiseDispute}
       />
+
+      {/* Inventory Proposal Modal */}
+      <Modal
+        visible={showInventoryForm}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowInventoryForm(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { maxHeight: '80%' }]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>PROPOSE ITEM BID</Text>
+              <TouchableOpacity onPress={() => setShowInventoryForm(false)}>
+                <X size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+            
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <Text style={styles.inputLabel}>ITEM NAME / DESCRIPTION</Text>
+              <TextInput
+                style={[styles.brutalInput, { marginBottom: 16 }]}
+                placeholder="e.g. 1kg Tomatoes, Loaf of Bread"
+                placeholderTextColor="#999"
+                value={newItemName}
+                onChangeText={setNewItemName}
+              />
+              
+              <Text style={styles.inputLabel}>PRICE (₦)</Text>
+              <TextInput
+                style={[styles.brutalInput, { marginBottom: 16 }]}
+                placeholder="0.00"
+                placeholderTextColor="#999"
+                keyboardType="numeric"
+                value={newItemPrice}
+                onChangeText={setNewItemPrice}
+              />
+              
+              <Text style={styles.inputLabel}>PHOTO (OPTIONAL)</Text>
+              <TouchableOpacity style={styles.addPodBtn} onPress={pickInventoryPhoto}>
+                {newItemPhoto ? (
+                  <Image source={{ uri: newItemPhoto }} style={styles.podPreview} />
+                ) : (
+                  <View style={{ alignItems: 'center' }}>
+                    <Camera size={32} color={colors.text} strokeWidth={1.5} />
+                    <Text style={styles.addPodText}>TAP TO SNAP PHOTO</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.primaryAction, { marginTop: 24, width: '100%' }]}
+                onPress={handleProposeItem}
+                disabled={isProposingItem}
+              >
+                {isProposingItem ? (
+                  <ActivityIndicator color={colors.surface} />
+                ) : (
+                  <>
+                    <ShoppingBag size={20} color={colors.surface} />
+                    <Text style={styles.primaryActionText}>SUBMIT PROPOSAL</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -1344,6 +1571,54 @@ function getStyles(colors: any) {
       fontSize: 12,
       color: colors.muted,
       marginBottom: 4,
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      justifyContent: 'center',
+      padding: 20,
+    },
+    modalContent: {
+      backgroundColor: colors.surface,
+      borderWidth: 4,
+      borderColor: colors.text,
+      padding: 24,
+      shadowColor: colors.text,
+      shadowOffset: { width: 8, height: 8 },
+      shadowOpacity: 1,
+      shadowRadius: 0,
+      elevation: 8,
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 20,
+    },
+    modalTitle: {
+      fontFamily: DT.typography.heading,
+      fontSize: 20,
+      color: colors.text,
+    },
+    photoPicker: {
+      height: 160,
+      borderWidth: 2,
+      borderColor: colors.text,
+      borderStyle: 'dashed',
+      backgroundColor: colors.background,
+      justifyContent: 'center',
+      alignItems: 'center',
+      overflow: 'hidden',
+    },
+    pickedImage: {
+      width: '100%',
+      height: '100%',
+    },
+    photoPickerText: {
+      fontFamily: DT.typography.heading,
+      fontSize: 12,
+      color: colors.text,
+      marginTop: 8,
     },
     brutalInput: {
       height: 48,
