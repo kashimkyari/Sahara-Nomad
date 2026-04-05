@@ -60,6 +60,7 @@ export default function NewErrandScreen() {
   const [price, setPrice] = useState(5000);
   const [budgetMin, setBudgetMin] = useState('');
   const [budgetMax, setBudgetMax] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<'wallet' | 'cash'>('wallet');
   const [showSuccess, setShowSuccess] = useState(false);
   const [scrollEnabled, setScrollEnabled] = useState(true);
 
@@ -181,6 +182,7 @@ export default function NewErrandScreen() {
         target_runner_id: runnerId,
         budget_min: budgetMin ? parseFloat(budgetMin) : null,
         budget_max: budgetMax ? parseFloat(budgetMax) : null,
+        payment_method: paymentMethod,
       };
 
       const res = await fetch(API.WAKA.CREATE, {
@@ -474,6 +476,39 @@ export default function NewErrandScreen() {
               </View>
             </TouchableOpacity>
           </View>
+        </View>
+        
+        {/* Payment Method Toggle */}
+        <View style={styles.field}>
+          <Text style={styles.fieldLabel}>Payment Method</Text>
+          <View style={styles.urgencyRow}>
+            <TouchableOpacity 
+              style={[styles.urgencyBox, paymentMethod === 'wallet' && styles.urgencyBoxActive]}
+              onPress={() => setPaymentMethod('wallet')}
+            >
+              <Package size={20} color={paymentMethod === 'wallet' ? colors.surface : colors.text} strokeWidth={2} />
+              <View style={styles.urgencyTextWrap}>
+                <Text style={[styles.urgencyTitle, paymentMethod === 'wallet' && { color: colors.surface }]}>Secure Wallet</Text>
+                <Text style={[styles.urgencySub, paymentMethod === 'wallet' && { color: 'rgba(255,255,255,0.7)' }]}>Automated & Safe</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.urgencyBox, paymentMethod === 'cash' && { backgroundColor: '#F0F0F0', borderColor: colors.text }]}
+              onPress={() => setPaymentMethod('cash')}
+            >
+              <UserIcon size={20} color={colors.text} strokeWidth={2} />
+              <View style={styles.urgencyTextWrap}>
+                <Text style={[styles.urgencyTitle, { color: colors.text }]}>Cash / POD</Text>
+                <Text style={[styles.urgencySub, { color: 'rgba(0,0,0,0.6)' }]}>Pay on Delivery</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.fieldHint}>
+            {paymentMethod === 'wallet' 
+              ? "Funds are automatically transferred upon your approval." 
+              : "You'll pay the runner directly via cash or bank transfer."}
+          </Text>
         </View>
 
         {urgency === 'flash' && (

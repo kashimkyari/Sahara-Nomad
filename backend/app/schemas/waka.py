@@ -21,6 +21,7 @@ class WakaCreate(BaseModel):
     budget_min: Optional[float] = None
     budget_max: Optional[float] = None
     items: Optional[list[str]] = None
+    payment_method: str = "wallet" # wallet, cash
 
 class WakaSourcingRequest(BaseModel):
     sourcing_budget: float
@@ -70,6 +71,7 @@ class WakaResponse(BaseModel):
     
     has_employer_reviewed: bool = False
     has_runner_reviewed: bool = False
+    payment_method: str = "wallet"
     created_at: datetime
     
     employer: Optional[WakaUser] = None

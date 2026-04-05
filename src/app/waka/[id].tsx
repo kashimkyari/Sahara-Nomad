@@ -251,8 +251,27 @@ export default function WakaStatusScreen() {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) throw new Error('Failed to mark as complete');
       const data = await res.json();
+
+      if (!res.ok) {
+        if (waka.payment_method === 'wallet' && data.detail?.includes('Insufficient wallet balance')) {
+          setAlertConfig({
+            title: 'Low Balance 💸',
+            message: data.detail,
+            buttons: [
+              { text: 'NOT NOW', style: 'cancel' },
+              { text: 'TOP UP WALLET', onPress: () => {
+                setAlertVisible(false);
+                router.push('/profile/wallet' as any);
+              }}
+            ]
+          });
+          setAlertVisible(true);
+          return;
+        }
+        throw new Error(data.detail || 'Failed to mark as complete');
+      }
+
       if (data.is_completed) {
         showAlert('Success', 'Errand fully finalized! Thank you.');
       } else {
@@ -333,8 +352,26 @@ export default function WakaStatusScreen() {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` }
       });
+      const data = await res.json();
       
-      if (!res.ok) throw new Error('Failed to confirm funding');
+      if (!res.ok) {
+        if (waka.payment_method === 'wallet' && data.detail?.includes('Insufficient wallet balance')) {
+          setAlertConfig({
+            title: 'Low Balance 💸',
+            message: data.detail,
+            buttons: [
+              { text: 'NOT NOW', style: 'cancel' },
+              { text: 'TOP UP WALLET', onPress: () => {
+                setAlertVisible(false);
+                router.push('/profile/wallet' as any);
+              }}
+            ]
+          });
+          setAlertVisible(true);
+          return;
+        }
+        throw new Error(data.detail || 'Failed to confirm funding');
+      }
       
       showAlert('Funding Confirmed', 'The runner has been notified to proceed with purchases.');
       fetchWakaDetails();
@@ -452,6 +489,12 @@ export default function WakaStatusScreen() {
             </View>
             <Text style={styles.priceValue}>₦{waka.total_price.toLocaleString()}</Text>
           </View>
+          
+          {waka.payment_method === 'cash' && (
+            <View style={{ alignSelf: 'flex-start', backgroundColor: '#F0F0F0', paddingHorizontal: 8, paddingVertical: 4, borderWidth: 2, borderColor: colors.text, marginBottom: 8 }}>
+              <Text style={{ fontFamily: DT.typography.heading, fontSize: 10, color: colors.text }}>PAY ON DELIVERY (CASH)</Text>
+            </View>
+          )}
 
           {/* Body: Description & Items */}
           <Text style={styles.cardTitle}>{waka.item_description}</Text>

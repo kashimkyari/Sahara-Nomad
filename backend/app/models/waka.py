@@ -50,6 +50,8 @@ class Waka(AuditableBase):
     completed_by_runner: Mapped[bool] = mapped_column(Boolean, default=False)
     completed_by_employer: Mapped[bool] = mapped_column(Boolean, default=False)
 
+    payment_method: Mapped[str] = mapped_column(String(20), server_default='wallet', default='wallet', nullable=False) # wallet, cash
+
     # Relationships
     employer: Mapped["User"] = relationship("User", foreign_keys=[employer_id])
     runner: Mapped[Optional["User"]] = relationship("User", foreign_keys=[runner_id])

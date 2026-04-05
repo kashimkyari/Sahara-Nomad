@@ -171,6 +171,11 @@ const SourcingActionCard = ({ metadata, onApprove, onDecline, isMe, colors, styl
         <View style={styles.actionHeader}>
           <Package size={18} color={colors.text} />
           <Text style={styles.actionTitle}>SOURCING BILL</Text>
+          {metadata.payment_method === 'cash' && (
+            <View style={{ backgroundColor: '#F0F0F0', paddingHorizontal: 6, paddingVertical: 2, borderWidth: 1, borderColor: colors.text, marginLeft: 8 }}>
+              <Text style={{ fontSize: 8, fontFamily: DT.typography.heading }}>CASH / POD</Text>
+            </View>
+          )}
           <ExternalLink size={14} color={colors.muted} style={{ marginLeft: 'auto' }} />
         </View>
         
@@ -497,7 +502,22 @@ export default function ConversationScreen() {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` }
       });
-      if (!res.ok) throw new Error('Failed to approve');
+      const data = await res.json();
+
+      if (!res.ok) {
+        if (data.detail?.includes('Insufficient wallet balance')) {
+          showAlert('Low Balance 💸', data.detail, [
+            { text: 'NOT NOW', style: 'cancel', onPress: () => setIsAlertVisible(false) },
+            { text: 'TOP UP WALLET', onPress: () => {
+              setIsAlertVisible(false);
+              router.push('/profile/wallet' as any);
+            }}
+          ]);
+          return;
+        }
+        throw new Error(data.detail || 'Failed to approve');
+      }
+      
       showAlert('Success', 'Bill approved and funded!');
       fetchHistory();
     } catch (e: any) {
