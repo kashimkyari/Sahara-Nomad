@@ -70,8 +70,18 @@ export default function WakaStatusScreen() {
   const styles = getStyles(colors);
 
   const AudioPlayer = ({ uri }: { uri: string }) => {
-    const player = useAudioPlayer(uri);
+    const player = useAudioPlayer({ uri });
     const status = useAudioPlayerStatus(player);
+
+    useEffect(() => {
+      return () => {
+        if (typeof player.release === 'function') {
+          player.release();
+        } else if (typeof player.remove === 'function') {
+          player.remove();
+        }
+      };
+    }, [player]);
     
     return (
       <View style={styles.audioContainer}>

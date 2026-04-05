@@ -1,7 +1,7 @@
 import * as Location from 'expo-location';
 import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
 import { ChevronLeft, MapPin, Package, ShoppingCart, Utensils, Zap, Clock, User as UserIcon, Users, Calendar, Repeat, Plus, Trash2, Mic, Play, Pause, Circle } from 'lucide-react-native';
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useMemo, useRef, useState, useEffect } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -26,12 +26,13 @@ import { BrutalistAlert } from '../components/ui/BrutalistAlert';
 import AddressSelector from '../components/ui/AddressSelector';
 import { 
   useAudioRecorder, 
-  useAudioPlayer, 
+  useAudioRecorderState,
   useAudioPlayerStatus, 
   RecordingPresets,
   setAudioModeAsync,
   requestRecordingPermissionsAsync
 } from 'expo-audio';
+import AudioModule from 'expo-audio/build/AudioModule';
 
 const { width } = Dimensions.get('window');
 const SLIDER_WIDTH = width - DT.spacing.lg * 2 - 4; // subtract padding
@@ -41,11 +42,28 @@ const SLIDER_TICKS = [5000, 10000, 15000, 20000, 25000];
 
 function VoicePlayer({ uri, styles }: { uri: string, styles: any }) {
   const { colors } = useTheme();
-  const player = useAudioPlayer(uri);
+  const player = useMemo(() => {
+    return new (AudioModule as any).AudioPlayer({ uri }, 100, 0);
+  }, [uri]);
   const status = useAudioPlayerStatus(player);
   const playing = status.playing;
 
-  const togglePlay = () => {
+  useEffect(() => {
+    return () => {
+      if (typeof player.release === 'function') {
+        player.release();
+      } else if (typeof player.remove === 'function') {
+        player.remove();
+      }
+    };
+  }, [player]);
+
+  const togglePlay = async () => {
+    await setAudioModeAsync({
+      allowsRecording: false,
+      playsInSilentMode: true,
+    });
+
     if (playing) {
       player.pause();
     } else {
@@ -152,13 +170,19 @@ export default function NewErrandScreen() {
   // Sync slider animation if price changes externally
   // Voice Note State
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const recorderState = useAudioRecorderState(recorder);
   const [isRecording, setIsRecording] = useState(false);
   const [voiceNoteUri, setVoiceNoteUri] = useState<string | null>(null);
 
   const startRecording = async () => {
     try {
+      if (isRecording || recorderState.isRecording) return;
+
       const permission = await requestRecordingPermissionsAsync();
-      if (!permission.granted) return;
+      if (!permission.granted) {
+        showAlert('Microphone Access Needed', 'Enable microphone permission to record a voice note.');
+        return;
+      }
       
       await setAudioModeAsync({
         allowsRecording: true,
@@ -171,18 +195,41 @@ export default function NewErrandScreen() {
     } catch (e) {
       console.error(e);
       setIsRecording(false);
+      showAlert('Recording Failed', 'The voice note could not start. Please try again.');
     }
   };
 
   const stopRecording = async () => {
     try {
+      if (!isRecording && !recorderState.isRecording) return;
+
       await recorder.stop();
+      const recordedUri = recorder.uri ?? recorder.getStatus().url ?? recorderState.url;
+
+      await setAudioModeAsync({
+        allowsRecording: false,
+        playsInSilentMode: true,
+      });
+
       setIsRecording(false);
-      setVoiceNoteUri(recorder.uri);
+
+      if (recordedUri) {
+        setVoiceNoteUri(recordedUri);
+      } else {
+        showAlert('Recording Failed', 'The recording finished, but no audio file was saved.');
+      }
     } catch (e) {
       console.error(e);
+      setIsRecording(false);
+      showAlert('Recording Failed', 'The voice note could not be saved. Please try again.');
     }
   };
+
+  useEffect(() => {
+    if (!isRecording && recorderState.url) {
+      setVoiceNoteUri(recorderState.url);
+    }
+  }, [isRecording, recorderState.url]);
 
   // Sync slider animation if price changes externally
   useEffect(() => {
