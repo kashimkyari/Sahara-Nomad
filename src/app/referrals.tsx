@@ -23,15 +23,15 @@ interface ReferralStats {
 
 const ReferralScreen = () => {
   const { colors } = useTheme();
-  const { user, token } = useAuth();
+  const { user, token, updateUser } = useAuth();
   const router = useRouter();
   
   const [copied, setCopied] = useState(false);
   const [stats, setStats] = useState<ReferralStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
 
-  // @ts-ignore - referral_code is added to User model on backend
-  const referralCode = user?.referral_code || "NOMAD-GIFT";
+  const referralCode = user?.referral_code;
 
   const fetchStats = async () => {
     try {
@@ -47,20 +47,41 @@ const ReferralScreen = () => {
     }
   };
 
+  const generateCode = async () => {
+    setGenerating(true);
+    try {
+      const response = await fetch(`${API.API_URL}/auth/referrals/generate`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        // Update local user context so it reflects everywhere
+        updateUser({ ...user!, referral_code: data.referral_code });
+      }
+    } catch (error) {
+      console.error("Generate Code Error:", error);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   useEffect(() => {
     fetchStats();
   }, [token]);
 
   const onCopy = async () => {
+    if (!referralCode) return;
     await Clipboard.setStringAsync(referralCode);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   const onShare = async () => {
+    if (!referralCode) return;
     try {
       await Share.share({
-        message: `Join me on Sahara Nomad! Use my code ${referralCode} to get ₦500 off your first errand. Download here: https://saharanomad.com`,
+        message: `Join me on Sahara Nomad! Use my code ${referralCode} to get ₦500 off your first errand. \n\nAccept invite: sendam://signup?ref=${referralCode}`,
       });
     } catch (error) {
       console.log(error);
@@ -113,20 +134,42 @@ const ReferralScreen = () => {
         {/* Referral Code Card */}
         <Text style={styles.sectionLabel}>YOUR REFERRAL CODE</Text>
         <View style={styles.codeCard}>
-          <View style={styles.codeRow}>
-            <Text style={styles.codeText}>{referralCode}</Text>
-            <TouchableOpacity onPress={onCopy} style={styles.copyBtn}>
-              {copied ? (
-                <CheckCircle2 size={24} color={colors.secondary} strokeWidth={2.5} />
-              ) : (
-                <Copy size={24} color={colors.text} strokeWidth={2.5} />
-              )}
-            </TouchableOpacity>
-          </View>
-          <TouchableOpacity onPress={onShare} style={styles.shareButton}>
-            <Share2 size={20} color={colors.surface} strokeWidth={2.5} />
-            <Text style={styles.shareButtonText}>Invite your friends</Text>
-          </TouchableOpacity>
+          {referralCode ? (
+            <>
+              <View style={styles.codeRow}>
+                <Text style={styles.codeText}>{referralCode}</Text>
+                <TouchableOpacity onPress={onCopy} style={styles.copyBtn}>
+                  {copied ? (
+                    <CheckCircle2 size={24} color={colors.secondary} strokeWidth={2.5} />
+                  ) : (
+                    <Copy size={24} color={colors.text} strokeWidth={2.5} />
+                  )}
+                </TouchableOpacity>
+              </View>
+              <TouchableOpacity onPress={onShare} style={styles.shareButton}>
+                <Share2 size={20} color={colors.surface} strokeWidth={2.5} />
+                <Text style={styles.shareButtonText}>Invite your friends</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <View style={styles.noCodeContainer}>
+              <Text style={styles.noCodeText}>You don't have a referral code yet.</Text>
+              <TouchableOpacity 
+                onPress={generateCode} 
+                disabled={generating}
+                style={[styles.shareButton, { marginTop: 12 }]}
+              >
+                {generating ? (
+                  <ActivityIndicator color={colors.surface} />
+                ) : (
+                  <>
+                    <Gift size={20} color={colors.surface} strokeWidth={2.5} />
+                    <Text style={styles.shareButtonText}>Generate My Code</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
 
         {/* How It Works List */}
@@ -311,6 +354,17 @@ const getStyles = (colors: any) => StyleSheet.create({
     fontFamily: DT.typography.heading,
     fontSize: 14,
     color: colors.surface,
+  },
+  noCodeContainer: {
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  noCodeText: {
+    fontFamily: DT.typography.bodySemiBold,
+    fontSize: 14,
+    color: colors.text,
+    marginBottom: 8,
+    textAlign: 'center',
   },
 
   infoCard: {

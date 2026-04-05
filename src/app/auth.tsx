@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as Linking from 'expo-linking';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { DesignTokens as DT } from '../constants/design';
@@ -28,6 +29,7 @@ export default function AuthScreen() {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [referralCode, setReferralCode] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [phoneError, setPhoneError] = useState('');
@@ -37,6 +39,27 @@ export default function AuthScreen() {
   const phoneRef = useRef<any>(null);
   const passwordRef = useRef<any>(null);
   const otpRef = useRef<any>(null);
+
+  // Handle Deeplinking for referrals
+  useEffect(() => {
+    const handleUrl = (url: string) => {
+      const parsed = Linking.parse(url);
+      if (parsed.queryParams?.ref) {
+        setReferralCode(parsed.queryParams.ref as string);
+        setTab('signup');
+      }
+    };
+
+    Linking.getInitialURL().then((url) => {
+      if (url) handleUrl(url);
+    });
+
+    const subscription = Linking.addEventListener('url', (event) => {
+      handleUrl(event.url);
+    });
+
+    return () => subscription.remove();
+  }, []);
 
   // Alert State
   const [alertVisible, setAlertVisible] = useState(false);
@@ -65,7 +88,7 @@ export default function AuthScreen() {
       return;
     }
     setPhoneError('');
-    setIsOtpView(false); // Reset view if switching tabs or starting over
+    setIsOtpView(false); 
     setLoading(true);
 
     const fullPhone = `+234${sanitizePhone(phone)}`;
@@ -79,6 +102,7 @@ export default function AuthScreen() {
             full_name: name,
             phone_number: fullPhone,
             password: password,
+            referral_code: referralCode || undefined
           }),
         });
         
@@ -86,9 +110,6 @@ export default function AuthScreen() {
           const err = await response.json();
           throw new Error(err.detail || 'Signup failed');
         }
-
-        // After signup, auto-login or prompt for login? Usually auto-login is better.
-        // For simplicity, we'll login right after signup or just switch to login tab.
       }
 
       // Login/Token call
@@ -251,17 +272,28 @@ export default function AuthScreen() {
             ) : (
               <>
                 {tab === 'signup' && (
-                  <Input
-                    label="Full Name"
-                    placeholder="e.g. Chidi Amaechi"
-                    value={name}
-                    onChangeText={setName}
-                    autoCapitalize="words"
-                    textContentType="name"
-                    autoComplete="name"
-                    onSubmitEditing={() => phoneRef.current?.focus()}
-                    returnKeyType="next"
-                  />
+                  <>
+                    <Input
+                      label="Full Name"
+                      placeholder="e.g. Chidi Amaechi"
+                      value={name}
+                      onChangeText={setName}
+                      autoCapitalize="words"
+                      textContentType="name"
+                      autoComplete="name"
+                      onSubmitEditing={() => phoneRef.current?.focus()}
+                      returnKeyType="next"
+                    />
+                    <Input
+                      label="Referral Code (Optional)"
+                      placeholder="e.g. A1B2C3D4"
+                      value={referralCode}
+                      onChangeText={setReferralCode}
+                      autoCapitalize="characters"
+                      autoCorrect={false}
+                      placeholderTextColor={colors.muted}
+                    />
+                  </>
                 )}
 
                 {/* Phone Field with +234 prefix */}

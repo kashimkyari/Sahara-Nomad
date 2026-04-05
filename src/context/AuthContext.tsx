@@ -14,6 +14,7 @@ interface User {
   phone_number: string;
   email: string | null;
   loyalty_badge: string | null;
+  referral_code: string | null;
   is_otp_verified: boolean;
   is_verified: boolean;
   is_runner: boolean;
@@ -58,6 +59,7 @@ interface AuthContextType {
   signIn: (accessToken: string, refreshToken: string) => Promise<void>;
   signOut: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  updateUser: (user: User) => void;
   isAdmin: boolean;
   isSuperAdmin: boolean;
 }
@@ -404,7 +406,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isSuperAdmin = user?.role === 'super_admin';
 
   return (
-    <AuthContext.Provider value={{ token, refreshToken, user, isLoading, signIn, signOut, refreshUser, isAdmin, isSuperAdmin }}>
+    <AuthContext.Provider value={{ token, refreshToken, user, isLoading, signIn, signOut, refreshUser, updateUser: setUser, isAdmin, isSuperAdmin }}>
       {children}
     </AuthContext.Provider>
   );

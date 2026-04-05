@@ -48,6 +48,17 @@ async def signup(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
         if referrer:
             referred_by_id = referrer.id
 
+    # Generate UNIQUE Referral Code
+    referral_code = ""
+    is_unique = False
+    while not is_unique:
+        referral_code = uuid.uuid4().hex[:8].upper()
+        # Check if exists
+        check_stmt = select(User.id).where(User.referral_code == referral_code)
+        exists = (await db.execute(check_stmt)).scalars().first()
+        if not exists:
+            is_unique = True
+
     # Create User (unverified)
     db_obj = User(
         full_name=user_in.full_name,
@@ -58,7 +69,7 @@ async def signup(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
         is_verified=False,
         otp_code="123456",
         otp_expires_at=datetime.utcnow() + timedelta(minutes=10),
-        referral_code=uuid.uuid4().hex[:8].upper(),
+        referral_code=referral_code,
         referred_by_id=referred_by_id
     )
     db.add(db_obj)
@@ -543,3 +554,28 @@ async def get_referral_stats(
             } for t in history
         ]
     }
+
+@router.post("/referrals/generate")
+async def generate_referral_code(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Generates a unique referral code if the user doesn't have one."""
+    if current_user.referral_code:
+        return {"referral_code": current_user.referral_code}
+    
+    # Reuse unique generation logic
+    referral_code = ""
+    is_unique = False
+    while not is_unique:
+        referral_code = uuid.uuid4().hex[:8].upper()
+        check_stmt = select(User.id).where(User.referral_code == referral_code)
+        exists = (await db.execute(check_stmt)).scalars().first()
+        if not exists:
+            is_unique = True
+            
+    current_user.referral_code = referral_code
+    await db.commit()
+    await db.refresh(current_user)
+    
+    return {"referral_code": referral_code}
