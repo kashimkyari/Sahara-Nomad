@@ -268,6 +268,11 @@ async def submit_waka_sourcing(
     
     await db.commit()
     
+    # Find conversation for notification linking
+    conv_stmt = select(Conversation).where(Conversation.waka_id == waka.id)
+    conv_res = await db.execute(conv_stmt)
+    conv = conv_res.scalar_one_or_none()
+    
     # Notify Employer
     await notify_user(
         db=db,
@@ -275,11 +280,57 @@ async def submit_waka_sourcing(
         title="Sourcing Bill Received",
         body=f"{current_user.full_name} has updated the errand costs. Total: ₦{sourcing_in.sourcing_budget:,.2f}. Please review and fund.",
         type="info",
-        linked_entity_id=waka.id,
-        linked_entity_type="waka"
+        linked_entity_id=conv.id if conv else waka.id,
+        linked_entity_type="conversation" if conv else "waka"
     )
     
     await db.commit()
+    await db.refresh(waka)
+
+    # --- AUTO-POST TO CHAT ---
+    try:
+        from ...models.message import Conversation, Message
+        from ...schemas.message import MessageRead
+        from .message_router import manager
+        import json
+
+        conv_stmt = select(Conversation).where(Conversation.waka_id == waka.id)
+        conv_res = await db.execute(conv_stmt)
+        conv = conv_res.scalar_one_or_none()
+        
+        if conv:
+            action_msg = Message(
+                conversation_id=conv.id,
+                sender_id=waka.runner_id,
+                content_text=f"🛒 Sourcing Request: ₦{waka.sourcing_budget:,.2f}",
+                attachment_metadata={
+                    "type": "sourcing_request",
+                    "waka_id": str(waka.id),
+                    "amount": float(waka.sourcing_budget),
+                    "items": waka.items,
+                    "waka_status": waka.status,
+                    "bank": {
+                        "name": waka.sourcing_bank_name,
+                        "number": waka.sourcing_account_number,
+                        "account_name": waka.sourcing_account_name
+                    }
+                }
+            )
+            db.add(action_msg)
+            conv.last_message_text = action_msg.content_text
+            conv.last_message_at = func.now()
+            await db.commit()
+            await db.refresh(action_msg)
+            
+            # Broadcast via WebSocket
+            msg_data = {
+                "type": "NEW_MESSAGE",
+                "message": MessageRead.model_validate(action_msg).model_dump(mode='json')
+            }
+            await manager.broadcast(json.dumps(msg_data), str(conv.id))
+    except Exception as e:
+        print(f"Error posting sourcing action to chat: {e}")
+
     return await get_hydrated_waka(db, waka_id)
 
 @router.post("/{waka_id}/fund_sourcing", response_model=WakaResponse)
@@ -301,6 +352,11 @@ async def fund_waka_sourcing(
     
     await db.commit()
     
+    # Find conversation for notification linking
+    conv_stmt = select(Conversation).where(Conversation.waka_id == waka.id)
+    conv_res = await db.execute(conv_stmt)
+    conv = conv_res.scalar_one_or_none()
+
     # Notify Runner
     await notify_user(
         db=db,
@@ -308,11 +364,50 @@ async def fund_waka_sourcing(
         title="Sourcing Budget Funded!",
         body=f"{current_user.full_name} has funded the groceries budget. You can now proceed with the purchase.",
         type="success",
-        linked_entity_id=waka.id,
-        linked_entity_type="waka"
+        linked_entity_id=conv.id if conv else waka.id,
+        linked_entity_type="conversation" if conv else "waka"
     )
     
     await db.commit()
+    await db.refresh(waka)
+
+    # --- AUTO-POST TO CHAT ---
+    try:
+        from ...models.message import Conversation, Message
+        from ...schemas.message import MessageRead
+        from .message_router import manager
+        import json
+
+        conv_stmt = select(Conversation).where(Conversation.waka_id == waka.id)
+        conv_res = await db.execute(conv_stmt)
+        conv = conv_res.scalar_one_or_none()
+        
+        if conv:
+            action_msg = Message(
+                conversation_id=conv.id,
+                sender_id=waka.employer_id,
+                content_text=f"✅ Bill Approved & Funded (₦{waka.sourcing_budget:,.2f})",
+                attachment_metadata={
+                    "type": "sourcing_resolved",
+                    "waka_id": str(waka.id),
+                    "status": "funded"
+                }
+            )
+            db.add(action_msg)
+            conv.last_message_text = action_msg.content_text
+            conv.last_message_at = func.now()
+            await db.commit()
+            await db.refresh(action_msg)
+            
+            # Broadcast via WebSocket
+            msg_data = {
+                "type": "NEW_MESSAGE",
+                "message": MessageRead.model_validate(action_msg).model_dump(mode='json')
+            }
+            await manager.broadcast(json.dumps(msg_data), str(conv.id))
+    except Exception as e:
+        print(f"Error posting funding action to chat: {e}")
+
     return await get_hydrated_waka(db, waka_id)
 
 @router.post("/{waka_id}/reject_sourcing", response_model=WakaResponse)
@@ -337,6 +432,11 @@ async def reject_waka_sourcing(
     if rejection.item_list is not None:
         waka.items = rejection.item_list
     
+    # Find conversation for notification linking
+    conv_stmt = select(Conversation).where(Conversation.waka_id == waka.id)
+    conv_res = await db.execute(conv_stmt)
+    conv = conv_res.scalar_one_or_none()
+
     # Notify runner
     if waka.runner:
         await notify_user(
@@ -345,11 +445,50 @@ async def reject_waka_sourcing(
             title="Bill Declined ❌",
             body=f"The employer declined your bill for '{waka.category}'. Items have been adjusted.",
             type="warning",
-            linked_entity_id=waka.id,
-            linked_entity_type="waka"
+            linked_entity_id=conv.id if conv else waka.id,
+            linked_entity_type="conversation" if conv else "waka"
         )
     
     await db.commit()
+    await db.refresh(waka)
+
+    # --- AUTO-POST TO CHAT ---
+    try:
+        from ...models.message import Conversation, Message
+        from ...schemas.message import MessageRead
+        from .message_router import manager
+        import json
+
+        conv_stmt = select(Conversation).where(Conversation.waka_id == waka.id)
+        conv_res = await db.execute(conv_stmt)
+        conv = conv_res.scalar_one_or_none()
+        
+        if conv:
+            action_msg = Message(
+                conversation_id=conv.id,
+                sender_id=waka.employer_id,
+                content_text="❌ Sourcing Bill Declined",
+                attachment_metadata={
+                    "type": "sourcing_resolved",
+                    "waka_id": str(waka.id),
+                    "status": "rejected"
+                }
+            )
+            db.add(action_msg)
+            conv.last_message_text = action_msg.content_text
+            conv.last_message_at = func.now()
+            await db.commit()
+            await db.refresh(action_msg)
+            
+            # Broadcast via WebSocket
+            msg_data = {
+                "type": "NEW_MESSAGE",
+                "message": MessageRead.model_validate(action_msg).model_dump(mode='json')
+            }
+            await manager.broadcast(json.dumps(msg_data), str(conv.id))
+    except Exception as e:
+        print(f"Error posting rejection action to chat: {e}")
+
     return await get_hydrated_waka(db, waka_id)
 
 @router.get("/mine", response_model=List[WakaResponse])

@@ -256,9 +256,8 @@ export default function ConversationScreen() {
     };
   }, [convoId, token]);
 
-  const fetchHistory = async () => {
+  const fetchConversation = async () => {
     try {
-      // Get conversation details directly
       const convRes = await fetch(API.MESSAGES.CONVERSATION_DETAIL(convoId!), {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -266,6 +265,15 @@ export default function ConversationScreen() {
         const conv = await convRes.json();
         setConversation(conv);
       }
+    } catch (e) {
+      console.error('Error fetching conversation:', e);
+    }
+  };
+
+  const fetchHistory = async () => {
+    try {
+      setLoading(true);
+      await fetchConversation();
 
       const res = await fetch(API.MESSAGES.HISTORY(convoId!), {
         headers: { Authorization: `Bearer ${token}` }
@@ -294,6 +302,12 @@ export default function ConversationScreen() {
           if (prev.find(m => m.id === newMsg.id)) return prev;
           return [...prev, newMsg];
         });
+        
+        // Refresh conversation to get latest waka_status if it's an action message
+        if (newMsg.attachment_metadata?.type?.startsWith('sourcing')) {
+          fetchConversation();
+        }
+        
         setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
       } else if (data.type === 'DELETE_MESSAGE') {
         setMessages(prev => prev.map(m => 
