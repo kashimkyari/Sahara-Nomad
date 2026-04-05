@@ -33,6 +33,7 @@ class WalletService:
         """
         Atomically transfers funds between two user wallets, optionally taking commission.
         """
+        amount = Decimal(str(amount))
         if amount <= 0:
             return True
             
@@ -65,6 +66,11 @@ class WalletService:
         sys_prev = system_wallet.balance
         
         if not is_cash:
+            # Ensure Decimal for all wallets (SQLAlchemy might return float if default was float)
+            from_wallet.balance = Decimal(str(from_wallet.balance))
+            to_wallet.balance = Decimal(str(to_wallet.balance))
+            system_wallet.balance = Decimal(str(system_wallet.balance))
+            
             from_wallet.balance -= amount
             to_wallet.balance += net_amount
             system_wallet.balance += platform_fee

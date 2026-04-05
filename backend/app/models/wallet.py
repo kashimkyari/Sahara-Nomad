@@ -5,13 +5,14 @@ import uuid
 from typing import Optional
 from .base import AuditableBase
 from datetime import datetime
+from decimal import Decimal
 
 class Wallet(AuditableBase):
     __tablename__ = "wallets"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), unique=True)
-    balance: Mapped[float] = mapped_column(Numeric(12, 2), default=0.0)
+    balance: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=Decimal("0.00"))
     currency: Mapped[str] = mapped_column(String(3), default="NGN")
     
     virtual_account_number: Mapped[Optional[str]] = mapped_column(String(20), unique=True, nullable=True)
@@ -46,7 +47,7 @@ class Payment(AuditableBase):
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     wallet_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("wallets.id"), index=True)
     
-    amount: Mapped[float] = mapped_column(Numeric(12, 2))
+    amount: Mapped[Decimal] = mapped_column(Numeric(12, 2))
     currency: Mapped[str] = mapped_column(String(3), default="NGN")
     
     status: Mapped[str] = mapped_column(String(20), default="pending") # pending, success, failed
@@ -68,7 +69,7 @@ class Transaction(AuditableBase):
     wallet_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("wallets.id"))
     payment_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), ForeignKey("payments.id"), nullable=True)
     
-    amount: Mapped[float] = mapped_column(Numeric(12, 2))
+    amount: Mapped[Decimal] = mapped_column(Numeric(12, 2))
     
     type: Mapped[str] = mapped_column(String(50)) # fund_bank, fund_card, fund_ussd, waka_payment, waka_refund
     reference: Mapped[str] = mapped_column(String(100), unique=True)
@@ -77,8 +78,8 @@ class Transaction(AuditableBase):
     is_cash: Mapped[bool] = mapped_column(Boolean, default=False)
     
     # Audit fields for balance tracing
-    previous_balance: Mapped[float] = mapped_column(Numeric(12, 2))
-    new_balance: Mapped[float] = mapped_column(Numeric(12, 2))
+    previous_balance: Mapped[Decimal] = mapped_column(Numeric(12, 2))
+    new_balance: Mapped[Decimal] = mapped_column(Numeric(12, 2))
 
     wallet: Mapped["Wallet"] = relationship("Wallet", back_populates="transactions")
     payment: Mapped[Optional["Payment"]] = relationship("Payment", back_populates="transaction")

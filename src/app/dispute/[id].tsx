@@ -14,8 +14,8 @@ import {
   Platform,
 } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
-import { API } from '../../constants/api';
-import { DT } from '../../constants/design';
+import API from '../../constants/api';
+import { DesignTokens as DT } from '../../constants/design';
 
 export default function DisputeScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -82,7 +82,7 @@ export default function DisputeScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <ChevronLeft size={24} color={DT.colors.light.text} />
+          <ChevronLeft size={24} color={DT.light.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>RAISE DISPUTE</Text>
         <View style={{ width: 40 }} />
@@ -94,7 +94,7 @@ export default function DisputeScreen() {
       >
         <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: 40 }}>
           <View style={styles.warningBox}>
-            <AlertTriangle size={24} color={DT.colors.light.text} />
+            <AlertTriangle size={24} color={DT.light.text} />
             <Text style={styles.warningText}>
               Raising a dispute will freeze fund release for this errand until reviewed by support.
             </Text>
@@ -119,7 +119,7 @@ export default function DisputeScreen() {
           <TextInput
             style={styles.detailsInput}
             placeholder="Provide specific details about what went wrong..."
-            placeholderTextColor={DT.colors.light.border}
+            placeholderTextColor={DT.light.border}
             multiline
             numberOfLines={6}
             value={details}
@@ -128,7 +128,7 @@ export default function DisputeScreen() {
           />
 
           <View style={styles.infoBox}>
-            <Info size={16} color={DT.colors.light.text} />
+            <Info size={16} color={DT.light.text} />
             <Text style={styles.infoText}>
               You can also attach screenshots of your chat in the following step or send them to support@sendam.app
             </Text>
@@ -140,11 +140,11 @@ export default function DisputeScreen() {
             disabled={isSubmitting}
           >
             {isSubmitting ? (
-              <ActivityIndicator color={DT.colors.light.surface} />
+              <ActivityIndicator color={DT.light.surface} />
             ) : (
               <>
                 <Text style={styles.submitBtnText}>SUBMIT DISPUTE</Text>
-                <Send size={20} color={DT.colors.light.surface} />
+                <Send size={20} color={DT.light.surface} />
               </>
             )}
           </TouchableOpacity>
@@ -157,7 +157,7 @@ export default function DisputeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: DT.colors.light.surface,
+    backgroundColor: DT.light.surface,
   },
   header: {
     flexDirection: 'row',
@@ -166,23 +166,23 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     paddingHorizontal: 20,
     paddingBottom: 20,
-    backgroundColor: DT.colors.light.surface,
+    backgroundColor: DT.light.surface,
     borderBottomWidth: 4,
-    borderBottomColor: DT.colors.light.text,
+    borderBottomColor: DT.light.text,
   },
   backBtn: {
     width: 40,
     height: 40,
     borderWidth: 2,
-    borderColor: DT.colors.light.text,
+    borderColor: DT.light.text,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: DT.colors.light.surface,
+    backgroundColor: DT.light.surface,
   },
   headerTitle: {
     fontFamily: DT.typography.heading,
     fontSize: 20,
-    color: DT.colors.light.text,
+    color: DT.light.text,
   },
   content: {
     flex: 1,
@@ -193,21 +193,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     padding: 16,
-    backgroundColor: DT.colors.light.warning,
+    backgroundColor: DT.light.accent,
     borderWidth: 3,
-    borderColor: DT.colors.light.text,
+    borderColor: DT.light.text,
     marginBottom: 24,
   },
   warningText: {
     flex: 1,
     fontFamily: DT.typography.heading,
     fontSize: 14,
-    color: DT.colors.light.text,
+    color: DT.light.text,
   },
   label: {
     fontFamily: DT.typography.heading,
     fontSize: 16,
-    color: DT.colors.light.text,
+    color: DT.light.text,
     marginBottom: 12,
     marginTop: 8,
   },
@@ -221,54 +221,54 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderWidth: 2,
-    borderColor: DT.colors.light.text,
-    backgroundColor: DT.colors.light.surface,
+    borderColor: DT.light.text,
+    backgroundColor: DT.light.surface,
   },
   reasonChipActive: {
-    backgroundColor: DT.colors.light.text,
+    backgroundColor: DT.light.text,
   },
   reasonText: {
     fontFamily: DT.typography.heading,
     fontSize: 12,
-    color: DT.colors.light.text,
+    color: DT.light.text,
   },
   reasonTextActive: {
-    color: DT.colors.light.surface,
+    color: DT.light.surface,
   },
   detailsInput: {
     borderWidth: 3,
-    borderColor: DT.colors.light.text,
+    borderColor: DT.light.text,
     padding: 16,
     fontFamily: DT.typography.body,
     fontSize: 16,
     minHeight: 150,
-    backgroundColor: DT.colors.light.surface,
+    backgroundColor: DT.light.surface,
     marginBottom: 16,
   },
   infoBox: {
     flexDirection: 'row',
     gap: 8,
     padding: 12,
-    backgroundColor: DT.colors.light.border + '44',
+    backgroundColor: DT.light.border + '44',
     marginBottom: 24,
   },
   infoText: {
     flex: 1,
     fontFamily: DT.typography.body,
     fontSize: 12,
-    color: DT.colors.light.text,
+    color: DT.light.text,
     fontStyle: 'italic',
   },
   submitBtn: {
     height: 60,
-    backgroundColor: DT.colors.light.text,
+    backgroundColor: DT.light.text,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 12,
     borderWidth: 2,
-    borderColor: DT.colors.light.text,
-    shadowColor: DT.colors.light.text,
+    borderColor: DT.light.text,
+    shadowColor: DT.light.text,
     shadowOffset: { width: 4, height: 4 },
     shadowOpacity: 1,
     shadowRadius: 0,
@@ -280,6 +280,6 @@ const styles = StyleSheet.create({
   submitBtnText: {
     fontFamily: DT.typography.heading,
     fontSize: 18,
-    color: DT.colors.light.surface,
+    color: DT.light.surface,
   },
 });
