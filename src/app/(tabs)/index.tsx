@@ -28,6 +28,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { DesignTokens as DT } from '../../constants/design';
 import { useTheme } from '../../hooks/use-theme';
 import { useBrutalistRefresh } from '../../components/ui/BrutalistRefreshControl';
+import MapDemand from '../../components/ui/MapDemand';
 import { MotiView } from 'moti';
 
 const RUNNERS_LIMIT = 5;
@@ -376,6 +377,14 @@ export default function HomeScreen() {
             </View>
           </View>
         </View>
+
+        {/* ── Runner Radar (Demand) ── */}
+        {user?.is_runner && (
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>DEMAND RADAR</Text>
+            <MapDemand />
+          </View>
+        )}
 
         {/* ── Runners Carousel ── */}
         <View style={styles.section}>

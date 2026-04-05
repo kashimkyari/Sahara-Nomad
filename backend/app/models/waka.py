@@ -61,6 +61,38 @@ class Waka(AuditableBase):
     max_spots: Mapped[int] = mapped_column(Integer, default=1)
     milestones: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True) # e.g. [{"step": 3, "amount": 50.0, "status": "pending"}]
 
+    @property
+    def pickup_lat(self) -> Optional[float]:
+        try:
+            from geoalchemy2.shape import to_shape
+            return to_shape(self.pickup_location).y if self.pickup_location else None
+        except Exception:
+            return None
+
+    @property
+    def pickup_lng(self) -> Optional[float]:
+        try:
+            from geoalchemy2.shape import to_shape
+            return to_shape(self.pickup_location).x if self.pickup_location else None
+        except Exception:
+            return None
+
+    @property
+    def dropoff_lat(self) -> Optional[float]:
+        try:
+            from geoalchemy2.shape import to_shape
+            return to_shape(self.dropoff_location).y if self.dropoff_location else None
+        except Exception:
+            return None
+
+    @property
+    def dropoff_lng(self) -> Optional[float]:
+        try:
+            from geoalchemy2.shape import to_shape
+            return to_shape(self.dropoff_location).x if self.dropoff_location else None
+        except Exception:
+            return None
+
     # Relationships
     employer: Mapped["User"] = relationship("User", foreign_keys=[employer_id])
     runner: Mapped[Optional["User"]] = relationship("User", foreign_keys=[runner_id])

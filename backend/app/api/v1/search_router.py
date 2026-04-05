@@ -159,42 +159,86 @@ async def search_runners(
         markets=markets
     )
 
-@router.get("/shared-errands")
-async def search_shared_errands(
+@router.get("/heatmap")
+async def get_runner_heatmap(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Find shared errands that have open spots."""
-    # Subquery for current spots taken
-    spots_taken_sq = (
-        select(func.count(Waka.id))
-        .where(Waka.parent_waka_id == Waka.id)
-        .scalar_subquery()
+    """Aggregate runner and destination locations for demand visualization."""
+    # 1. Current Runner Locations (Online runners)
+    runners_stmt = select(func.ST_AsGeoJSON(User.last_location)).where(
+        User.is_runner == True,
+        User.is_online == True,
+        User.last_location != None
+    )
+    runners_res = await db.execute(runners_stmt)
+    runner_points = [row[0] for row in runners_res.all()]
+
+    # 2. Active Destination Clusters (Pending/Active Wakas)
+    waka_stmt = select(func.ST_AsGeoJSON(Waka.dropoff_location)).where(
+        Waka.is_completed == False,
+        Waka.status != 'cancelled',
+        Waka.dropoff_location != None
+    )
+    waka_res = await db.execute(waka_stmt)
+    destination_points = [row[0] for row in waka_res.all()]
+
+    return {
+        "runners": runner_points,
+        "demand": destination_points,
+        "resolution": "high",
+        "description": "Corridors with high demand and low runner density are highlighted."
+    }
+
+@router.get("/batching-suggestions")
+async def get_batching_suggestions(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Suggest nearby errand batches for runners to maximize earnings."""
+    if not current_user.is_runner:
+        return []
+
+    # Find available wakas using postgis ST_ClusterDBSCAN
+    # 30km distance = 30000 meters for geography
+    # Using a subquery to cluster available wakas
+    cluster_sq = (
+        select(
+            Waka.id,
+            func.ST_ClusterDBSCAN(func.cast(Waka.pickup_location, Geography), eps=30000, minpoints=2).over().label("cluster_id")
+        )
+        .where(
+            Waka.status == 'finding_runner',
+            Waka.runner_id == None,
+            Waka.pickup_location != None
+        )
+        .subquery()
     )
 
-    # Find parent wakas that are shared and not full
-    # Note: participation logic might need participant join table but for now count children
-    stmt = select(Waka).where(
-        Waka.is_shared == True,
-        Waka.parent_waka_id == None,
-        Waka.is_completed == False,
-        Waka.status.in_(['finding_runner', 'sourcing', 'delivery'])
+    stmt = (
+        select(Waka, cluster_sq.c.cluster_id)
+        .join(cluster_sq, Waka.id == cluster_sq.c.id)
+        .where(cluster_sq.c.cluster_id != None)
     )
     
     result = await db.execute(stmt)
-    wakas = result.scalars().all()
+    rows = result.all()
     
-    # Filter by spots manually or in query (simplified here)
-    available_wakas = []
-    for w in wakas:
-        # Count participants (parent + siblings)
-        participants_stmt = select(func.count(Waka.id)).where(
-            (Waka.id == w.id) | (Waka.parent_waka_id == w.id)
-        )
-        p_res = await db.execute(participants_stmt)
-        count = p_res.scalar()
-        
-        if count < w.max_spots:
-            available_wakas.append(w)
-            
-    return available_wakas
+    batches = []
+    grouped = {}
+    for w, c_id in rows:
+        if c_id not in grouped: grouped[c_id] = []
+        grouped[c_id].append(w)
+    
+    for c_id, wakas in grouped.items():
+        if len(wakas) >= 2:
+            batches.append({
+                "id": str(uuid.uuid4()),
+                "area": wakas[0].pickup_address.split(',')[0],
+                "count": len(wakas),
+                "total_reward": sum(w.runner_fee for w in wakas),
+                "waka_ids": [str(w.id) for w in wakas],
+                "efficiency_bonus": round(sum(w.runner_fee for w in wakas) * 0.05, 2)
+            })
+
+    return batches

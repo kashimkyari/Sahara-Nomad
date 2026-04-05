@@ -10,6 +10,9 @@ import {
   Modal,
 } from 'react-native';
 import { Image } from 'expo-image';
+import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import { MotiView, AnimatePresence } from 'moti';
+import WakaLiveMap from '../../components/ui/WakaLiveMap';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { 
@@ -30,9 +33,11 @@ import {
   X,
   Plus,
   AlertTriangle,
+  Share2,
 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import * as Clipboard from 'expo-clipboard';
 import { DesignTokens as DT } from '../../constants/design';
 import { useTheme } from '../../hooks/use-theme';
 import { useAuth } from '../../context/AuthContext';
@@ -61,6 +66,7 @@ export default function WakaStatusScreen() {
   const [isCancelling, setIsCancelling] = React.useState(false);
   const [isAccepting, setIsAccepting] = React.useState(false);
   const [isDeclining, setIsDeclining] = React.useState(false);
+  const [runnerLocation, setRunnerLocation] = useState<{ latitude: number, longitude: number } | null>(null);
   const pulseAnim = React.useRef(new Animated.Value(1)).current;
   
   // Alert State
@@ -643,10 +649,32 @@ export default function WakaStatusScreen() {
   };
 
 
-
   useEffect(() => {
     fetchWakaDetails();
   }, [id, token]);
+
+  useEffect(() => {
+    if (!id || !token || !waka || waka.status === 'completed' || waka.status === 'cancelled') return;
+
+    const wsUrl = `${API.API_URL.replace('http', 'ws')}/ws/${user?.id}`;
+    const ws = new WebSocket(wsUrl);
+
+    ws.onmessage = (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        if (data.type === 'LOCATION_UPDATE' && data.payload.waka_id === id) {
+          setRunnerLocation({
+            latitude: data.payload.lat,
+            longitude: data.payload.lng
+          });
+        }
+      } catch (err) {
+        console.error("WS Parse Error:", err);
+      }
+    };
+
+    return () => ws.close();
+  }, [id, token, waka?.status]);
   const handleSearchFriend = async () => {
     if (!invitePhone || !token) return;
     setIsSearchingFriend(true);
@@ -745,6 +773,15 @@ export default function WakaStatusScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        
+        {/* Live Tracking Map */}
+        {waka.status !== 'finding_runner' && waka.status !== 'cancelled' && waka.pickup_lat && (
+          <WakaLiveMap 
+            runnerLocation={runnerLocation}
+            pickupLocation={{ latitude: waka.pickup_lat, longitude: waka.pickup_lng }}
+            dropoffLocation={{ latitude: waka.dropoff_lat, longitude: waka.dropoff_lng }}
+          />
+        )}
 
         {/* Waka Info Card */}
         <View style={styles.card}>
@@ -1344,6 +1381,28 @@ export default function WakaStatusScreen() {
               </TouchableOpacity>
             )}
 
+            {isNomad && waka.status !== 'completed' && waka.status !== 'cancelled' && (
+              <TouchableOpacity 
+                style={[styles.primaryAction, { backgroundColor: colors.primary, marginTop: 12 }]} 
+                onPress={async () => {
+                  try {
+                    await Clipboard.setStringAsync(`https://saharanomad.com/waka/${waka.id}`);
+                    setAlertConfig({
+                      title: 'Link Copied! 📋',
+                      message: 'Share this link with friends so they can add items to your errand and split the cost.',
+                      buttons: [{ text: 'OK', onPress: () => setAlertVisible(false) }]
+                    });
+                    setAlertVisible(true);
+                  } catch (e) {
+                    console.log('Clipboard err:', e);
+                  }
+                }}
+              >
+                <Share2 size={20} color={colors.surface} strokeWidth={2.5} />
+                <Text style={styles.primaryActionText}>SHARE SHOPPING LINK</Text>
+              </TouchableOpacity>
+            )}
+
 
             <TouchableOpacity 
               style={[styles.cancelBtn, isCancelling && { opacity: 0.5 }, { marginTop: 12 }]} 
@@ -1409,6 +1468,17 @@ export default function WakaStatusScreen() {
                 onChangeText={setNewItemName}
                 placeholder="e.g. 1kg Tomatoes"
               />
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+                {['Water', 'Bread', 'Cooking Oil', 'Rice', 'Milk'].map(tag => (
+                  <TouchableOpacity 
+                    key={tag}
+                    style={[styles.categoryChip, { backgroundColor: newItemName === tag ? colors.text : colors.surface }]}
+                    onPress={() => setNewItemName(tag)}
+                  >
+                    <Text style={[styles.categoryText, { color: newItemName === tag ? colors.surface : colors.text }]}>{tag}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
 
               <Text style={styles.inputLabel}>PRICE (₦)</Text>
               <TextInput
@@ -1747,6 +1817,18 @@ function getStyles(colors: any) {
       paddingHorizontal: 12,
       fontFamily: DT.typography.heading,
       fontSize: 14,
+      color: colors.text,
+    },
+    categoryChip: {
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderWidth: 2,
+      borderColor: colors.text,
+      backgroundColor: colors.surface,
+    },
+    categoryText: {
+      fontFamily: DT.typography.bodySemiBold,
+      fontSize: 13,
       color: colors.text,
     },
     billDetailRow: {

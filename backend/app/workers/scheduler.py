@@ -47,7 +47,84 @@ async def process_scheduled_wakas():
             
         await db.commit()
 
+async def process_escrow_auto_release():
+    async with SessionLocal() as db:
+        twenty_four_hours_ago = datetime.utcnow() - timedelta(hours=24)
+        
+        from ..models.waka import WakaDispute
+        from sqlalchemy import func
+        from sqlalchemy.orm import selectinload
+        
+        stmt = select(Waka).options(
+            selectinload(Waka.runner), 
+            selectinload(Waka.employer)
+        ).where(
+            Waka.completed_by_runner == True,
+            Waka.is_completed == False,
+            Waka.updated_at <= twenty_four_hours_ago
+        )
+        result = await db.execute(stmt)
+        pending_wakas = result.scalars().all()
+        
+        for waka in pending_wakas:
+            dispute_stmt = select(func.count(WakaDispute.id)).where(
+                WakaDispute.waka_id == waka.id,
+                WakaDispute.status.in_(["open", "investigating"])
+            )
+            dispute_res = await db.execute(dispute_stmt)
+            if dispute_res.scalar() > 0:
+                continue
+                
+            waka.completed_by_employer = True
+            waka.is_completed = True
+            waka.status = "completed"
+            waka.step = 5
+            
+            from ..services.wallet_service import wallet_service
+            from decimal import Decimal
+            
+            commission_rate = Decimal("0.10")
+            if waka.runner:
+                if waka.runner.stats_trips >= 50: commission_rate = Decimal("0.05")
+                elif waka.runner.stats_trips >= 10: commission_rate = Decimal("0.075")
+
+            try:
+                await wallet_service.transfer_funds(
+                    db=db,
+                    from_user_id=waka.employer_id,
+                    to_user_id=waka.runner_id,
+                    amount=waka.total_price,
+                    tx_type="waka_fee",
+                    reference=f"escrow_auto_{waka.id}",
+                    is_cash=(waka.payment_method == "cash"),
+                    commission_rate=commission_rate
+                )
+            except Exception as e:
+                print(f"Failed to auto-release funds for waka {waka.id}: {e}")
+                continue
+                
+            if waka.runner:
+                waka.runner.stats_trips += 1
+            if waka.employer:
+                waka.employer.errands_count += 1
+                
+            from ..services.notification_service import notify_user
+            for recipient in [waka.employer, waka.runner]:
+                if recipient:
+                    await notify_user(
+                        db=db,
+                        user=recipient,
+                        title="Escrow Auto-Released",
+                        body=f"24 hours passed with no disputes. Funds released for '{waka.item_description[:30]}...'",
+                        type="success",
+                        linked_entity_id=waka.id,
+                        linked_entity_type="waka"
+                    )
+                    
+        await db.commit()
+
 async def scheduler_loop():
     while True:
         await process_scheduled_wakas()
+        await process_escrow_auto_release()
         await asyncio.sleep(60) # Check every minute

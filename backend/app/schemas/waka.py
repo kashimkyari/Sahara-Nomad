@@ -78,7 +78,11 @@ class WakaResponse(BaseModel):
     category: str
     item_description: str
     pickup_address: str
+    pickup_lat: Optional[float] = None
+    pickup_lng: Optional[float] = None
     dropoff_address: str
+    dropoff_lat: Optional[float] = None
+    dropoff_lng: Optional[float] = None
     urgency: str
     runner_fee: float
     flash_incentive: float

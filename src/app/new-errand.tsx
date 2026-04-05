@@ -910,7 +910,7 @@ const getStyles = (colors: any) => StyleSheet.create({
     height: 32,
     borderWidth: 3,
     borderColor: colors.text,
-    backgroundColor: colors.border,
+    backgroundColor: colors.surface,
     padding: 3,
   },
   brutalToggleActive: {

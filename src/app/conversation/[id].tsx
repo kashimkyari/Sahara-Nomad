@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Camera, CheckCheck, ChevronLeft, Package, Paperclip, Send, FileText, ExternalLink } from 'lucide-react-native';
-import React, { useEffect, useRef, useState, useMemo } from 'react';
+import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -13,7 +13,9 @@ import {
   Modal,
   ActivityIndicator,
 } from 'react-native';
+import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Image } from 'expo-image';
+import WakaLiveMap from '../../components/ui/WakaLiveMap';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DesignTokens as DT } from '../../constants/design';
 import { useTheme } from '../../hooks/use-theme';
@@ -258,12 +260,19 @@ export default function ConversationScreen() {
   useEffect(() => {
     fetchHistory();
     if (token) connectWebSocket(token);
+    
+    // Live Location Polling (Every 10s)
+    const locationInterval = setInterval(() => {
+      if (token && convoId) fetchConversation();
+    }, 10000);
+
     return () => {
       ws.current?.close();
+      clearInterval(locationInterval);
     };
   }, [convoId, token]);
 
-  const fetchConversation = async () => {
+  const fetchConversation = useCallback(async () => {
     try {
       const convRes = await fetch(API.MESSAGES.CONVERSATION_DETAIL(convoId!), {
         headers: { Authorization: `Bearer ${token}` }
@@ -275,7 +284,7 @@ export default function ConversationScreen() {
     } catch (e) {
       console.error('Error fetching conversation:', e);
     }
-  };
+  }, [convoId, token]);
 
   const fetchHistory = async () => {
     try {
@@ -582,6 +591,25 @@ export default function ConversationScreen() {
       {/* Errand Context Banner */}
       {conversation?.waka_title && (
         <View style={styles.errandBannerWrapper}>
+          {/* Live Map Tracking Panel */}
+          {conversation.other_user?.last_location && (
+            <MotiView 
+              from={{ height: 0, opacity: 0 }}
+              animate={{ height: 220, opacity: 1 }}
+              style={styles.mapContainer}
+            >
+              <WakaLiveMap 
+                runnerLocation={conversation.waka_runner_id === user?.id ? null : {
+                  latitude: conversation.other_user.last_location.coordinates[1],
+                  longitude: conversation.other_user.last_location.coordinates[0]
+                }}
+                pickupLocation={{ latitude: conversation.waka_pickup_lat, longitude: conversation.waka_pickup_lng }}
+                dropoffLocation={{ latitude: conversation.waka_dropoff_lat, longitude: conversation.waka_dropoff_lng }}
+                containerStyle={{ height: 220, borderTopWidth: 0, borderRadius: 0 }}
+              />
+            </MotiView>
+          )}
+
           <View style={styles.errandBanner}>
             <View style={styles.errandBannerLeft}>
               <Package size={20} color={colors.text} strokeWidth={2} />
@@ -957,10 +985,57 @@ const getStyles = (colors: any) => StyleSheet.create({
   errandBannerWrapper: {
     paddingHorizontal: DT.spacing.lg,
     paddingTop: DT.spacing.md,
-    paddingBottom: DT.spacing.sm,
     backgroundColor: colors.background,
     borderBottomWidth: 2,
     borderBottomColor: colors.text,
+    paddingBottom: DT.spacing.md,
+  },
+  mapContainer: {
+    height: 180,
+    width: '100%',
+    borderWidth: 3,
+    borderColor: colors.text,
+    backgroundColor: colors.surface,
+    marginBottom: DT.spacing.md,
+    overflow: 'hidden',
+    shadowColor: colors.text,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+  },
+  map: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  markerContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 3,
+    borderColor: colors.text,
+    backgroundColor: colors.surface,
+    padding: 2,
+    overflow: 'hidden',
+  },
+  markerAvatar: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 18,
+  },
+  mapOverlay: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: colors.text,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: colors.surface,
+  },
+  mapOverlayText: {
+    fontFamily: DT.typography.heading,
+    fontSize: 10,
+    color: colors.surface,
+    letterSpacing: 1,
   },
   errandBanner: {
     flexDirection: 'row',
