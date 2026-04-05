@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import String, Boolean, Numeric, ForeignKey, Integer
+from sqlalchemy import String, Boolean, Numeric, ForeignKey, Integer, JSON
 from sqlalchemy.dialects.postgresql import UUID
 from geoalchemy2 import Geography
 import uuid
@@ -55,6 +55,11 @@ class User(AuditableBase):
 
     otp_code: Mapped[Optional[str]] = mapped_column(String(6), nullable=True)
     otp_expires_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
+    
+    # Advanced Trust & Logistics (V2.5)
+    equipment: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True) # e.g. {"motorcycle": true, "cooler_bag": true}
+    verification_status: Mapped[str] = mapped_column(String(20), default="unverified") # unverified, pending, verified
+    verification_ref: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
 
     @property
     def runner_tier(self) -> str:

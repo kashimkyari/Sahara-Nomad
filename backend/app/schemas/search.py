@@ -14,6 +14,8 @@ class RunnerSearchResponse(BaseModel):
     bio: Optional[str] = None
     stats_trips: int = 0
     loyalty_badge: Optional[str] = None
+    equipment: Optional[dict] = None
+    verification_status: str = "unverified"
 
 class SearchRecord(BaseModel):
     query: str

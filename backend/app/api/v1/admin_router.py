@@ -97,6 +97,7 @@ async def review_runner_application(
         user = user_result.scalars().first()
         if user:
             user.is_runner = True
+            user.verification_status = "verified" # Auto-verify when admin approves application
             if app.hourly_rate:
                 user.hourly_rate = app.hourly_rate
             

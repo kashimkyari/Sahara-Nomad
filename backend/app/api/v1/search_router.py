@@ -37,6 +37,10 @@ async def search_runners(
     filter: str = "available_now",
     market: str = None,
     sort: str = None,
+    motorcycle: bool = None,
+    cooler_bag: bool = None,
+    car: bool = None,
+    keke: bool = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -81,9 +85,16 @@ async def search_runners(
         pass # All runners shown, but sorted by online Status
     elif filter == "5_star":
         stmt = stmt.where(User.stats_rating >= 4.8)
-    elif filter == "nearby":
-        if city:
-            stmt = stmt.where(User.city.ilike(f"%{city}%"))
+            
+    # Advanced Runner Search (Equipment)
+    if motorcycle:
+        stmt = stmt.where(User.equipment["motorcycle"].as_boolean() == True)
+    if cooler_bag:
+        stmt = stmt.where(User.equipment["cooler_bag"].as_boolean() == True)
+    if car:
+        stmt = stmt.where(User.equipment["car"].as_boolean() == True)
+    if keke:
+        stmt = stmt.where(User.equipment["keke"].as_boolean() == True)
     
     # Sorting logic
     if sort == "rating":
@@ -137,7 +148,9 @@ async def search_runners(
             hourly_rate=float(user.hourly_rate or 0),
             bio=user.bio,
             stats_trips=stats_trips_dynamic or 0,
-            loyalty_badge=user.loyalty_badge
+            loyalty_badge=user.loyalty_badge,
+            equipment=user.equipment,
+            verification_status=user.verification_status
         ))
         
     return SearchResponse(

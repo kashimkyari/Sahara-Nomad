@@ -23,6 +23,11 @@ class WakaCreate(BaseModel):
     items: Optional[list[str]] = None
     payment_method: str = "wallet" # wallet, cash
     insurance_opt_in: bool = False
+    
+    # Waka-Share
+    is_shared: bool = False
+    parent_waka_id: Optional[UUID] = None
+    max_spots: int = 1
 
 class WakaSourcingRequest(BaseModel):
     sourcing_budget: float
@@ -99,6 +104,13 @@ class WakaResponse(BaseModel):
     payment_method: str = "wallet"
     insurance_opt_in: bool = False
     pod_url: Optional[str] = None
+    
+    # Waka-Share
+    is_shared: bool = False
+    parent_waka_id: Optional[UUID] = None
+    max_spots: int = 1
+    milestones: Optional[list] = None
+    
     created_at: datetime
     
     employer: Optional[WakaUser] = None

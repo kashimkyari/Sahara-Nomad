@@ -241,7 +241,9 @@ async def _hydrate_user_response(user: User, db: AsyncSession) -> UserResponse:
             stats_trips=stats_trips,
             stats_rating=float(user.stats_rating),
             active_wakas=active_wakas,
-            is_online=user.is_online
+            is_online=user.is_online,
+            is_available=user.is_available,
+            equipment=user.equipment
         )
 
     # Populate reviewer names for user reviews if they exist

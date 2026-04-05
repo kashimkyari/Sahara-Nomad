@@ -34,6 +34,9 @@ class UserUpdate(BaseModel):
     hourly_rate: Optional[float] = None
     is_online: Optional[bool] = None
     is_available: Optional[bool] = None
+    equipment: Optional[dict] = None
+    verification_status: Optional[str] = None
+    verification_ref: Optional[str] = None
     expo_push_token: Optional[str] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
@@ -46,6 +49,7 @@ class RunnerProfileResponse(BaseModel):
     active_wakas: int = 0
     is_online: bool = False
     is_available: bool = False
+    equipment: Optional[dict] = None
 
     class Config:
         from_attributes = True
@@ -66,6 +70,8 @@ class UserResponse(UserBase):
     is_dark_mode: bool
     is_online: bool = False
     is_available: bool = False
+    verification_status: str = "unverified"
+    verification_ref: Optional[str] = None
     language: str
     region: str
     city: Optional[str] = None

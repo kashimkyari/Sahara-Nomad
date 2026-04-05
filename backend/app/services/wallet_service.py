@@ -119,7 +119,27 @@ class WalletService:
             new_balance=from_prev
         ))
         
-        await db.flush()
-        return True
+    @staticmethod
+    async def release_milestone(
+        db: AsyncSession,
+        waka_id: uuid.UUID,
+        milestone_index: int,
+        employer_id: uuid.UUID,
+        runner_id: uuid.UUID,
+        amount: float,
+        reference: str
+    ) -> bool:
+        """
+        Releases a milestone payment from employer to runner.
+        """
+        return await WalletService.transfer_funds(
+            db=db,
+            from_user_id=employer_id,
+            to_user_id=runner_id,
+            amount=Decimal(str(amount)),
+            tx_type="milestone_release",
+            reference=f"{reference}_milestone_{milestone_index}",
+            commission_rate=Decimal("0.1") # 10% platform commission on each milestone
+        )
 
 wallet_service = WalletService()

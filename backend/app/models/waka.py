@@ -53,6 +53,12 @@ class Waka(AuditableBase):
     payment_method: Mapped[str] = mapped_column(String(20), server_default='wallet', default='wallet', nullable=False) # wallet, cash
     insurance_opt_in: Mapped[bool] = mapped_column(Boolean, server_default='false', default=False, nullable=False)
     pod_url: Mapped[Optional[str]] = mapped_column(String(512), nullable=True) # Proof of Delivery Image URL
+    
+    # Waka-Share (Group Buying)
+    is_shared: Mapped[bool] = mapped_column(Boolean, server_default='false', default=False, nullable=False)
+    parent_waka_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), ForeignKey("wakas.id"), nullable=True)
+    max_spots: Mapped[int] = mapped_column(Integer, default=1)
+    milestones: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True) # e.g. [{"step": 3, "amount": 50.0, "status": "pending"}]
 
     # Relationships
     employer: Mapped["User"] = relationship("User", foreign_keys=[employer_id])

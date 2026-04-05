@@ -108,7 +108,10 @@ async def create_waka(
         budget_min=waka_in.budget_min,
         budget_max=waka_in.budget_max,
         items=waka_in.items,
-        insurance_opt_in=waka_in.insurance_opt_in
+        insurance_opt_in=waka_in.insurance_opt_in,
+        is_shared=waka_in.is_shared,
+        parent_waka_id=waka_in.parent_waka_id,
+        max_spots=waka_in.max_spots
     )
     db.add(db_obj)
     await db.commit()
@@ -142,7 +145,76 @@ async def create_waka(
             )
     await db.commit()
 
+    # Waka-Share logic: Recalculate fees for all participants
+    if db_obj.parent_waka_id:
+        parent_stmt = select(Waka).where(Waka.id == db_obj.parent_waka_id)
+        parent_res = await db.execute(parent_stmt)
+        parent = parent_res.scalars().first()
+        if parent:
+            # Find all siblings
+            siblings_stmt = select(Waka).where(Waka.parent_waka_id == parent.id)
+            siblings_res = await db.execute(siblings_stmt)
+            siblings = siblings_res.scalars().all()
+            participants = [parent] + siblings
+            num_participants = len(participants)
+            
+            # Simple splitting logic: base_fee / num_participants
+            # In a real app, you'd add a small overhead for extra stops
+            base_fee = float(parent.runner_fee) # assuming all siblings use parent's original base_fee
+            split_fee = base_fee / num_participants
+            
+            for p in participants:
+                p.runner_fee = split_fee
+                p.total_price = split_fee + float(p.flash_incentive)
+            
+            await db.commit()
+
     return db_obj
+
+@router.post("/{waka_id}/milestones/{index}/release", response_model=Dict[str, Any])
+async def release_waka_milestone(
+    waka_id: uuid.UUID,
+    index: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    waka = await get_hydrated_waka(db, waka_id)
+    if not waka:
+        raise HTTPException(status_code=404, detail="Waka not found")
+        
+    if current_user.id != waka.employer_id and current_user.role != "super_admin":
+        raise HTTPException(status_code=403, detail="Only the employer or admin can release milestones")
+        
+    if not waka.milestones or index >= len(waka.milestones):
+        raise HTTPException(status_code=400, detail="Invalid milestone index")
+        
+    milestone = waka.milestones[index]
+    if milestone.get("status") == "released":
+        raise HTTPException(status_code=400, detail="Milestone already released")
+        
+    # Release funds
+    from ...services.wallet_service import WalletService
+    success = await WalletService.release_milestone(
+        db=db,
+        waka_id=waka_id,
+        milestone_index=index,
+        employer_id=waka.employer_id,
+        runner_id=waka.runner_id,
+        amount=milestone["amount"],
+        reference=str(waka_id)
+    )
+    
+    if not success:
+        raise HTTPException(status_code=400, detail="Insufficient funds in employer wallet")
+        
+    # Update milestone status
+    milestone["status"] = "released"
+    waka.milestones[index] = milestone # Ensure JSON update is detected
+    from sqlalchemy.orm.attributes import flag_modified
+    flag_modified(waka, "milestones")
+    
+    await db.commit()
+    return {"status": "success", "milestone": milestone}
 
 @router.post("/{waka_id}/tip", response_model=Dict[str, Any])
 async def tip_waka(
