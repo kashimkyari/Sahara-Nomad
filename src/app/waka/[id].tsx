@@ -28,8 +28,11 @@ import {
   Camera,
   Eye,
   X,
+  Plus,
+  AlertTriangle,
 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import { DesignTokens as DT } from '../../constants/design';
 import { useTheme } from '../../hooks/use-theme';
 import { useAuth } from '../../context/AuthContext';
@@ -37,7 +40,6 @@ import API from '../../constants/api';
 import { ActivityIndicator } from 'react-native';
 import { BrutalistAlert } from '../../components/ui/BrutalistAlert';
 import { ReviewForm } from '../../components/ui/ReviewForm';
-import DisputeModal from '../../components/ui/DisputeModal';
 
 // Mock data removed in favor of real API calls
 
@@ -91,6 +93,16 @@ export default function WakaStatusScreen() {
   const [newItemPrice, setNewItemPrice] = useState('');
   const [newItemPhoto, setNewItemPhoto] = useState<string | null>(null);
   const [isProposingItem, setIsProposingItem] = useState(false);
+  const [permission, requestPermission] = useCameraPermissions();
+  const cameraRef = useRef<any>(null);
+  const [showCamera, setShowCamera] = useState(false);
+
+  // Invite Friend State
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [invitePhone, setInvitePhone] = useState('');
+  const [isSearchingFriend, setIsSearchingFriend] = useState(false);
+  const [invitedFriend, setInvitedFriend] = useState<any>(null);
+  const [isInviting, setIsInviting] = useState(false);
 
   const showAlert = (title: string, message: string, buttons: any[] = [{ text: 'OK' }]) => {
     setAlertConfig({ title, message, buttons });
@@ -507,23 +519,8 @@ export default function WakaStatusScreen() {
     }
   };
 
-  const handleRaiseDispute = async (reason: string, description: string) => {
-    if (!token || !id) return;
-    try {
-      const res = await fetch(`${API.API_URL}/waka/${id}/dispute`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ reason, description })
-      });
-      if (!res.ok) throw new Error('Failed to raise dispute');
-      showAlert('Dispute Raised', 'Our audit team will review this errand within 24 hours.');
-      fetchWakaDetails();
-    } catch (e: any) {
-      showAlert('Error', e.message);
-    }
+  const handleRaiseDispute = () => {
+    router.push(`/dispute/${id}` as any);
   };
 
   const handleTip = async () => {
@@ -602,6 +599,10 @@ export default function WakaStatusScreen() {
         }
       }
 
+      if (!photoUrl && !newItemPhoto) {
+        throw new Error('You must include a photo of the item showing its price tag.');
+      }
+
       const res = await fetch(`${API.API_URL}/inventory/propose`, {
         method: 'POST',
         headers: {
@@ -647,6 +648,48 @@ export default function WakaStatusScreen() {
   useEffect(() => {
     fetchWakaDetails();
   }, [id, token]);
+  const handleSearchFriend = async () => {
+    if (!invitePhone || !token) return;
+    setIsSearchingFriend(true);
+    setInvitedFriend(null);
+    try {
+      const res = await fetch(`${API.API_URL}/auth/lookup/${invitePhone}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const friend = await res.json();
+        setInvitedFriend(friend);
+      } else {
+        showAlert('Not Found', 'We could not find a user with this phone number. Make sure they have a SendAm account.');
+      }
+    } catch (e: any) {
+      showAlert('Error', 'Failed to lookup user.');
+    } finally {
+      setIsSearchingFriend(false);
+    }
+  };
+
+  const handleInviteFriend = async () => {
+    if (!invitedFriend || !token || !id) return;
+    setIsInviting(true);
+    try {
+      const res = await fetch(`${API.WAKA.GET(id)}/invite?user_id=${invitedFriend.id}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        showAlert('Invite Sent! 📩', `Your friend ${invitedFriend.full_name} has been notified to join this errand.`);
+        setShowInviteModal(false);
+      } else {
+        const err = await res.json();
+        throw new Error(err.detail || 'Failed to send invitation');
+      }
+    } catch (e: any) {
+      showAlert('Error', e.message);
+    } finally {
+      setIsInviting(false);
+    }
+  };
 
   useEffect(() => {
     const pulse = Animated.loop(
@@ -1292,8 +1335,28 @@ export default function WakaStatusScreen() {
                 <Text style={[styles.infoText, { color: colors.primary }]}>Awaiting Runner Confirmation...</Text>
               </View>
             )}
+            {isNomad && waka.is_shared && waka.status !== 'completed' && waka.status !== 'cancelled' && (
+              <TouchableOpacity 
+                style={[styles.primaryAction, { backgroundColor: colors.accent, marginTop: 12 }]} 
+                onPress={() => setShowInviteModal(true)}
+              >
+                <Plus size={20} color={colors.surface} strokeWidth={2.5} />
+                <Text style={styles.primaryActionText}>INVITE FRIEND</Text>
+              </TouchableOpacity>
+            )}
+
+            {isNomad && waka.status !== 'completed' && waka.status !== 'cancelled' && (
+              <TouchableOpacity 
+                style={[styles.actionBtn, { marginTop: 12, borderColor: colors.error }]} 
+                onPress={handleRaiseDispute}
+              >
+                <AlertTriangle size={20} color={colors.error} />
+                <Text style={[styles.actionBtnText, { color: colors.error }]}>RAISE DISPUTE</Text>
+              </TouchableOpacity>
+            )}
+
             <TouchableOpacity 
-              style={[styles.cancelBtn, isCancelling && { opacity: 0.5 }]} 
+              style={[styles.cancelBtn, isCancelling && { opacity: 0.5 }, { marginTop: 12 }]} 
               onPress={handleCancel}
               disabled={isCancelling}
             >
@@ -1337,75 +1400,141 @@ export default function WakaStatusScreen() {
         onClose={() => setAlertVisible(false)}
       />
 
-      <DisputeModal 
-        visible={disputeVisible}
-        onClose={() => setDisputeVisible(false)}
-        onSubmit={handleRaiseDispute}
-      />
-
-      {/* Inventory Proposal Modal */}
-      <Modal
-        visible={showInventoryForm}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowInventoryForm(false)}
-      >
+      {/* Inventory Proposal Modal Refined */}
+      <Modal visible={showInventoryForm} transparent animationType="slide">
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { maxHeight: '80%' }]}>
+          <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>PROPOSE ITEM BID</Text>
+              <Text style={styles.modalTitle}>PROPOSE ITEM</Text>
               <TouchableOpacity onPress={() => setShowInventoryForm(false)}>
                 <X size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
-            
+
             <ScrollView showsVerticalScrollIndicator={false}>
-              <Text style={styles.inputLabel}>ITEM NAME / DESCRIPTION</Text>
+              <Text style={styles.inputLabel}>ITEM NAME</Text>
               <TextInput
                 style={[styles.brutalInput, { marginBottom: 16 }]}
-                placeholder="e.g. 1kg Tomatoes, Loaf of Bread"
-                placeholderTextColor="#999"
                 value={newItemName}
                 onChangeText={setNewItemName}
+                placeholder="e.g. 1kg Tomatoes"
               />
-              
+
               <Text style={styles.inputLabel}>PRICE (₦)</Text>
               <TextInput
                 style={[styles.brutalInput, { marginBottom: 16 }]}
-                placeholder="0.00"
-                placeholderTextColor="#999"
-                keyboardType="numeric"
                 value={newItemPrice}
                 onChangeText={setNewItemPrice}
+                placeholder="0.00"
+                keyboardType="numeric"
               />
-              
-              <Text style={styles.inputLabel}>PHOTO (OPTIONAL)</Text>
-              <TouchableOpacity style={styles.addPodBtn} onPress={pickInventoryPhoto}>
-                {newItemPhoto ? (
-                  <Image source={{ uri: newItemPhoto }} style={styles.podPreview} />
-                ) : (
-                  <View style={{ alignItems: 'center' }}>
-                    <Camera size={32} color={colors.text} strokeWidth={1.5} />
-                    <Text style={styles.addPodText}>TAP TO SNAP PHOTO</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
 
+              <Text style={styles.inputLabel}>PHOTO (MUST SHOW PRICE TAG)</Text>
               <TouchableOpacity 
-                style={[styles.primaryAction, { marginTop: 24, width: '100%' }]}
-                onPress={handleProposeItem}
-                disabled={isProposingItem}
+                style={styles.photoPicker} 
+                onPress={() => {
+                  if (permission?.granted) setShowCamera(true);
+                  else requestPermission();
+                }}
               >
-                {isProposingItem ? (
-                  <ActivityIndicator color={colors.surface} />
+                {newItemPhoto ? (
+                  <Image source={{ uri: newItemPhoto }} style={styles.pickedImage} />
                 ) : (
                   <>
-                    <ShoppingBag size={20} color={colors.surface} />
-                    <Text style={styles.primaryActionText}>SUBMIT PROPOSAL</Text>
+                    <Camera size={32} color={colors.text} />
+                    <Text style={styles.photoPickerText}>OPEN CAMERA</Text>
                   </>
                 )}
               </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.primaryAction, { marginTop: 24, width: '100%' }, isProposingItem && { opacity: 0.7 }]} 
+                onPress={handleProposeItem}
+                disabled={isProposingItem}
+              >
+                {isProposingItem ? <ActivityIndicator color={colors.surface} /> : <Text style={styles.primaryActionText}>SEND PROPOSAL</Text>}
+              </TouchableOpacity>
             </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Expo Camera Modal */}
+      <Modal visible={showCamera} animationType="slide">
+        <View style={{ flex: 1, backgroundColor: '#000' }}>
+          <CameraView 
+            style={{ flex: 1 }} 
+            facing="back"
+            ref={cameraRef}
+          >
+            <View style={styles.cameraOverlay}>
+              <TouchableOpacity style={styles.camClose} onPress={() => setShowCamera(false)}>
+                <X size={32} color="#FFF" />
+              </TouchableOpacity>
+              <View style={styles.camGuides}>
+                <View style={styles.camTarget}>
+                  <Text style={styles.camGuideText}>ALIGN ITEM & PRICE TAG</Text>
+                </View>
+              </View>
+              <TouchableOpacity 
+                style={styles.captureBtn} 
+                onPress={async () => {
+                  if (cameraRef.current) {
+                    const photo = await cameraRef.current.takePictureAsync();
+                    setNewItemPhoto(photo.uri);
+                    setShowCamera(false);
+                  }
+                }}
+              >
+                <View style={styles.captureInner} />
+              </TouchableOpacity>
+            </View>
+          </CameraView>
+        </View>
+      </Modal>
+
+      {/* Invite Friend Modal */}
+      <Modal visible={showInviteModal} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>INVITE FRIEND</Text>
+              <TouchableOpacity onPress={() => setShowInviteModal(false)}>
+                <X size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.inputLabel}>FRIEND'S PHONE NUMBER</Text>
+            <View style={{ flexDirection: 'row', gap: 10, marginBottom: 20 }}>
+              <TextInput
+                style={[styles.brutalInput, { flex: 1 }]}
+                value={invitePhone}
+                onChangeText={setInvitePhone}
+                placeholder="080..."
+                keyboardType="phone-pad"
+              />
+              <TouchableOpacity style={styles.smallSearchBtn} onPress={handleSearchFriend}>
+                {isSearchingFriend ? <ActivityIndicator color="#FFF" /> : <Eye size={20} color="#FFF" />}
+              </TouchableOpacity>
+            </View>
+
+            {invitedFriend && (
+              <View style={styles.friendConfirmBox}>
+                <Image 
+                  source={invitedFriend.avatar_url ? { uri: `${API.API_URL}${invitedFriend.avatar_url}` } : { uri: 'https://i.pravatar.cc/150?u=friend' }} 
+                  style={styles.friendAvatar} 
+                />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.friendName}>{invitedFriend.full_name}</Text>
+                  <Text style={styles.friendSub}>Confirm person before inviting</Text>
+                </View>
+                <TouchableOpacity style={styles.inviteConfirmBtn} onPress={handleInviteFriend}>
+                  {isInviting ? <ActivityIndicator color="#FFF" /> : <Text style={styles.inviteConfirmText}>INVITE</Text>}
+                </TouchableOpacity>
+              </View>
+            )}
+
+            <Text style={styles.fieldHint}>Invited friends can join and split the delivery fee instantly.</Text>
           </View>
         </View>
       </Modal>
@@ -2058,6 +2187,98 @@ function getStyles(colors: any) {
     changePodText: {
       fontFamily: DT.typography.heading,
       fontSize: 10,
+      color: colors.surface,
+    },
+    // New Styles for Camera & Invitations
+    cameraOverlay: {
+      flex: 1,
+      justifyContent: 'space-between',
+      padding: 40,
+    },
+    camClose: {
+      alignSelf: 'flex-end',
+    },
+    camGuides: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    camTarget: {
+      width: 280,
+      height: 200,
+      borderWidth: 2,
+      borderColor: '#FFF',
+      borderStyle: 'dashed',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    camGuideText: {
+      color: '#FFF',
+      fontFamily: DT.typography.heading,
+      fontSize: 12,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      padding: 4,
+    },
+    captureBtn: {
+      width: 80,
+      height: 80,
+      borderRadius: 40,
+      backgroundColor: 'rgba(255,255,255,0.3)',
+      alignSelf: 'center',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    captureInner: {
+      width: 64,
+      height: 64,
+      borderRadius: 32,
+      backgroundColor: '#FFF',
+    },
+    smallSearchBtn: {
+      backgroundColor: colors.text,
+      width: 48,
+      height: 48,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderWidth: 2,
+      borderColor: colors.text,
+    },
+    friendConfirmBox: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.background,
+      padding: 12,
+      borderWidth: 2,
+      borderColor: colors.text,
+      gap: 12,
+      marginBottom: 20,
+    },
+    friendAvatar: {
+      width: 50,
+      height: 50,
+      borderWidth: 2,
+      borderColor: colors.text,
+    },
+    friendName: {
+      fontFamily: DT.typography.heading,
+      fontSize: 14,
+      color: colors.text,
+    },
+    friendSub: {
+      fontFamily: DT.typography.body,
+      fontSize: 10,
+      color: colors.muted,
+    },
+    inviteConfirmBtn: {
+      backgroundColor: colors.primary,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderWidth: 2,
+      borderColor: colors.text,
+    },
+    inviteConfirmText: {
+      fontFamily: DT.typography.heading,
+      fontSize: 12,
       color: colors.surface,
     },
   });

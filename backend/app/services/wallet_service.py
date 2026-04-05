@@ -65,15 +65,15 @@ class WalletService:
         sys_prev = system_wallet.balance
         
         if not is_cash:
-            from_wallet.balance -= float(amount)
-            to_wallet.balance += float(net_amount)
-            system_wallet.balance += float(platform_fee)
+            from_wallet.balance -= amount
+            to_wallet.balance += net_amount
+            system_wallet.balance += platform_fee
             
         # 6. Create Transactions
         # Debit from Nomad
         db.add(Transaction(
             wallet_id=from_wallet.id,
-            amount=float(amount),
+            amount=amount,
             type=f"{tx_type}_debit",
             reference=f"{reference}_debit",
             is_completed=True,
@@ -85,7 +85,7 @@ class WalletService:
         # Credit to Runner (Net)
         db.add(Transaction(
             wallet_id=to_wallet.id,
-            amount=float(net_amount),
+            amount=net_amount,
             type=f"{tx_type}_credit",
             reference=f"{reference}_credit",
             is_completed=True,
@@ -98,7 +98,7 @@ class WalletService:
         if platform_fee > 0:
             db.add(Transaction(
                 wallet_id=system_wallet.id,
-                amount=float(platform_fee),
+                amount=platform_fee,
                 type="platform_commission",
                 reference=f"{reference}_commission",
                 is_completed=True,

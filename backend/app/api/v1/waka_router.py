@@ -57,10 +57,14 @@ async def get_waka_pod_image(waka_id: uuid.UUID):
     raise HTTPException(status_code=404, detail="POD image not found")
 
 async def get_hydrated_waka(db: AsyncSession, waka_id: uuid.UUID) -> Waka:
-    """Fetch waka with employer and runner relationships loaded."""
+    """Fetch waka with employer, runner and inventory relationships loaded."""
     stmt = (
         select(Waka)
-        .options(selectinload(Waka.employer), selectinload(Waka.runner))
+        .options(
+            selectinload(Waka.employer), 
+            selectinload(Waka.runner),
+            selectinload(Waka.inventory_items)
+        )
         .where(Waka.id == waka_id)
     )
     result = await db.execute(stmt)
@@ -80,6 +84,31 @@ async def get_hydrated_waka(db: AsyncSession, waka_id: uuid.UUID) -> Waka:
     waka.has_runner_reviewed = (run_rev_res.scalar() or 0) > 0 if waka.runner_id else False
     
     return waka
+
+@router.post("/{waka_id}/invite")
+async def invite_friend(
+    waka_id: uuid.UUID,
+    user_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Invite a friend to join a shared errand."""
+    waka = await get_hydrated_waka(db, waka_id)
+    if not waka:
+        raise HTTPException(status_code=404, detail="Waka not found")
+    if not waka.is_shared:
+        raise HTTPException(status_code=400, detail="This errand is not set for sharing")
+    
+    if waka.employer_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Only the owner can invite friends")
+
+    # Check if friend exists
+    friend_stmt = select(User).where(User.id == user_id, User.is_user_deleted == False)
+    friend = (await db.execute(friend_stmt)).scalars().first()
+    if not friend:
+        raise HTTPException(status_code=404, detail="Friend not found")
+
+    return {"status": "invited", "friend_name": friend.full_name}
 
 @router.post("/", response_model=WakaResponse)
 async def create_waka(
@@ -319,7 +348,7 @@ async def get_active_wakas(
     """Return non-completed, non-cancelled wakas created by the current user."""
     result = await db.execute(
         select(Waka)
-        .options(selectinload(Waka.employer), selectinload(Waka.runner))
+        .options(selectinload(Waka.employer), selectinload(Waka.runner), selectinload(Waka.inventory_items))
         .where(
             Waka.employer_id == current_user.id, 
             Waka.is_completed == False,
@@ -853,7 +882,11 @@ async def get_my_wakas(
     """Return all wakas created by the current user (as employer)."""
     result = await db.execute(
         select(Waka)
-        .options(selectinload(Waka.employer), selectinload(Waka.runner))
+        .options(
+            selectinload(Waka.employer), 
+            selectinload(Waka.runner),
+            selectinload(Waka.inventory_items)
+        )
         .where(
             or_(Waka.employer_id == current_user.id, Waka.runner_id == current_user.id),
             Waka.is_deleted == False
@@ -874,7 +907,7 @@ async def get_available_wakas(
 
     stmt = (
         select(Waka)
-        .options(selectinload(Waka.employer), selectinload(Waka.runner))
+        .options(selectinload(Waka.employer), selectinload(Waka.runner), selectinload(Waka.inventory_items))
         .where(
             Waka.status == "finding_runner",
             Waka.runner_id == None,
@@ -896,7 +929,7 @@ async def get_runner_active_wakas(
     """Return non-completed wakas where the current user is the runner."""
     result = await db.execute(
         select(Waka)
-        .options(selectinload(Waka.employer), selectinload(Waka.runner))
+        .options(selectinload(Waka.employer), selectinload(Waka.runner), selectinload(Waka.inventory_items))
         .where(
             Waka.runner_id == current_user.id,
             Waka.is_completed == False,
@@ -915,7 +948,7 @@ async def get_waka(
 ):
     result = await db.execute(
         select(Waka)
-        .options(selectinload(Waka.employer), selectinload(Waka.runner))
+        .options(selectinload(Waka.employer), selectinload(Waka.runner), selectinload(Waka.inventory_items))
         .where(Waka.id == waka_id, Waka.is_deleted == False)
     )
     waka = result.scalars().first()
@@ -961,7 +994,7 @@ async def accept_waka(
     await db.commit()
     
     # Return hydrated waka
-    stmt = select(Waka).options(selectinload(Waka.employer), selectinload(Waka.runner)).where(Waka.id == waka_id)
+    stmt = select(Waka).options(selectinload(Waka.employer), selectinload(Waka.runner), selectinload(Waka.inventory_items)).where(Waka.id == waka_id)
     result = await db.execute(stmt)
     return result.scalars().first()
 

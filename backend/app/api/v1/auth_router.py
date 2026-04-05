@@ -581,3 +581,16 @@ async def generate_referral_code(
     await db.refresh(current_user)
     
     return {"referral_code": referral_code}
+@router.get("/lookup/{phone_number}", response_model=UserResponse)
+async def lookup_user_by_phone(
+    phone_number: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Find a user by phone number for inviting to shared errands."""
+    stmt = select(User).where(User.phone_number == phone_number, User.is_user_deleted == False)
+    result = await db.execute(stmt)
+    user = result.scalars().first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return await _hydrate_user_response(user, db)
