@@ -155,6 +155,31 @@ async def cancel_waka(
 
     return waka
 
+@router.patch("/{waka_id}/payment_method", response_model=WakaResponse)
+async def update_waka_payment_method(
+    waka_id: uuid.UUID,
+    payment_method: str, # wallet | cash
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    stmt = select(Waka).where(Waka.id == waka_id)
+    res = await db.execute(stmt)
+    waka = res.scalars().first()
+    
+    if not waka:
+        raise HTTPException(status_code=404, detail="Errand not found")
+        
+    if waka.employer_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Only the nomad can change payment method")
+        
+    if waka.is_completed or waka.is_sourcing_funded:
+        raise HTTPException(status_code=400, detail="Cannot change payment method after funding or completion")
+        
+    waka.payment_method = payment_method
+    await db.commit()
+    await db.refresh(waka)
+    return waka
+
 @router.post("/{waka_id}/complete", response_model=WakaResponse)
 async def complete_waka(
     waka_id: uuid.UUID,

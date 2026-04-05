@@ -72,6 +72,7 @@ export default function WakaStatusScreen() {
   const [isFunding, setIsFunding] = useState(false);
   const [removedItems, setRemovedItems] = useState<Set<number>>(new Set());
   const [isRejecting, setIsRejecting] = useState(false);
+  const [isUpdatingPaymentMethod, setIsUpdatingPaymentMethod] = useState(false);
 
   const showAlert = (title: string, message: string, buttons: any[] = [{ text: 'OK' }]) => {
     setAlertConfig({ title, message, buttons });
@@ -116,6 +117,34 @@ export default function WakaStatusScreen() {
       ]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const isNomad = user?.id === waka?.employer_id;
+
+  const handleUpdatePaymentMethod = async (method: 'wallet' | 'cash') => {
+    if (!waka || isUpdatingPaymentMethod) return;
+    
+    setIsUpdatingPaymentMethod(true);
+    try {
+      const res = await fetch(`${API.WAKA.GET(waka.id)}/payment_method?payment_method=${method}`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Failed to update payment method');
+      }
+      
+      const updatedWaka = await res.json();
+      setWaka(updatedWaka);
+    } catch (e: any) {
+      showAlert('Update Failed', e.message);
+    } finally {
+      setIsUpdatingPaymentMethod(false);
     }
   };
 
@@ -644,7 +673,7 @@ export default function WakaStatusScreen() {
               </TouchableOpacity>
             </View>
           </View>
-        ) : waka.status !== 'cancelled' && (
+        ) : (waka.status !== 'cancelled' && (
           <View style={styles.runnerCard}>
             <View style={styles.runnerHeaderRow}>
               <View style={styles.noRunnerBox}>
@@ -656,7 +685,50 @@ export default function WakaStatusScreen() {
               </View>
             </View>
           </View>
-        )}
+        ))}
+
+        {/* Payment Method Option */}
+        <View style={styles.paymentOptionCard}>
+          <View style={styles.paymentHeader}>
+            <Text style={styles.paymentSectionTitle}>PAYMENT OPTION</Text>
+            {isUpdatingPaymentMethod && <ActivityIndicator size="small" color={colors.primary} />}
+          </View>
+          
+          <View style={styles.paymentToggleRow}>
+            <TouchableOpacity 
+              style={[
+                styles.paymentToggleBtn, 
+                waka.payment_method === 'wallet' && styles.paymentToggleActive,
+                (!isNomad || waka.is_sourcing_funded || waka.is_completed) && { opacity: waka.payment_method === 'wallet' ? 1 : 0.4 }
+              ]}
+              onPress={() => handleUpdatePaymentMethod('wallet')}
+              disabled={!isNomad || waka.is_sourcing_funded || waka.is_completed || isUpdatingPaymentMethod}
+            >
+              <Package size={16} color={waka.payment_method === 'wallet' ? colors.surface : colors.text} />
+              <Text style={[styles.paymentToggleText, waka.payment_method === 'wallet' && { color: colors.surface }]}>WALLET</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[
+                styles.paymentToggleBtn, 
+                waka.payment_method === 'cash' && styles.paymentToggleActive,
+                (!isNomad || waka.is_sourcing_funded || waka.is_completed) && { opacity: waka.payment_method === 'cash' ? 1 : 0.4 }
+              ]}
+              onPress={() => handleUpdatePaymentMethod('cash')}
+              disabled={!isNomad || waka.is_sourcing_funded || waka.is_completed || isUpdatingPaymentMethod}
+            >
+              <Zap size={16} color={waka.payment_method === 'cash' ? colors.surface : colors.text} />
+              <Text style={[styles.paymentToggleText, waka.payment_method === 'cash' && { color: colors.surface }]}>CASH / POD</Text>
+            </TouchableOpacity>
+          </View>
+          
+          <Text style={styles.paymentHint}>
+            {waka.payment_method === 'wallet' 
+              ? "Funds are secured and transferred automatically upon completion." 
+              : "Pay the runner directly via cash or bank transfer."}
+            {(!waka.is_sourcing_funded && !waka.is_completed && isNomad) && " Tap to switch."}
+          </Text>
+        </View>
 
         {/* Actions for Runner */}
         {user?.is_runner && waka.employer_id !== user.id && !waka.is_completed && (
@@ -1402,6 +1474,58 @@ function getStyles(colors: any) {
       fontSize: 13,
       color: colors.text,
       flex: 1,
+    },
+    // Payment Option Card
+    paymentOptionCard: {
+      backgroundColor: colors.surface,
+      borderWidth: 3,
+      borderColor: colors.text,
+      padding: 12,
+      marginTop: 12,
+      shadowColor: colors.text,
+      shadowOffset: { width: 3, height: 3 },
+      shadowOpacity: 1,
+      shadowRadius: 0,
+    },
+    paymentHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    paymentSectionTitle: {
+      fontFamily: DT.typography.heading,
+      fontSize: 12,
+      color: colors.muted,
+    },
+    paymentToggleRow: {
+      flexDirection: 'row',
+      gap: 8,
+      marginBottom: 8,
+    },
+    paymentToggleBtn: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 10,
+      borderWidth: 2,
+      borderColor: colors.text,
+      gap: 6,
+    },
+    paymentToggleActive: {
+      backgroundColor: colors.text,
+    },
+    paymentToggleText: {
+      fontFamily: DT.typography.heading,
+      fontSize: 12,
+      color: colors.text,
+    },
+    paymentHint: {
+      fontFamily: DT.typography.body,
+      fontSize: 11,
+      color: colors.muted,
+      lineHeight: 16,
     },
   });
 }

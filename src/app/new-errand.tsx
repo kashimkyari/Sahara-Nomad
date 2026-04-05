@@ -61,7 +61,6 @@ export default function NewErrandScreen() {
   const [budgetMin, setBudgetMin] = useState('');
   const [budgetMax, setBudgetMax] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'wallet' | 'cash'>('wallet');
-  const [showSuccess, setShowSuccess] = useState(false);
   const [scrollEnabled, setScrollEnabled] = useState(true);
 
   // Alert State
@@ -200,11 +199,9 @@ export default function NewErrandScreen() {
       }
 
       const waka = await res.json();
-      setShowSuccess(true);
-      setTimeout(() => {
-        setShowSuccess(false);
-        router.replace(`/waka/${waka.id}` as any);
-      }, 2000);
+      showAlert('Waka Sent! 🎉', 'Runners nearby are being pinged right now. Get ready!', [
+        { text: 'AWESOME', onPress: () => router.replace(`/waka/${waka.id}` as any) }
+      ]);
     } catch (e: any) {
       showAlert('Broadcast Failed', e.message || 'Something went wrong. Please try again.');
     } finally {
@@ -631,20 +628,6 @@ export default function NewErrandScreen() {
           )}
         </TouchableOpacity>
       </View>
-
-      {/* Success Modal */}
-      <Modal visible={showSuccess} transparent animationType="fade">
-        <View style={styles.successOverlay}>
-          <View style={styles.successCard}>
-            <Text style={styles.successEmoji}>🎉</Text>
-            <Text style={styles.successTitle}>Waka Sent!</Text>
-            <Text style={styles.successBody}>
-              Runners nearby are being pinged right now. Get ready!
-            </Text>
-            <View style={styles.successProgress} />
-          </View>
-        </View>
-      </Modal>
 
       <BrutalistAlert
         visible={alertVisible}
