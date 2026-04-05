@@ -24,8 +24,14 @@ import { useAuth } from '../context/AuthContext';
 import API from '../constants/api';
 import { BrutalistAlert } from '../components/ui/BrutalistAlert';
 import AddressSelector from '../components/ui/AddressSelector';
-import { useAudioRecorder, useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
-import AudioModule from 'expo-audio/build/AudioModule';
+import { 
+  useAudioRecorder, 
+  useAudioPlayer, 
+  useAudioPlayerStatus, 
+  RecordingPresets,
+  setAudioModeAsync,
+  requestRecordingPermissionsAsync
+} from 'expo-audio';
 
 const { width } = Dimensions.get('window');
 const SLIDER_WIDTH = width - DT.spacing.lg * 2 - 4; // subtract padding
@@ -101,35 +107,20 @@ export default function NewErrandScreen() {
 
   // Sync slider animation if price changes externally
   // Voice Note State
-  const recorder = useAudioRecorder({
-    android: {
-      extension: '.m4a',
-      outputFormat: 6, // MPEG_4
-      audioEncoder: 3, // AAC
-      sampleRate: 44100,
-      numberOfChannels: 2,
-      bitRate: 128000,
-    },
-    ios: {
-      extension: '.m4a',
-      outputFormat: 'mpeg4aac',
-      audioQuality: 'high',
-      sampleRate: 44100,
-      numberOfChannels: 2,
-      bitRate: 128000,
-      linearPCMBitDepth: 16,
-      linearPCMIsBigEndian: false,
-      linearPCMIsFloat: false,
-    }
-  } as any);
+  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const [isRecording, setIsRecording] = useState(false);
   const [voiceNoteUri, setVoiceNoteUri] = useState<string | null>(null);
 
   const startRecording = async () => {
     try {
-      const permission = await AudioModule.requestRecordingPermissionsAsync();
+      const permission = await requestRecordingPermissionsAsync();
       if (!permission.granted) return;
       
+      await setAudioModeAsync({
+        allowsRecording: true,
+        playsInSilentMode: true,
+      });
+
       setIsRecording(true);
       await recorder.prepareToRecordAsync();
       recorder.record();
@@ -494,11 +485,13 @@ export default function NewErrandScreen() {
             <View style={{ flexDirection: 'row', gap: 12 }}>
               <TouchableOpacity 
                 style={[styles.addBtn, isRecording && { backgroundColor: colors.secondary }]}
-                onPress={isRecording ? stopRecording : startRecording}
+                onPressIn={startRecording}
+                onPressOut={stopRecording}
+                activeOpacity={0.7}
               >
                 <Mic size={14} color={isRecording ? "#FFF" : colors.primary} strokeWidth={3} />
                 <Text style={[styles.addBtnText, isRecording && { color: "#FFF" }]}>
-                  {isRecording ? 'STOP' : 'VOICE'}
+                  {isRecording ? 'RECORDING...' : 'HOLD TO TALK'}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity 

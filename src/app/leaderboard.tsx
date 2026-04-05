@@ -9,7 +9,7 @@ import {
   RefreshControl
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, Stack } from 'expo-router';
 import { 
   ChevronLeft, 
   Trophy, 
@@ -85,13 +85,12 @@ export default function LeaderboardScreen() {
         from={{ opacity: 0, scale: 0.5, translateY: 50 }}
         animate={{ opacity: 1, scale: 1, translateY: 0 }}
         transition={{ type: 'spring', delay: rank * 100 }}
-        style={[styles.podiumCard, rank === 1 && styles.podiumFirst]}
+        style={[styles.podiumCard, isFirst && styles.podiumFirst]}
       >
-        <View style={[styles.avatarBackdrop, { backgroundColor: medalColor }]} />
         <UserAvatar 
           url={runner.avatar_url} 
           size={size} 
-          borderWidth={4} 
+          borderWidth={3} 
           borderColor={colors.text} 
         />
         <View style={[styles.rankBadge, { backgroundColor: medalColor }]}>
@@ -99,28 +98,31 @@ export default function LeaderboardScreen() {
         </View>
         <Text style={styles.podiumName} numberOfLines={1}>{runner.name}</Text>
         <View style={styles.podiumStats}>
-          <Star size={12} color={colors.accent} fill={colors.accent} />
-          <Text style={styles.podiumRating}>{runner.rating.toFixed(1)}</Text>
+          <Star size={12} color={isFirst ? colors.surface : colors.accent} fill={isFirst ? colors.surface : colors.accent} />
+          <Text style={[styles.podiumRating, isFirst && { color: colors.surface }]}>{runner.rating.toFixed(1)}</Text>
         </View>
-        <Text style={styles.podiumTrips}>{runner.stats_trips} trips</Text>
+        <Text style={[styles.podiumTrips, isFirst && { color: 'rgba(255,255,255,0.7)' }]}>{runner.stats_trips} trips</Text>
       </MotiView>
     );
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <SafeAreaView style={styles.safeArea}>
+      <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <ChevronLeft size={28} color={colors.text} />
+          <ChevronLeft size={24} color={colors.text} strokeWidth={2.5} />
         </TouchableOpacity>
         <View style={styles.headerTitleContainer}>
           <Text style={styles.title}>LOCAL LEGENDS</Text>
           <View style={styles.cityBadge}>
-            <MapPin size={12} color={colors.surface} />
+            <MapPin size={12} color={colors.text} />
             <Text style={styles.cityText}>{city?.toUpperCase()}</Text>
           </View>
         </View>
-        <Trophy size={28} color={colors.primary} />
+        <View style={styles.backBtn}>
+          <Trophy size={24} color={colors.primary} strokeWidth={2.5} />
+        </View>
       </View>
 
       <ScrollView 
@@ -218,8 +220,16 @@ const getStyles = (colors: any) => StyleSheet.create({
   backBtn: {
     width: 44,
     height: 44,
+    borderWidth: 2,
+    borderColor: colors.text,
+    backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: colors.text,
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 2,
   },
   headerTitleContainer: {
     alignItems: 'center',
@@ -232,19 +242,23 @@ const getStyles = (colors: any) => StyleSheet.create({
   cityBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.text,
+    backgroundColor: colors.accent,
     paddingHorizontal: 8,
     paddingVertical: 2,
-    marginTop: 2,
+    marginTop: 4,
     gap: 4,
+    borderWidth: 1.5,
+    borderColor: colors.text,
   },
   cityText: {
     fontFamily: DT.typography.heading,
     fontSize: 10,
-    color: colors.surface,
+    color: colors.text,
+    letterSpacing: 1,
   },
   scrollContent: {
-    paddingBottom: 100,
+    paddingBottom: 120,
+    backgroundColor: colors.background,
   },
   center: {
     flex: 1,
@@ -262,59 +276,76 @@ const getStyles = (colors: any) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'center',
-    paddingVertical: 30,
-    backgroundColor: colors.surface,
+    paddingVertical: 40,
+    backgroundColor: colors.background,
     borderBottomWidth: 3,
     borderBottomColor: colors.text,
     gap: 12,
   },
   podiumCard: {
     alignItems: 'center',
-    width: 100,
-    paddingBottom: 10,
+    width: 105,
+    paddingBottom: 12,
+    backgroundColor: colors.surface,
+    borderWidth: 2,
+    borderColor: colors.text,
+    shadowColor: colors.text,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
   },
   podiumFirst: {
     width: 130,
-    transform: [{ translateY: -20 }],
+    transform: [{ translateY: -25 }],
+    backgroundColor: colors.primary,
+    borderColor: colors.text,
+    shadowOffset: { width: 6, height: 6 },
   },
   avatarBackdrop: {
     position: 'absolute',
-    top: 5,
-    width: '90%',
-    height: '60%',
-    opacity: 0.3,
-    borderRadius: 50,
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 60,
+    zIndex: -1,
   },
   rankBadge: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: colors.text,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: colors.text,
-    marginTop: -15,
+    borderColor: colors.surface,
+    marginTop: -20,
     zIndex: 10,
+    shadowColor: colors.text,
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
   },
   rankText: {
     fontFamily: DT.typography.heading,
-    fontSize: 14,
+    fontSize: 16,
     color: colors.surface,
   },
   podiumName: {
     fontFamily: DT.typography.heading,
     fontSize: 14,
     color: colors.text,
-    marginTop: 8,
+    marginTop: 10,
+    paddingHorizontal: 4,
   },
   podiumStats: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    marginTop: 2,
   },
   podiumRating: {
-    fontFamily: DT.typography.bodySemiBold,
+    fontFamily: DT.typography.heading,
     fontSize: 12,
     color: colors.text,
   },
@@ -329,12 +360,12 @@ const getStyles = (colors: any) => StyleSheet.create({
   listHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
-    gap: 8,
+    marginBottom: 20,
+    gap: 10,
   },
   listHeaderText: {
     fontFamily: DT.typography.heading,
-    fontSize: 14,
+    fontSize: 13,
     color: colors.muted,
     letterSpacing: 2,
   },
@@ -342,22 +373,23 @@ const getStyles = (colors: any) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.surface,
-    borderWidth: 3,
+    borderWidth: 2,
     borderColor: colors.text,
     padding: 12,
-    marginBottom: 12,
+    marginBottom: 16,
     shadowColor: colors.text,
     shadowOffset: { width: 4, height: 4 },
     shadowOpacity: 1,
     shadowRadius: 0,
+    elevation: 4,
   },
   rowRank: {
-    width: 30,
+    width: 35,
     alignItems: 'center',
   },
   rowRankText: {
     fontFamily: DT.typography.heading,
-    fontSize: 18,
+    fontSize: 20,
     color: colors.text,
   },
   rowInfo: {
@@ -372,11 +404,12 @@ const getStyles = (colors: any) => StyleSheet.create({
   rowStats: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
+    marginTop: 2,
   },
   rowRating: {
-    fontFamily: DT.typography.bodySemiBold,
-    fontSize: 12,
+    fontFamily: DT.typography.heading,
+    fontSize: 13,
     color: colors.text,
   },
   dot: {
@@ -392,9 +425,11 @@ const getStyles = (colors: any) => StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.error,
     paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingVertical: 3,
     marginRight: 8,
     gap: 4,
+    borderWidth: 1.5,
+    borderColor: colors.text,
   },
   streakText: {
     fontFamily: DT.typography.heading,
@@ -403,18 +438,26 @@ const getStyles = (colors: any) => StyleSheet.create({
   },
   footer: {
     position: 'absolute',
-    bottom: 20,
-    left: 20,
-    right: 20,
+    bottom: 24,
+    left: DT.spacing.lg,
+    right: DT.spacing.lg,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    opacity: 0.6,
+    backgroundColor: colors.accent,
+    borderWidth: 2,
+    borderColor: colors.text,
+    paddingVertical: 8,
+    shadowColor: colors.text,
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
   },
   footerText: {
-    fontFamily: DT.typography.body,
-    fontSize: 12,
-    color: colors.muted,
+    fontFamily: DT.typography.heading,
+    fontSize: 11,
+    color: colors.text,
+    letterSpacing: 1,
   },
 });
