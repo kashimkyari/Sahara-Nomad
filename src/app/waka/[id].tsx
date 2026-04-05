@@ -81,7 +81,6 @@ export default function WakaStatusScreen() {
   const [removedItems, setRemovedItems] = useState<Set<number>>(new Set());
   const [isRejecting, setIsRejecting] = useState(false);
   const [isUpdatingPaymentMethod, setIsUpdatingPaymentMethod] = useState(false);
-  const [disputeVisible, setDisputeVisible] = useState(false);
   const [isTipping, setIsTipping] = useState(false);
   const [tipAmount, setTipAmount] = useState("");
   const [podImage, setPodImage] = useState<string | null>(null);
@@ -519,7 +518,7 @@ export default function WakaStatusScreen() {
     }
   };
 
-  const handleRaiseDispute = () => {
+  const handleReportIssue = () => {
     router.push(`/dispute/${id}` as any);
   };
 
@@ -948,9 +947,9 @@ export default function WakaStatusScreen() {
         {waka.status !== 'cancelled' && waka.status !== 'finding_runner' && (
           <TouchableOpacity 
             style={[styles.cancelBtn, { marginTop: 20, borderStyle: 'dashed' }]}
-            onPress={() => setDisputeVisible(true)}
+            onPress={handleReportIssue}
           >
-            <Text style={styles.cancelText}>RAISE DISPUTE / REPORT ISSUE</Text>
+            <Text style={styles.cancelText}>REPORT ISSUE</Text>
           </TouchableOpacity>
         )}
 
@@ -1290,7 +1289,7 @@ export default function WakaStatusScreen() {
                   <TouchableOpacity style={styles.addPodBtn} onPress={pickImage}>
                     <Camera size={24} color={colors.text} />
                     <Text style={styles.addPodText}>TAKE DELIVERY PHOTO</Text>
-                    <Text style={styles.addPodSub}>Highly recommended to prevent disputes</Text>
+                    <Text style={styles.addPodSub}>Highly recommended to prevent issues</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -1348,10 +1347,10 @@ export default function WakaStatusScreen() {
             {isNomad && waka.status !== 'completed' && waka.status !== 'cancelled' && (
               <TouchableOpacity 
                 style={[styles.actionBtn, { marginTop: 12, borderColor: colors.error }]} 
-                onPress={handleRaiseDispute}
+                onPress={handleReportIssue}
               >
                 <AlertTriangle size={20} color={colors.error} />
-                <Text style={[styles.actionBtnText, { color: colors.error }]}>RAISE DISPUTE</Text>
+                <Text style={[styles.actionBtnText, { color: colors.error }]}>REPORT ISSUE</Text>
               </TouchableOpacity>
             )}
 

@@ -399,9 +399,7 @@ async def update_waka_payment_method(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    stmt = select(Waka).where(Waka.id == waka_id)
-    res = await db.execute(stmt)
-    waka = res.scalars().first()
+    waka = await get_hydrated_waka(db, waka_id)
     
     if not waka:
         raise HTTPException(status_code=404, detail="Errand not found")
