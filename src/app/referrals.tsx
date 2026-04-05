@@ -1,13 +1,13 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Share, ActivityIndicator } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { ChevronLeft, Gift, Share2, Copy, CheckCircle2, Info } from 'lucide-react-native';
-import { MotiView } from 'moti';
 import * as Clipboard from 'expo-clipboard';
-import { useAuth } from '../context/AuthContext';
+import { useRouter } from 'expo-router';
+import { CheckCircle2, ChevronLeft, Copy, Gift, Share2 } from 'lucide-react-native';
+import { MotiView } from 'moti';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import API from '../constants/api';
 import { DesignTokens as DT } from '../constants/design';
+import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../hooks/use-theme';
 
 interface ReferralStats {
@@ -25,7 +25,7 @@ const ReferralScreen = () => {
   const { colors } = useTheme();
   const { user, token, updateUser } = useAuth();
   const router = useRouter();
-  
+
   const [copied, setCopied] = useState(false);
   const [stats, setStats] = useState<ReferralStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -81,7 +81,7 @@ const ReferralScreen = () => {
     if (!referralCode) return;
     try {
       await Share.share({
-        message: `Join me on Sahara Nomad! Use my code ${referralCode} to get ₦500 off your first errand. \n\nAccept invite: sendam://signup?ref=${referralCode}`,
+        message: `Join me on SendAm! Use my code ${referralCode} to get ₦500 off your first errand. \n\nAccept invite: sendam://signup?ref=${referralCode}`,
       });
     } catch (error) {
       console.log(error);
@@ -103,18 +103,18 @@ const ReferralScreen = () => {
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* Hero Reward Card */}
-        <MotiView 
+        <MotiView
           from={{ opacity: 0, translateY: 20 }}
           animate={{ opacity: 1, translateY: 0 }}
           style={styles.heroCard}
         >
           <View style={styles.heroContent}>
             <View style={styles.giftIconBox}>
-                <Gift size={32} color={colors.text} strokeWidth={2.5} />
+              <Gift size={32} color={colors.text} strokeWidth={2.5} />
             </View>
             <View>
-                <Text style={styles.heroTitle}>GET ₦500</Text>
-                <Text style={styles.heroSubtitle}>Invite friends & earn rewards</Text>
+              <Text style={styles.heroTitle}>GET ₦500</Text>
+              <Text style={styles.heroSubtitle}>Invite friends & earn rewards</Text>
             </View>
           </View>
         </MotiView>
@@ -154,8 +154,8 @@ const ReferralScreen = () => {
           ) : (
             <View style={styles.noCodeContainer}>
               <Text style={styles.noCodeText}>You don't have a referral code yet.</Text>
-              <TouchableOpacity 
-                onPress={generateCode} 
+              <TouchableOpacity
+                onPress={generateCode}
                 disabled={generating}
                 style={[styles.shareButton, { marginTop: 12 }]}
               >
@@ -191,9 +191,9 @@ const ReferralScreen = () => {
 
         {/* Reward History */}
         <View style={styles.sectionHeader}>
-            <Text style={styles.sectionLabel}>REWARD HISTORY</Text>
+          <Text style={styles.sectionLabel}>REWARD HISTORY</Text>
         </View>
-        
+
         {loading ? (
           <ActivityIndicator color={colors.primary} style={{ marginVertical: DT.spacing.xl }} />
         ) : stats?.history.length === 0 ? (
@@ -218,27 +218,27 @@ const ReferralScreen = () => {
 
 const getStyles = (colors: any) => StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
-  header: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    justifyContent: 'space-between', 
-    paddingHorizontal: DT.spacing.lg, 
-    paddingVertical: DT.spacing.md, 
-    borderBottomWidth: 2, 
-    borderBottomColor: colors.text 
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: DT.spacing.lg,
+    paddingVertical: DT.spacing.md,
+    borderBottomWidth: 2,
+    borderBottomColor: colors.text
   },
-  backBtn: { 
-    width: 40, 
-    height: 40, 
-    borderWidth: 2, 
-    borderColor: colors.text, 
-    backgroundColor: colors.surface, 
-    alignItems: 'center', 
-    justifyContent: 'center' 
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderWidth: 2,
+    borderColor: colors.text,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center'
   },
   headerTitle: { fontFamily: DT.typography.heading, fontSize: 18, color: colors.text },
   scroll: { paddingHorizontal: DT.spacing.lg, paddingTop: DT.spacing.lg, paddingBottom: 60 },
-  
+
   heroCard: {
     backgroundColor: colors.primary,
     borderWidth: 2,
@@ -308,12 +308,12 @@ const getStyles = (colors: any) => StyleSheet.create({
     marginTop: 2,
   },
 
-  sectionLabel: { 
-    fontFamily: DT.typography.heading, 
-    fontSize: 11, 
-    color: colors.muted, 
-    letterSpacing: 1.5, 
-    marginBottom: DT.spacing.md 
+  sectionLabel: {
+    fontFamily: DT.typography.heading,
+    fontSize: 11,
+    color: colors.muted,
+    letterSpacing: 1.5,
+    marginBottom: DT.spacing.md
   },
   codeCard: {
     backgroundColor: colors.surface,
@@ -407,21 +407,21 @@ const getStyles = (colors: any) => StyleSheet.create({
   },
 
   sectionHeader: { marginBottom: DT.spacing.md },
-  emptyBox: { 
-    padding: DT.spacing.xl, 
-    borderWidth: 2, 
-    borderColor: colors.text, 
-    borderStyle: 'dashed', 
-    alignItems: 'center' 
+  emptyBox: {
+    padding: DT.spacing.xl,
+    borderWidth: 2,
+    borderColor: colors.text,
+    borderStyle: 'dashed',
+    alignItems: 'center'
   },
   emptyText: { fontFamily: DT.typography.body, color: colors.muted },
-  
+
   txRow: {
-    flexDirection: 'row', 
-    alignItems: 'center', 
+    flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: DT.spacing.md,
-    borderBottomWidth: 1, 
+    borderBottomWidth: 1,
     borderBottomColor: colors.text + '20',
   },
   txMain: { flex: 1 },

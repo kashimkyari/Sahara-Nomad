@@ -25,6 +25,9 @@ class Waka(AuditableBase):
     dropoff_address: Mapped[str] = mapped_column(String(512))
     dropoff_location: Mapped[Optional[Geography]] = mapped_column(Geography(geometry_type='POINT', srid=4326), nullable=True)
     
+    drop_type: Mapped[str] = mapped_column(String(20), server_default="doorstep") # doorstep, locker
+    safe_drop_pin: Mapped[Optional[str]] = mapped_column(String(6), nullable=True)
+    
     urgency: Mapped[str] = mapped_column(String(20)) # standard, flash
     
     runner_fee: Mapped[float] = mapped_column(Numeric(12, 2))

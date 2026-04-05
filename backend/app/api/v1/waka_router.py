@@ -11,6 +11,7 @@ from ...schemas.waka import WakaCreate, WakaResponse, WakaSourcingRequest, Sourc
 from ...schemas.review import ReviewBase, ReviewResponse
 from .deps import get_current_user
 from ...services.notification_service import notify_user
+from ...services.watermark_service import apply_pod_watermark
 import uuid
 from typing import List, Optional, Dict, Any
 
@@ -41,6 +42,18 @@ async def upload_waka_pod(
     
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
+        
+    # Apply watermark
+    lat = lng = None
+    if current_user.last_location:
+        try:
+            from geoalchemy2.shape import to_shape
+            pt = to_shape(current_user.last_location)
+            lat, lng = pt.y, pt.x
+        except Exception:
+            pass
+            
+    apply_pod_watermark(file_path, current_user.full_name, lat, lng)
         
     waka.pod_url = f"/api/v1/waka/{waka_id}/pod_image"
     await db.commit()

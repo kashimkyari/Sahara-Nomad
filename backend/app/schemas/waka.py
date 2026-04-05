@@ -24,6 +24,7 @@ class WakaCreate(BaseModel):
     items: Optional[list[str]] = None
     payment_method: str = "wallet" # wallet, cash
     insurance_opt_in: bool = False
+    drop_type: str = "doorstep" # doorstep | locker
     
     # Waka-Share
     is_shared: bool = False
@@ -81,6 +82,8 @@ class WakaResponse(BaseModel):
     pickup_lat: Optional[float] = None
     pickup_lng: Optional[float] = None
     dropoff_address: str
+    drop_type: str = "doorstep"
+    safe_drop_pin: Optional[str] = None
     dropoff_lat: Optional[float] = None
     dropoff_lng: Optional[float] = None
     urgency: str
