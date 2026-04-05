@@ -1,30 +1,30 @@
-import React, { useEffect, useState } from 'react';
-import { 
-  View, 
-  Text, 
-  ScrollView, 
-  StyleSheet, 
-  TouchableOpacity, 
-  ActivityIndicator,
-  RefreshControl
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, Stack } from 'expo-router';
-import { 
-  ChevronLeft, 
-  Trophy, 
-  Star, 
-  TrendingUp, 
+import { Stack, useRouter } from 'expo-router';
+import {
   Award,
-  Zap,
-  MapPin
+  ChevronLeft,
+  MapPin,
+  Star,
+  TrendingUp,
+  Trophy,
+  Zap
 } from 'lucide-react-native';
 import { MotiView } from 'moti';
-import { useTheme } from '../hooks/use-theme';
+import React, { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useBrutalistRefresh } from '../components/ui/BrutalistRefreshControl';
+import UserAvatar from '../components/ui/UserAvatar';
+import API from '../constants/api';
 import { DesignTokens as DT } from '../constants/design';
 import { useAuth } from '../context/AuthContext';
-import API from '../constants/api';
-import UserAvatar from '../components/ui/UserAvatar';
+import { useTheme } from '../hooks/use-theme';
 
 interface LeaderboardRunner {
   id: string;
@@ -43,7 +43,6 @@ export default function LeaderboardScreen() {
   const styles = getStyles(colors);
 
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [runners, setRunners] = useState<LeaderboardRunner[]>([]);
   const [city, setCity] = useState(user?.city || 'Lagos');
   const visibleListRunners = runners.length >= 3 ? runners.slice(3) : runners;
@@ -63,18 +62,18 @@ export default function LeaderboardScreen() {
       console.error('Failed to fetch leaderboard:', e);
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
   };
+
+  const { refreshControl, refreshBanner, onScroll } = useBrutalistRefresh({
+    onRefresh: fetchLeaderboard,
+    refreshingLabel: 'UPDATING LEGENDS...',
+    pullLabel: 'PULL FOR NEW RANKS',
+  });
 
   useEffect(() => {
     fetchLeaderboard();
   }, []);
-
-  const onRefresh = () => {
-    setRefreshing(true);
-    fetchLeaderboard();
-  };
 
   const PodiumItem = ({ runner, rank }: { runner: LeaderboardRunner, rank: number }) => {
     const isFirst = rank === 1;
@@ -120,11 +119,17 @@ export default function LeaderboardScreen() {
         </View>
       </View>
 
-      <ScrollView 
+      <View style={styles.contentArea}>
+        {refreshBanner ? (
+          <View style={styles.refreshBannerOffset}>
+            {refreshBanner}
+          </View>
+        ) : null}
+        <ScrollView 
+        onScroll={onScroll}
+        scrollEventThrottle={16}
         contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
-        }
+        refreshControl={refreshControl}
       >
         {loading ? (
           <View style={styles.center}>
@@ -215,7 +220,8 @@ export default function LeaderboardScreen() {
             </View>
           </>
         )}
-      </ScrollView>
+        </ScrollView>
+      </View>
 
       <View style={styles.footer}>
         <Award size={16} color={colors.muted} />
@@ -229,6 +235,15 @@ const getStyles = (colors: any) => StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  contentArea: {
+    flex: 1,
+    position: 'relative',
+  },
+  refreshBannerOffset: {
+    position: 'relative',
+    paddingBottom: 38,
+    zIndex: 10,
   },
   header: {
     flexDirection: 'row',
