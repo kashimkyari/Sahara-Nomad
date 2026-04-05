@@ -4,19 +4,21 @@ import os
 import shutil
 from sqlalchemy import select, func, update, or_
 from sqlalchemy.orm import selectinload
+from geoalchemy2 import Geography
 from ...database import get_db
 from ...models.waka import Waka, WakaDecline
-from ...models.user import User
+from ...models.user import User, UserRole
 from ...schemas.waka import WakaCreate, WakaResponse, WakaSourcingRequest, SourcingRejection, WakaTipRequest, DisputeCreate, DisputeResponse, WakaComplete
 from ...schemas.review import ReviewBase, ReviewResponse
 from .deps import get_current_user
-from ...services.notification_service import notify_user
+from ...services.notification_service import notify_user, broadcast_to_runners
 from ...services.watermark_service import apply_pod_watermark
 from ...services.surge_service import calculate_environmental_surge
 import uuid
 from typing import List, Optional, Dict, Any
 
 router = APIRouter()
+BROADCAST_RADIUS_M = 50000.0
 
 POD_UPLOAD_DIR = "uploads/pod"
 if not os.path.exists(POD_UPLOAD_DIR):
@@ -187,6 +189,47 @@ async def create_waka(
         linked_entity_id=db_obj.id,
         linked_entity_type="waka"
     )
+
+    if not runner_id and waka_in.pickup.lat is not None and waka_in.pickup.lng is not None:
+        pickup_point = func.ST_SetSRID(func.ST_MakePoint(waka_in.pickup.lng, waka_in.pickup.lat), 4326)
+        pickup_geog = func.cast(pickup_point, Geography)
+
+        nearby_runners_stmt = select(User).where(
+            User.id != current_user.id,
+            User.role == UserRole.USER,
+            User.is_runner == True,
+            User.is_online == True,
+            User.is_available == True,
+            User.is_user_deleted == False,
+            User.last_location != None,
+            func.ST_DWithin(User.last_location, pickup_geog, BROADCAST_RADIUS_M)
+        )
+        nearby_runners = (await db.execute(nearby_runners_stmt)).scalars().all()
+
+        for nearby_runner in nearby_runners:
+            await notify_user(
+                db=db,
+                user=nearby_runner,
+                title="New Errand Nearby",
+                body=f"{db_obj.category.title()} pickup near {db_obj.pickup_address}",
+                type="info",
+                linked_entity_id=db_obj.id,
+                linked_entity_type="waka",
+                send_push=False,
+            )
+
+        runner_tokens = [
+            nearby_runner.expo_push_token
+            for nearby_runner in nearby_runners
+            if nearby_runner.push_notifications_enabled and nearby_runner.expo_push_token
+        ]
+        if runner_tokens:
+            broadcast_to_runners(
+                runner_tokens,
+                "New Errand Nearby",
+                f"{db_obj.category.title()} pickup near {db_obj.pickup_address}",
+                str(db_obj.id),
+            )
     
     # Notification for Runner
     if runner_id:
@@ -1024,39 +1067,52 @@ async def accept_waka(
     current_user: User = Depends(get_current_user)
 ):
     """Accept a waka as a runner."""
-    result = await db.execute(select(Waka).where(Waka.id == waka_id))
-    waka = result.scalars().first()
-    if not waka:
-        raise HTTPException(status_code=404, detail="Waka not found")
-    
-    if waka.runner_id and waka.runner_id != current_user.id:
-        raise HTTPException(status_code=400, detail="Waka already assigned to another runner")
-    
-    waka.runner_id = current_user.id
-    waka.status = "assigned"
-    waka.step = 2 # En-route or Assigned
+    claim_stmt = (
+        update(Waka)
+        .where(
+            Waka.id == waka_id,
+            Waka.is_deleted == False,
+            Waka.runner_id == None,
+            Waka.status == "finding_runner",
+        )
+        .values(
+            runner_id=current_user.id,
+            status="assigned",
+            step=2,
+        )
+        .returning(Waka.employer_id, Waka.category)
+    )
+    claim_res = await db.execute(claim_stmt)
+    claimed_row = claim_res.first()
+
+    if not claimed_row:
+        existing_stmt = select(Waka).where(Waka.id == waka_id, Waka.is_deleted == False)
+        existing_res = await db.execute(existing_stmt)
+        existing_waka = existing_res.scalars().first()
+        if not existing_waka:
+            raise HTTPException(status_code=404, detail="Waka not found")
+        if existing_waka.runner_id == current_user.id:
+            return await get_hydrated_waka(db, waka_id)
+        raise HTTPException(status_code=409, detail="Waka already claimed")
+
     await db.commit()
-    await db.refresh(waka)
 
     # Notify Employer
-    employer_res = await db.execute(select(User).where(User.id == waka.employer_id))
+    employer_res = await db.execute(select(User).where(User.id == claimed_row.employer_id))
     employer = employer_res.scalars().first()
     if employer:
         await notify_user(
             db=db,
             user=employer,
             title="Runner Found!",
-            body=f"{current_user.full_name} has accepted your '{waka.category}' errand.",
+            body=f"{current_user.full_name} has accepted your '{claimed_row.category}' errand.",
             type="success",
-            linked_entity_id=waka.id,
+            linked_entity_id=waka_id,
             linked_entity_type="waka"
         )
     await db.commit()
     
-    # Return hydrated waka
-    stmt = select(Waka).options(selectinload(Waka.employer), selectinload(Waka.runner), selectinload(Waka.inventory_items)).where(Waka.id == waka_id)
-    result = await db.execute(stmt)
-    return result.scalars().first()
+    return await get_hydrated_waka(db, waka_id)
 
 @router.post("/{waka_id}/decline", response_model=WakaResponse)
 async def decline_waka(
