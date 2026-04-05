@@ -46,6 +46,7 @@ export default function LeaderboardScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [runners, setRunners] = useState<LeaderboardRunner[]>([]);
   const [city, setCity] = useState(user?.city || 'Lagos');
+  const visibleListRunners = runners.length >= 3 ? runners.slice(3) : runners;
 
   const fetchLeaderboard = async () => {
     if (!token) return;
@@ -165,11 +166,13 @@ export default function LeaderboardScreen() {
                 <Text style={styles.sectionLabel}>RISING LEGENDS</Text>
                 <View style={styles.listPill}>
                   <TrendingUp size={12} color={colors.text} />
-                  <Text style={styles.listPillText}>{runners.length} RUNNERS</Text>
+                  <Text style={styles.listPillText}>
+                    {visibleListRunners.length} {visibleListRunners.length === 1 ? 'RUNNER' : 'RUNNERS'}
+                  </Text>
                 </View>
               </View>
 
-              {runners.slice(3).map((runner, index) => (
+              {visibleListRunners.map((runner, index) => (
                 <MotiView
                   key={runner.id}
                   from={{ opacity: 0, translateX: -20 }}
@@ -203,6 +206,12 @@ export default function LeaderboardScreen() {
                   </TouchableOpacity>
                 </MotiView>
               ))}
+
+              {visibleListRunners.length === 0 && (
+                <View style={styles.emptyBox}>
+                  <Text style={styles.emptyText}>No additional runners to show yet.</Text>
+                </View>
+              )}
             </View>
           </>
         )}
@@ -466,6 +475,18 @@ const getStyles = (colors: any) => StyleSheet.create({
     shadowOpacity: 1,
     shadowRadius: 0,
     elevation: 4,
+  },
+  emptyBox: {
+    padding: DT.spacing.xl,
+    borderWidth: 2,
+    borderColor: colors.text,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+  },
+  emptyText: {
+    fontFamily: DT.typography.body,
+    color: colors.muted,
   },
   rowRank: {
     width: 35,

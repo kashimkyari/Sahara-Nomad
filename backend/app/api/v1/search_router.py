@@ -251,29 +251,39 @@ async def get_leaderboard(
 ):
     """Top 50 runners in the user's city ranked by rating and trip count."""
     city = current_user.city or "Lagos"
+
+    completed_waka_sq = (
+        select(func.count(Waka.id))
+        .where(
+            Waka.runner_id == User.id,
+            Waka.is_completed == True,
+            Waka.is_deleted == False,
+        )
+        .scalar_subquery()
+    )
     
     stmt = (
-        select(User)
+        select(User, completed_waka_sq.label("stats_trips_dynamic"))
         .where(
             User.is_runner == True,
             User.city == city,
             User.is_user_deleted == False
         )
-        .order_by(User.stats_rating.desc(), User.stats_trips.desc())
+        .order_by(User.stats_rating.desc(), completed_waka_sq.desc())
         .limit(50)
     )
     
     result = await db.execute(stmt)
-    runners = result.scalars().all()
+    runners = result.all()
     
     top_runners = []
-    for i, runner in enumerate(runners):
+    for i, (runner, stats_trips_dynamic) in enumerate(runners):
         top_runners.append(LeaderboardItem(
             id=runner.id,
             name=runner.full_name,
             avatar_url=runner.avatar_url or f"/auth/users/{runner.id}/avatar",
             rating=float(runner.stats_rating),
-            stats_trips=runner.stats_trips,
+            stats_trips=stats_trips_dynamic or 0,
             streak_count=runner.streak_count,
             rank=i + 1
         ))
