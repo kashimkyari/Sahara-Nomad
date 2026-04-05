@@ -64,26 +64,40 @@ export default function AllRunnersScreen() {
   }, [activeFilter, activeSort]);
 
   const renderRunner = ({ item }: { item: any }) => (
-    <MotiView 
-      from={{ opacity: 0, translateY: 20 }}
-      animate={{ opacity: 1, translateY: 0 }}
-      style={styles.runnerCard}
-    >
-      <TouchableOpacity 
-        style={styles.runnerCardInner}
-        onPress={() => router.push(`/runner/${item.id}` as any)}
-      >
-        <View style={styles.cardHeader}>
-          <View style={styles.avatarWrap}>
-            <Image 
-              source={item.image.startsWith('http') 
-                ? { uri: item.image } 
-                : { uri: `${API.API_URL}${item.image}`, headers: { Authorization: `Bearer ${token}` } }
-              } 
-              style={styles.avatar} 
-            />
-            {item.is_online && <View style={styles.onlineDot} />}
-          </View>
+    (() => {
+      const avatarUrl = item.avatar_url || item.image || null;
+      const avatarSource = avatarUrl
+        ? avatarUrl.startsWith('http')
+          ? { uri: avatarUrl }
+          : { uri: `${API.API_URL}${avatarUrl}`, headers: { Authorization: `Bearer ${token}` } }
+        : null;
+
+      return (
+        <MotiView 
+          from={{ opacity: 0, translateY: 20 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          style={styles.runnerCard}
+        >
+          <TouchableOpacity 
+            style={styles.runnerCardInner}
+            onPress={() => router.push(`/runner/${item.id}` as any)}
+          >
+            <View style={styles.cardHeader}>
+              <View style={styles.avatarWrap}>
+                {avatarSource ? (
+                  <Image 
+                    source={avatarSource}
+                    style={styles.avatar} 
+                  />
+                ) : (
+                  <View style={[styles.avatar, styles.avatarFallback]}>
+                    <Text style={styles.avatarFallbackText}>
+                      {(item.name || '?').slice(0, 1).toUpperCase()}
+                    </Text>
+                  </View>
+                )}
+                {item.is_online && <View style={styles.onlineDot} />}
+              </View>
           <View style={styles.headerInfo}>
             <View style={styles.nameRow}>
               <Text style={styles.runnerName} numberOfLines={1}>{item.name}</Text>
@@ -116,8 +130,10 @@ export default function AllRunnersScreen() {
             <Text style={styles.hireBtnText}>HIRE NOW</Text>
           </TouchableOpacity>
         </View>
-      </TouchableOpacity>
-    </MotiView>
+          </TouchableOpacity>
+        </MotiView>
+      );
+    })()
   );
 
   return (
@@ -257,6 +273,16 @@ const getStyles = (colors: any) => StyleSheet.create({
     shadowOffset: { width: 3, height: 3 },
     shadowOpacity: 1,
     shadowRadius: 0,
+  },
+  avatarFallback: {
+    backgroundColor: colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarFallbackText: {
+    fontFamily: DT.typography.heading,
+    fontSize: 20,
+    color: colors.text,
   },
   titleWrap: {
     flex: 1,
