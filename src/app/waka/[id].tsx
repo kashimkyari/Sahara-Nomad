@@ -78,7 +78,14 @@ export default function WakaStatusScreen() {
     const player = useMemo(() => {
       return new (AudioModule as any).AudioPlayer({ uri }, 100, 0);
     }, [uri]);
-    const status = useAudioPlayerStatus(player);
+    const { playing, duration, currentTime, isBuffering } = useAudioPlayerStatus(player);
+    const [audioDuration, setAudioDuration] = useState(0);
+
+    useEffect(() => {
+      if (duration > 0) {
+        setAudioDuration(duration);
+      }
+    }, [duration]);
 
     useEffect(() => {
       return () => {
@@ -89,6 +96,13 @@ export default function WakaStatusScreen() {
         }
       };
     }, [player]);
+
+    const formatTime = (seconds: number) => {
+      const totalSeconds = Math.max(0, Math.floor(seconds));
+      const mins = Math.floor(totalSeconds / 60);
+      const secs = totalSeconds % 60;
+      return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
     
     return (
       <View style={styles.audioContainer}>
@@ -99,14 +113,16 @@ export default function WakaStatusScreen() {
               allowsRecording: false,
               playsInSilentMode: true,
             });
-            if (status.playing) {
+            if (playing) {
               player.pause();
             } else {
               player.play();
             }
           }}
         >
-          {status.playing ? (
+          {isBuffering ? (
+            <ActivityIndicator size="small" color={colors.surface} />
+          ) : playing ? (
             <Pause size={20} color={colors.surface} fill={colors.surface} />
           ) : (
             <Play size={20} color={colors.surface} fill={colors.surface} />
@@ -115,7 +131,7 @@ export default function WakaStatusScreen() {
         <View style={styles.audioInfo}>
           <Text style={styles.audioTitle}>VOICE INSTRUCTIONS</Text>
           <Text style={styles.audioDuration}>
-            {Math.floor(status.duration / 1000)}s — {status.playing ? 'PLAYING' : 'READY'}
+            {formatTime(currentTime)} / {formatTime(audioDuration)} {playing ? '— PLAYING' : ''}
           </Text>
         </View>
         <Music size={24} color={colors.muted} />
