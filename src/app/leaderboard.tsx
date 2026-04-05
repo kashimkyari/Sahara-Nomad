@@ -19,7 +19,7 @@ import {
   Zap,
   MapPin
 } from 'lucide-react-native';
-import { MotiView, AnimatePresence } from 'moti';
+import { MotiView } from 'moti';
 import { useTheme } from '../hooks/use-theme';
 import { DesignTokens as DT } from '../constants/design';
 import { useAuth } from '../context/AuthContext';
@@ -113,15 +113,9 @@ export default function LeaderboardScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <ChevronLeft size={24} color={colors.text} strokeWidth={2.5} />
         </TouchableOpacity>
-        <View style={styles.headerTitleContainer}>
-          <Text style={styles.title}>LOCAL LEGENDS</Text>
-          <View style={styles.cityBadge}>
-            <MapPin size={12} color={colors.text} />
-            <Text style={styles.cityText}>{city?.toUpperCase()}</Text>
-          </View>
-        </View>
-        <View style={styles.backBtn}>
-          <Trophy size={24} color={colors.primary} strokeWidth={2.5} />
+        <Text style={styles.headerTitle}>Leaderboard</Text>
+        <View style={styles.headerIcon}>
+          <Trophy size={22} color={colors.text} strokeWidth={2.5} />
         </View>
       </View>
 
@@ -138,20 +132,41 @@ export default function LeaderboardScreen() {
           </View>
         ) : (
           <>
-            {/* Podium Section */}
+            <View style={styles.heroCard}>
+              <View style={styles.heroTopRow}>
+                <View style={styles.heroLabelWrap}>
+                  <Text style={styles.heroLabel}>CITY CHAMPIONS</Text>
+                  <View style={styles.cityBadge}>
+                    <MapPin size={12} color={colors.text} />
+                    <Text style={styles.cityText}>{city?.toUpperCase()}</Text>
+                  </View>
+                </View>
+                <View style={styles.heroIconBox}>
+                  <Award size={20} color={colors.text} strokeWidth={2.5} />
+                </View>
+              </View>
+              <Text style={styles.heroTitle}>Top runners ranked by consistency, trips, and trust.</Text>
+              <Text style={styles.heroSubtext}>Refresh to see who is dominating your zone right now.</Text>
+            </View>
+
             {runners.length >= 3 && (
-              <View style={styles.podiumContainer}>
+              <View style={styles.podiumSection}>
+                <Text style={styles.sectionLabel}>PODIUM</Text>
+                <View style={styles.podiumContainer}>
                 <PodiumItem runner={runners[1]} rank={2} />
                 <PodiumItem runner={runners[0]} rank={1} />
                 <PodiumItem runner={runners[2]} rank={3} />
+                </View>
               </View>
             )}
 
-            {/* List Section */}
             <View style={styles.listContainer}>
-              <View style={styles.listHeader}>
-                <TrendingUp size={16} color={colors.muted} />
-                <Text style={styles.listHeaderText}>RISING LEGENDS</Text>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionLabel}>RISING LEGENDS</Text>
+                <View style={styles.listPill}>
+                  <TrendingUp size={12} color={colors.text} />
+                  <Text style={styles.listPillText}>{runners.length} RUNNERS</Text>
+                </View>
               </View>
 
               {runners.slice(3).map((runner, index) => (
@@ -193,7 +208,6 @@ export default function LeaderboardScreen() {
         )}
       </ScrollView>
 
-      {/* Floating Info Footnote */}
       <View style={styles.footer}>
         <Award size={16} color={colors.muted} />
         <Text style={styles.footerText}>Ranked by rating & trip density</Text>
@@ -213,41 +227,92 @@ const getStyles = (colors: any) => StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: DT.spacing.lg,
     paddingVertical: DT.spacing.md,
-    borderBottomWidth: 3,
+    borderBottomWidth: 2,
     borderBottomColor: colors.text,
-    backgroundColor: colors.surface,
   },
   backBtn: {
-    width: 44,
-    height: 44,
+    width: 40,
+    height: 40,
     borderWidth: 2,
     borderColor: colors.text,
-    backgroundColor: colors.background,
+    backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: colors.text,
-    shadowOffset: { width: 2, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 2,
   },
-  headerTitleContainer: {
-    alignItems: 'center',
-  },
-  title: {
+  headerTitle: {
     fontFamily: DT.typography.heading,
     fontSize: 20,
     color: colors.text,
+  },
+  headerIcon: {
+    width: 40,
+    height: 40,
+    borderWidth: 2,
+    borderColor: colors.text,
+    backgroundColor: colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroCard: {
+    backgroundColor: colors.primary,
+    borderWidth: 2,
+    borderColor: colors.text,
+    padding: DT.spacing.lg,
+    marginBottom: DT.spacing.lg,
+    shadowColor: colors.text,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 5,
+  },
+  heroTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: DT.spacing.md,
+  },
+  heroLabelWrap: {
+    flex: 1,
+    gap: 8,
+  },
+  heroLabel: {
+    fontFamily: DT.typography.heading,
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.75)',
+    letterSpacing: 1.5,
+  },
+  heroTitle: {
+    fontFamily: DT.typography.heading,
+    fontSize: 28,
+    lineHeight: 31,
+    color: colors.surface,
+    maxWidth: '92%',
+  },
+  heroSubtext: {
+    fontFamily: DT.typography.body,
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.78)',
+    marginTop: 8,
+  },
+  heroIconBox: {
+    width: 42,
+    height: 42,
+    borderWidth: 2,
+    borderColor: colors.text,
+    backgroundColor: colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 12,
   },
   cityBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.accent,
     paddingHorizontal: 8,
-    paddingVertical: 2,
-    marginTop: 4,
+    paddingVertical: 3,
     gap: 4,
-    borderWidth: 1.5,
+    alignSelf: 'flex-start',
+    borderWidth: 2,
     borderColor: colors.text,
   },
   cityText: {
@@ -257,6 +322,8 @@ const getStyles = (colors: any) => StyleSheet.create({
     letterSpacing: 1,
   },
   scrollContent: {
+    paddingHorizontal: DT.spacing.lg,
+    paddingTop: DT.spacing.lg,
     paddingBottom: 120,
     backgroundColor: colors.background,
   },
@@ -272,25 +339,34 @@ const getStyles = (colors: any) => StyleSheet.create({
     color: colors.text,
     marginTop: 16,
   },
+  podiumSection: {
+    marginBottom: DT.spacing.lg,
+  },
   podiumContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'center',
-    paddingVertical: 40,
-    backgroundColor: colors.background,
-    borderBottomWidth: 3,
-    borderBottomColor: colors.text,
+    paddingVertical: DT.spacing.lg,
+    paddingHorizontal: 8,
+    backgroundColor: colors.surface,
+    borderWidth: 2,
+    borderColor: colors.text,
     gap: 12,
+    shadowColor: colors.text,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
   },
   podiumCard: {
     alignItems: 'center',
     width: 105,
-    paddingBottom: 12,
-    backgroundColor: colors.surface,
+    paddingVertical: 12,
+    backgroundColor: colors.background,
     borderWidth: 2,
     borderColor: colors.text,
     shadowColor: colors.text,
-    shadowOffset: { width: 4, height: 4 },
+    shadowOffset: { width: 3, height: 3 },
     shadowOpacity: 1,
     shadowRadius: 0,
     elevation: 4,
@@ -300,20 +376,11 @@ const getStyles = (colors: any) => StyleSheet.create({
     transform: [{ translateY: -25 }],
     backgroundColor: colors.primary,
     borderColor: colors.text,
-    shadowOffset: { width: 6, height: 6 },
-  },
-  avatarBackdrop: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 60,
-    zIndex: -1,
+    shadowOffset: { width: 4, height: 4 },
   },
   rankBadge: {
     width: 32,
     height: 32,
-    borderRadius: 16,
     backgroundColor: colors.text,
     alignItems: 'center',
     justifyContent: 'center',
@@ -337,6 +404,7 @@ const getStyles = (colors: any) => StyleSheet.create({
     color: colors.text,
     marginTop: 10,
     paddingHorizontal: 4,
+    textAlign: 'center',
   },
   podiumStats: {
     flexDirection: 'row',
@@ -355,19 +423,35 @@ const getStyles = (colors: any) => StyleSheet.create({
     color: colors.muted,
   },
   listContainer: {
-    padding: DT.spacing.lg,
+    marginBottom: DT.spacing.lg,
   },
-  listHeader: {
+  sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
-    gap: 10,
+    justifyContent: 'space-between',
+    marginBottom: DT.spacing.md,
   },
-  listHeaderText: {
+  sectionLabel: {
     fontFamily: DT.typography.heading,
-    fontSize: 13,
+    fontSize: 11,
     color: colors.muted,
-    letterSpacing: 2,
+    letterSpacing: 1.5,
+  },
+  listPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.accent,
+    borderWidth: 2,
+    borderColor: colors.text,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  listPillText: {
+    fontFamily: DT.typography.heading,
+    fontSize: 10,
+    color: colors.text,
+    letterSpacing: 1,
   },
   runnerRow: {
     flexDirection: 'row',
