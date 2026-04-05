@@ -26,7 +26,8 @@ class WalletService:
         to_user_id: uuid.UUID,
         amount: Decimal,
         tx_type: str,
-        reference: str
+        reference: str,
+        is_cash: bool = False
     ) -> bool:
         """
         Atomically transfers funds between two user wallets.
@@ -47,16 +48,17 @@ class WalletService:
         to_wallet = await WalletService.get_wallet(db, to_user_id)
 
         # 3. Check balance
-        if from_wallet.balance < amount:
+        if not is_cash and from_wallet.balance < amount:
             return False
-
+            
         # 4. Perform Transfer
         from_prev = from_wallet.balance
         to_prev = to_wallet.balance
         
-        from_wallet.balance -= float(amount)
-        to_wallet.balance += float(amount)
-
+        if not is_cash:
+            from_wallet.balance -= float(amount)
+            to_wallet.balance += float(amount)
+            
         # 5. Create Transactions
         # Debit from Nomad
         debit_txn = Transaction(
@@ -65,8 +67,9 @@ class WalletService:
             type=f"{tx_type}_debit",
             reference=f"{reference}_debit",
             is_completed=True,
+            is_cash=is_cash,
             previous_balance=from_prev,
-            new_balance=from_wallet.balance
+            new_balance=from_wallet.balance if not is_cash else from_prev
         )
         # Credit to Runner
         credit_txn = Transaction(
@@ -75,19 +78,18 @@ class WalletService:
             type=f"{tx_type}_credit",
             reference=f"{reference}_credit",
             is_completed=True,
+            is_cash=is_cash,
             previous_balance=to_prev,
-            new_balance=to_wallet.balance
+            new_balance=to_wallet.balance if not is_cash else to_prev
         )
         
         db.add(debit_txn)
         db.add(credit_txn)
         
-        # We also create a unique constraint transaction for the whole operation if needed,
-        # but the unique 'reference' on debit_txn usually suffices.
-        # To be extra safe with idempotency:
         idempotency_txn = Transaction(
             wallet_id=from_wallet.id,
             amount=0,
+            is_cash=is_cash,
             type="idempotency_marker",
             reference=reference,
             is_completed=True,
@@ -95,7 +97,7 @@ class WalletService:
             new_balance=from_prev
         )
         db.add(idempotency_txn)
-
+        
         await db.flush()
         return True
 

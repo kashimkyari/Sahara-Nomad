@@ -208,7 +208,9 @@ const SourcingActionCard = ({ metadata, onApprove, onDecline, isMe, colors, styl
             onPress={onApprove}
             disabled={loading}
           >
-            <Text style={styles.approveBtnTextSmall}>APPROVE</Text>
+            <Text style={styles.approveBtnTextSmall}>
+              {metadata.payment_method === 'cash' ? 'CONFIRM CASH' : 'APPROVE'}
+            </Text>
           </TouchableOpacity>
         </View>
       ) : (

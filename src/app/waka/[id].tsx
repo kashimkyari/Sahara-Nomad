@@ -832,8 +832,15 @@ export default function WakaStatusScreen() {
                     onPress={handleFundSourcing}
                     disabled={loading}
                   >
-                    <Text style={styles.approveBtnText}>APPROVE & FUND</Text>
+                    <Text style={styles.approveBtnText}>
+                      {waka.payment_method === 'cash' ? 'APPROVE & CONFIRM CASH' : 'APPROVE & FUND'}
+                    </Text>
                   </TouchableOpacity>
+                  {waka.payment_method === 'cash' && (
+                    <Text style={{ fontSize: 10, color: colors.muted, marginTop: 4, textAlign: 'center' }}>
+                      Confirmation records this offline payment on our platform ledger.
+                    </Text>
+                  )}
                 </View>
               </View>
             )}

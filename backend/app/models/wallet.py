@@ -74,6 +74,7 @@ class Transaction(AuditableBase):
     reference: Mapped[str] = mapped_column(String(100), unique=True)
     
     is_completed: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_cash: Mapped[bool] = mapped_column(Boolean, default=False)
     
     # Audit fields for balance tracing
     previous_balance: Mapped[float] = mapped_column(Numeric(12, 2))

@@ -183,41 +183,38 @@ async def complete_waka(
         from ...services.wallet_service import wallet_service
         from decimal import Decimal
         
-        if waka.payment_method == "wallet":
-            # Payout Runner Fee + Flash Incentive
-            total_payout = Decimal(str(waka.runner_fee)) + Decimal(str(waka.flash_incentive))
-            
-            success = await wallet_service.transfer_funds(
-                db=db,
-                from_user_id=waka.employer_id,
-                to_user_id=waka.runner_id,
-                amount=total_payout,
-                tx_type="waka_fee",
-                reference=f"waka_fee_{waka.id}"
+        # --- AUTOMATED Payout (Wallet or Virtual Cash Audit) ---
+        from ...services.wallet_service import wallet_service
+        from decimal import Decimal
+        
+        total_payout = Decimal(str(waka.runner_fee)) + Decimal(str(waka.flash_incentive))
+        
+        success = await wallet_service.transfer_funds(
+            db=db,
+            from_user_id=waka.employer_id,
+            to_user_id=waka.runner_id,
+            amount=total_payout,
+            tx_type="waka_fee",
+            reference=f"waka_fee_{waka.id}",
+            is_cash=(waka.payment_method == "cash")
+        )
+        
+        if not success:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Insufficient wallet balance to pay the runner fee. Total needed: ₦{total_payout:,.2f}"
             )
             
-            if not success:
-                # We still mark as completed but warn? 
-                # Or should we block completion if balance is low? 
-                # Blocking completion is safer to ensure the runner gets paid.
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Insufficient wallet balance to pay the runner fee. Total needed: ₦{total_payout:,.2f}"
-                )
-                
-            # Notify both about payment success
-            await notify_user(
-                db=db,
-                user=waka.runner,
-                title="Payment Received! 💰",
-                body=f"You've received ₦{total_payout:,.2f} for completing the errand '{waka.category}'.",
-                type="success",
-                linked_entity_id=waka.id,
-                linked_entity_type="waka"
-            )
-        else:
-            # Cash payment: Nomad confirmed they will pay runner directly
-            print(f"Skipping runner fee wallet transfer for Waka {waka.id} (Method: cash)")
+        # Notify both about payment success
+        await notify_user(
+            db=db,
+            user=waka.runner,
+            title="Payment Received! 💰" if waka.payment_method == "wallet" else "Cash Payment Recorded! 💵",
+            body=f"You've received ₦{total_payout:,.2f} for completing the errand '{waka.category}'." if waka.payment_method == "wallet" else f"A cash payment of ₦{total_payout:,.2f} has been recorded for your completed errand.",
+            type="success",
+            linked_entity_id=waka.id,
+            linked_entity_type="waka"
+        )
         waka.step = 5 # Success state
         
         # Notify Both
@@ -394,24 +391,25 @@ async def fund_waka_sourcing(
     from ...services.wallet_service import wallet_service
     from decimal import Decimal
     
-    if waka.payment_method == "wallet":
-        success = await wallet_service.transfer_funds(
-            db=db,
-            from_user_id=waka.employer_id,
-            to_user_id=waka.runner_id,
-            amount=Decimal(str(waka.sourcing_budget)),
-            tx_type="waka_sourcing",
-            reference=f"waka_sourcing_{waka.id}"
+    # --- AUTOMATED TRANSFER (Wallet or Virtual Cash Audit) ---
+    from ...services.wallet_service import wallet_service
+    from decimal import Decimal
+    
+    success = await wallet_service.transfer_funds(
+        db=db,
+        from_user_id=waka.employer_id,
+        to_user_id=waka.runner_id,
+        amount=Decimal(str(waka.sourcing_budget)),
+        tx_type="waka_sourcing",
+        reference=f"waka_sourcing_{waka.id}",
+        is_cash=(waka.payment_method == "cash")
+    )
+    
+    if not success:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Insufficient wallet balance to fund this bill. Total needed: ₦{waka.sourcing_budget:,.2f}"
         )
-        
-        if not success:
-            raise HTTPException(
-                status_code=400, 
-                detail=f"Insufficient wallet balance to fund this bill. Total needed: ₦{waka.sourcing_budget:,.2f}"
-            )
-    else:
-        # Cash payment: Nomad confirms they will pay runner directly
-        print(f"Skipping sourcing wallet transfer for Waka {waka.id} (Method: cash)")
 
     await db.commit()
     
