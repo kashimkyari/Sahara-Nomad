@@ -5,7 +5,7 @@ from sqlalchemy.orm import selectinload
 from ...database import get_db
 from ...models.waka import Waka, WakaDecline
 from ...models.user import User
-from ...schemas.waka import WakaCreate, WakaResponse, WakaSourcingRequest, SourcingRejection
+from ...schemas.waka import WakaCreate, WakaResponse, WakaSourcingRequest, SourcingRejection, WakaTipRequest, DisputeCreate, DisputeResponse
 from ...schemas.review import ReviewBase, ReviewResponse
 from .deps import get_current_user
 from ...services.notification_service import notify_user
@@ -65,7 +65,8 @@ async def create_waka(
         step=1,
         budget_min=waka_in.budget_min,
         budget_max=waka_in.budget_max,
-        items=waka_in.items
+        items=waka_in.items,
+        insurance_opt_in=waka_in.insurance_opt_in
     )
     db.add(db_obj)
     await db.commit()
@@ -100,6 +101,100 @@ async def create_waka(
     await db.commit()
 
     return db_obj
+
+@router.post("/{waka_id}/tip", response_model=Dict[str, Any])
+async def tip_waka(
+    waka_id: uuid.UUID,
+    tip_in: WakaTipRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Nomad sends a voluntary tip to the runner."""
+    waka = await get_hydrated_waka(db, waka_id)
+    if not waka:
+        raise HTTPException(status_code=404, detail="Waka not found")
+        
+    if waka.employer_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Only the nomad can send a tip")
+        
+    if not waka.runner_id:
+        raise HTTPException(status_code=400, detail="No runner assigned to this errand yet")
+
+    from ...services.wallet_service import wallet_service
+    from decimal import Decimal
+    
+    amount = Decimal(str(tip_in.amount))
+    
+    # Tips are 1:1, no platform commission
+    success = await wallet_service.transfer_funds(
+        db=db,
+        from_user_id=current_user.id,
+        to_user_id=waka.runner_id,
+        amount=amount,
+        tx_type="waka_tip",
+        reference=f"tip_{waka.id}_{uuid.uuid4().hex[:8]}",
+        is_cash=False # Tips must be digital for platform verification
+    )
+    
+    if not success:
+        raise HTTPException(status_code=400, detail="Insufficient wallet balance for this tip")
+        
+    # Notify Runner
+    await notify_user(
+        db=db,
+        user=waka.runner,
+        title="Extra Love! 💖",
+        body=f"{current_user.full_name} sent you a ₦{amount:,.2f} tip for your errand!",
+        type="success",
+        linked_entity_id=waka.id,
+        linked_entity_type="waka"
+    )
+    
+    await db.commit()
+    return {"status": "success", "amount": float(amount), "recipient": waka.runner.full_name}
+
+@router.post("/{waka_id}/dispute", response_model=DisputeResponse)
+async def dispute_waka(
+    waka_id: uuid.UUID,
+    dispute_in: DisputeCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Participant raises a dispute for an errand."""
+    waka = await db.scalar(select(Waka).where(Waka.id == waka_id))
+    if not waka:
+        raise HTTPException(status_code=404, detail="Waka not found")
+        
+    if current_user.id not in [waka.employer_id, waka.runner_id]:
+        raise HTTPException(status_code=403, detail="Only participants can raise a dispute")
+        
+    from ...models.waka import WakaDispute
+    dispute = WakaDispute(
+        waka_id=waka_id,
+        creator_id=current_user.id,
+        reason=dispute_in.reason,
+        description=dispute_in.description
+    )
+    db.add(dispute)
+    
+    # Notify the other party
+    other_id = waka.runner_id if current_user.id == waka.employer_id else waka.employer_id
+    if other_id:
+        recipient = await db.get(User, other_id)
+        if recipient:
+            await notify_user(
+                db=db,
+                user=recipient,
+                title="Dispute Raised ⚠️",
+                body=f"{current_user.full_name} has raised a dispute for your errand. Our team will investigate.",
+                type="warning",
+                linked_entity_id=waka.id,
+                linked_entity_type="waka"
+            )
+            
+    await db.commit()
+    await db.refresh(dispute)
+    return dispute
 
 @router.get("/active", response_model=List[WakaResponse])
 async def get_active_wakas(
@@ -212,8 +307,13 @@ async def complete_waka(
         from ...services.wallet_service import wallet_service
         from decimal import Decimal
         
-        total_payout = Decimal(str(waka.runner_fee)) + Decimal(str(waka.flash_incentive))
-        
+        # --- DYNAMIC COMMISSION BASED ON RUNNER TIER ---
+        # Bronze: 10%, Silver: 7.5%, Gold: 5%
+        commission_rate = Decimal("0.10")
+        if waka.runner:
+            if waka.runner.stats_trips >= 50: commission_rate = Decimal("0.05")
+            elif waka.runner.stats_trips >= 10: commission_rate = Decimal("0.075")
+
         success = await wallet_service.transfer_funds(
             db=db,
             from_user_id=waka.employer_id,
@@ -222,7 +322,7 @@ async def complete_waka(
             tx_type="waka_fee",
             reference=f"waka_fee_{waka.id}",
             is_cash=(waka.payment_method == "cash"),
-            commission_rate=Decimal("0.10")
+            commission_rate=commission_rate
         )
         
         if not success:
@@ -242,6 +342,43 @@ async def complete_waka(
             linked_entity_type="waka"
         )
         waka.step = 5 # Success state
+        
+        # Increment Runner Trip Count
+        if waka.runner:
+            waka.runner.stats_trips += 1
+            
+        # --- REFERRAL REWARD (₦500 for first errand) ---
+        if waka.employer.errands_count == 1 and waka.employer.referred_by_id:
+            # Credit User
+            await wallet_service.transfer_funds(
+                db=db,
+                from_user_id=uuid.UUID(settings.SYSTEM_USER_ID),
+                to_user_id=waka.employer_id,
+                amount=Decimal("500.00"),
+                tx_type="referral_bonus",
+                reference=f"ref_bonus_user_{waka.id}",
+                is_cash=False
+            )
+            # Credit Referrer
+            await wallet_service.transfer_funds(
+                db=db,
+                from_user_id=uuid.UUID(settings.SYSTEM_USER_ID),
+                to_user_id=waka.employer.referred_by_id,
+                amount=Decimal("500.00"),
+                tx_type="referral_bonus",
+                reference=f"ref_bonus_referral_{waka.id}",
+                is_cash=False
+            )
+            # Notify Referrer
+            referrer = await db.get(User, waka.employer.referred_by_id)
+            if referrer:
+                await notify_user(
+                    db=db,
+                    user=referrer,
+                    title="Referral Bonus! 🎁",
+                    body=f"You've received ₦500 because {waka.employer.full_name} completed their first errand!",
+                    type="success"
+                )
         
         # Notify Both
         for uid in [waka.employer_id, waka.runner_id]:
@@ -430,6 +567,20 @@ async def fund_waka_sourcing(
         reference=f"waka_sourcing_{waka.id}",
         is_cash=(waka.payment_method == "cash")
     )
+    
+    # --- OPTIONAL INSURANCE FEE (2%) ---
+    if success and waka.insurance_opt_in:
+        insurance_fee = (Decimal(str(waka.sourcing_budget)) * Decimal("0.02")).quantize(Decimal("0.01"))
+        if insurance_fee > 0:
+            await wallet_service.transfer_funds(
+                db=db,
+                from_user_id=waka.employer_id,
+                to_user_id=uuid.UUID(settings.SYSTEM_USER_ID),
+                amount=insurance_fee,
+                tx_type="waka_insurance",
+                reference=f"waka_insurance_{waka.id}",
+                is_cash=False # Insurance must be digital
+            )
     
     if not success:
         raise HTTPException(

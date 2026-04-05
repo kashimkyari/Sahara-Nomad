@@ -40,6 +40,14 @@ async def signup(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
             detail="The user with this phone number already exists in the system.",
         )
     
+    # Referral tracking
+    referred_by_id = None
+    if user_in.referral_code:
+        referrer_stmt = select(User).where(User.referral_code == user_in.referral_code)
+        referrer = (await db.execute(referrer_stmt)).scalars().first()
+        if referrer:
+            referred_by_id = referrer.id
+
     # Create User (unverified)
     db_obj = User(
         full_name=user_in.full_name,
@@ -49,7 +57,9 @@ async def signup(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
         is_otp_verified=False,
         is_verified=False,
         otp_code="123456",
-        otp_expires_at=datetime.utcnow() + timedelta(minutes=10)
+        otp_expires_at=datetime.utcnow() + timedelta(minutes=10),
+        referral_code=uuid.uuid4().hex[:8].upper(),
+        referred_by_id=referred_by_id
     )
     db.add(db_obj)
     await db.flush()
@@ -418,3 +428,67 @@ async def get_user_avatar(user_id: uuid.UUID):
 @router.get("/me/avatarurl")
 async def get_avatar(current_user: User = Depends(get_current_user)):
     return await get_user_avatar(current_user.id, current_user)
+
+# --- SAVED ADDRESSES ---
+from ...schemas.user import UserAddressCreate, UserAddressResponse
+from ...models.user import UserAddress
+
+@router.get("/addresses", response_model=list[UserAddressResponse])
+async def get_saved_addresses(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Returns list of saved addresses for the user."""
+    result = await db.execute(
+        select(UserAddress).where(UserAddress.user_id == current_user.id)
+    )
+    return result.scalars().all()
+
+@router.post("/addresses", response_model=UserAddressResponse)
+async def add_saved_address(
+    address_in: UserAddressCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Adds a new saved address."""
+    # If set as default, unset others
+    if address_in.is_default:
+        await db.execute(
+            update(UserAddress)
+            .where(UserAddress.user_id == current_user.id)
+            .values(is_default=False)
+        )
+    
+    new_address = UserAddress(
+        user_id=current_user.id,
+        label=address_in.label,
+        address=address_in.address,
+        lat=address_in.lat,
+        lng=address_in.lng,
+        is_default=address_in.is_default
+    )
+    db.add(new_address)
+    await db.commit()
+    await db.refresh(new_address)
+    return new_address
+
+@router.delete("/addresses/{address_id}")
+async def delete_saved_address(
+    address_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Deletes a saved address."""
+    stmt = select(UserAddress).where(
+        UserAddress.id == address_id,
+        UserAddress.user_id == current_user.id
+    )
+    result = await db.execute(stmt)
+    address = result.scalar_one_or_none()
+    
+    if not address:
+        raise HTTPException(status_code=404, detail="Address not found")
+        
+    await db.delete(address)
+    await db.commit()
+    return {"status": "deleted"}

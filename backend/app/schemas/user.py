@@ -19,6 +19,7 @@ class UserInfo(BaseModel):
 
 class UserCreate(UserBase):
     password: str
+    referral_code: Optional[str] = None
 
 class UserUpdate(BaseModel):
     full_name: Optional[str] = None
@@ -56,6 +57,7 @@ class UserResponse(UserBase):
     is_runner: bool
     role: str
     loyalty_badge: Optional[str] = None
+    referral_code: Optional[str] = None
     stats_rating: float = 2.5
     created_at: datetime
     avatar_url: Optional[str] = None
@@ -123,6 +125,20 @@ class RunnerApplicationResponse(BaseModel):
     hourly_rate: Optional[float] = None
     verification_method: str
     status: str
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+class UserAddressCreate(BaseModel):
+    label: str # Home, Office, etc.
+    address: str
+    lat: float
+    lng: float
+    is_default: bool = False
+
+class UserAddressResponse(UserAddressCreate):
+    id: UUID
+    user_id: UUID
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

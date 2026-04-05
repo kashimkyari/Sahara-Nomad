@@ -40,6 +40,10 @@ class User(AuditableBase):
     stats_rating: Mapped[float] = mapped_column(Numeric(3, 2), default=5.0)
     avatar_url: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     is_user_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
+    
+    # Referral System
+    referral_code: Mapped[str] = mapped_column(String(20), unique=True, index=True, nullable=True)
+    referred_by_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
 
     # Runner-specific fields (Unified)
     bio: Mapped[Optional[str]] = mapped_column(String, nullable=True)
@@ -50,6 +54,12 @@ class User(AuditableBase):
 
     otp_code: Mapped[Optional[str]] = mapped_column(String(6), nullable=True)
     otp_expires_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
+
+    @property
+    def runner_tier(self) -> str:
+        if self.stats_trips >= 50: return "gold"
+        if self.stats_trips >= 10: return "silver"
+        return "bronze"
 
     # Relationships
     wallet: Mapped["Wallet"] = relationship("Wallet", back_populates="user", uselist=False)
@@ -76,3 +86,29 @@ class RunnerApplication(AuditableBase):
     reviewed_by: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), nullable=True)
 
     user: Mapped["User"] = relationship("User", foreign_keys=[user_id])
+
+class UserBookmark(AuditableBase):
+    """Allows users to 'favorite' runners for quick access."""
+    __tablename__ = "user_bookmarks"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), index=True)
+    target_user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), index=True)
+
+    user: Mapped["User"] = relationship("User", foreign_keys=[user_id])
+    target_user: Mapped["User"] = relationship("User", foreign_keys=[target_user_id])
+
+class UserAddress(AuditableBase):
+    """Commonly used addresses for errand creation."""
+    __tablename__ = "user_addresses"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), index=True)
+    
+    label: Mapped[str] = mapped_column(String(50)) # Home, Office, Gym, etc.
+    address: Mapped[str] = mapped_column(String(512))
+    lat: Mapped[float] = mapped_column(Numeric(12, 8))
+    lng: Mapped[float] = mapped_column(Numeric(12, 8))
+    is_default: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    user: Mapped["User"] = relationship("User", back_populates="addresses")

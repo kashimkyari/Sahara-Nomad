@@ -67,3 +67,9 @@ class Wallet(WalletBase):
     virtual_bank_name: Optional[str] = None
     
     model_config = ConfigDict(from_attributes=True)
+class WalletStats(BaseModel):
+    total_earned: Decimal
+    pending_payout: Decimal
+    this_month_earned: Decimal
+    trip_count: int
+    runner_tier: str

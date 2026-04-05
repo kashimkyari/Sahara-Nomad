@@ -51,6 +51,7 @@ class Waka(AuditableBase):
     completed_by_employer: Mapped[bool] = mapped_column(Boolean, default=False)
 
     payment_method: Mapped[str] = mapped_column(String(20), server_default='wallet', default='wallet', nullable=False) # wallet, cash
+    insurance_opt_in: Mapped[bool] = mapped_column(Boolean, server_default='false', default=False, nullable=False)
 
     # Relationships
     employer: Mapped["User"] = relationship("User", foreign_keys=[employer_id])
@@ -62,3 +63,19 @@ class WakaDecline(AuditableBase):
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     waka_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("wakas.id"))
     runner_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"))
+
+class WakaDispute(AuditableBase):
+    __tablename__ = "waka_disputes"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    waka_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("wakas.id"))
+    creator_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"))
+    
+    reason: Mapped[str] = mapped_column(String(50)) # payment, items, behavior, other
+    description: Mapped[str] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(20), default="open") # open, investigating, resolved, closed
+    resolution: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    resolved_by: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+
+    waka: Mapped["Waka"] = relationship("Waka")
+    creator: Mapped["User"] = relationship("User", foreign_keys=[creator_id])

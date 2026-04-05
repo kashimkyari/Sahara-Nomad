@@ -90,6 +90,15 @@ async def get_runner_profile(
     reviews_result = await db.execute(reviews_stmt)
     reviews_rows = reviews_result.all()
 
+    # Check if bookmarked by current user
+    from ...models.user import UserBookmark
+    bm_stmt = select(UserBookmark).where(
+        UserBookmark.user_id == current_user.id,
+        UserBookmark.target_user_id == user.id
+    )
+    bm_res = await db.execute(bm_stmt)
+    is_bookmarked = bm_res.scalar() is not None
+
     # Molded response matching runner/[id].tsx expectations
     return {
         "id": str(user.id),
@@ -97,6 +106,8 @@ async def get_runner_profile(
         "avatar_url": user.avatar_url,
         "is_runner": user.is_runner,
         "loyalty_badge": user.loyalty_badge,
+        "runner_tier": user.runner_tier,
+        "is_bookmarked": is_bookmarked,
         "created_at": user.created_at.isoformat(),
         "runner_profile": {
             "id": str(user.id),
@@ -116,3 +127,59 @@ async def get_runner_profile(
             ]
         }
     }
+
+@router.post("/{runner_id}/bookmark")
+async def toggle_bookmark(
+    runner_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Toggle bookmark for a runner."""
+    from ...models.user import UserBookmark
+    
+    # 1. Check if runner exists
+    target = await db.get(User, runner_id)
+    if not target or not target.is_runner:
+        raise HTTPException(status_code=404, detail="Runner not found")
+        
+    # 2. Check for existing bookmark
+    stmt = select(UserBookmark).where(
+        UserBookmark.user_id == current_user.id,
+        UserBookmark.target_user_id == runner_id
+    )
+    result = await db.execute(stmt)
+    bookmark = result.scalar_one_or_none()
+    
+    if bookmark:
+        await db.delete(bookmark)
+        status = "unbookmarked"
+    else:
+        new_bm = UserBookmark(user_id=current_user.id, target_user_id=runner_id)
+        db.add(new_bm)
+        status = "bookmarked"
+        
+    await db.commit()
+    return {"status": status}
+
+@router.get("/bookmarks/list")
+async def list_bookmarked_runners(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Returns list of bookmarked runners."""
+    from ...models.user import UserBookmark
+    stmt = select(User).join(UserBookmark, User.id == UserBookmark.target_user_id).where(
+        UserBookmark.user_id == current_user.id
+    )
+    result = await db.execute(stmt)
+    runners = result.scalars().all()
+    
+    return [
+        {
+            "id": str(r.id),
+            "full_name": r.full_name,
+            "avatar_url": r.avatar_url,
+            "stats_rating": float(r.stats_rating),
+            "runner_tier": r.runner_tier
+        } for r in runners
+    ]

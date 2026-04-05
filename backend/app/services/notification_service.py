@@ -104,10 +104,17 @@ async def notify_user(
     # 2. Conditional Push Notification
     if send_push and user.push_notifications_enabled and user.expo_push_token:
         # Merge data
+        deep_link = None
+        if linked_entity_type == "waka" and linked_entity_id:
+            deep_link = f"sahara://waka/{linked_entity_id}"
+        elif linked_entity_type == "conversation" and linked_entity_id:
+            deep_link = f"sahara://messages/{linked_entity_id}"
+            
         payload = {
             "type": type,
             "linked_entity_id": str(linked_entity_id) if linked_entity_id else None,
-            "linked_entity_type": linked_entity_type
+            "linked_entity_type": linked_entity_type,
+            "deep_link": deep_link
         }
         if extra_data:
             payload.update(extra_data)

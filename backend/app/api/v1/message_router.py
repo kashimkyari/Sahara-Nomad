@@ -358,7 +358,19 @@ async def websocket_endpoint(
         while True:
             data_str = await websocket.receive_text()
             data = json.loads(data_str)
+            event_type = data.get("type", "NEW_MESSAGE")
             
+            if event_type == "LOCATION_UPDATE":
+                # Broadcast location update to other participants in the room
+                # Expected data: { "type": "LOCATION_UPDATE", "lat": float, "lng": float }
+                await manager.broadcast(json.dumps({
+                    "type": "LOCATION_UPDATE",
+                    "sender_id": str(current_user.id),
+                    "lat": data.get("lat"),
+                    "lng": data.get("lng")
+                }), convo_id)
+                continue # Do not save to DB
+
             # Expecting { "sender_id": "...", "content_text": "..." }
             sender_id = uuid.UUID(data["sender_id"])
             content_text = data["content_text"]

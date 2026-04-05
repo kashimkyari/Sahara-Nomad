@@ -10,7 +10,52 @@ from ...services.notification_service import notify_user
 from uuid import UUID
 import uuid
 
+from sqlalchemy import select, func
+from datetime import datetime, timedelta
+from decimal import Decimal
+
 router = APIRouter()
+
+@router.get("/earnings/stats", response_model=schemas.WalletStats)
+async def get_earnings_stats(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Return aggregated earnings statistics for the runner."""
+    if not current_user.is_runner:
+        raise HTTPException(status_code=400, detail="Only runners have earnings stats")
+        
+    # Get wallet
+    wallet_res = await db.execute(select(Wallet).where(Wallet.user_id == current_user.id))
+    wallet = wallet_res.scalars().first()
+    if not wallet:
+        raise HTTPException(status_code=404, detail="Wallet not found")
+
+    # 1. Total Earned (All successful waka_fee and waka_tip credits)
+    total_earned_stmt = select(func.sum(Transaction.amount)).where(
+        Transaction.wallet_id == wallet.id,
+        Transaction.type.in_(["waka_fee_credit", "waka_tip_credit"]),
+        Transaction.is_completed == True
+    )
+    total_earned = await db.scalar(total_earned_stmt) or 0.0
+
+    # 2. This Month Earned
+    first_of_month = datetime.utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    month_earned_stmt = total_earned_stmt.where(Transaction.created_at >= first_of_month)
+    month_earned = await db.scalar(month_earned_stmt) or 0.0
+
+    # 3. Pending Payout (Wakas not yet fully completed but funded)
+    # This logic depends on your specific escrow implementation.
+    # For now, let's assume it's 0 if not explicitly tracked yet.
+    pending_payout = 0.0 
+
+    return schemas.WalletStats(
+        total_earned=Decimal(str(total_earned)),
+        pending_payout=Decimal(str(pending_payout)),
+        this_month_earned=Decimal(str(month_earned)),
+        trip_count=current_user.stats_trips,
+        runner_tier=current_user.runner_tier
+    )
 
 @router.get("/{user_id}/balance")
 async def get_balance(

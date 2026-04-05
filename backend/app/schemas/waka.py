@@ -22,6 +22,7 @@ class WakaCreate(BaseModel):
     budget_max: Optional[float] = None
     items: Optional[list[str]] = None
     payment_method: str = "wallet" # wallet, cash
+    insurance_opt_in: bool = False
 
 class WakaSourcingRequest(BaseModel):
     sourcing_budget: float
@@ -32,6 +33,26 @@ class WakaSourcingRequest(BaseModel):
 class SourcingRejection(BaseModel):
     item_list: Optional[list[str]] = None
 
+class WakaTipRequest(BaseModel):
+    amount: float = Field(..., gt=0)
+
+class DisputeCreate(BaseModel):
+    reason: str # payment, items, behavior, other
+    description: str
+
+class DisputeResponse(BaseModel):
+    id: UUID
+    waka_id: UUID
+    creator_id: UUID
+    reason: str
+    description: str
+    status: str
+    resolution: Optional[str] = None
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
 class WakaUser(BaseModel):
     id: UUID
     full_name: str
@@ -39,6 +60,7 @@ class WakaUser(BaseModel):
     phone_number: Optional[str] = None
     is_runner: bool = False
     stats_rating: float = 5.0
+    runner_tier: str = "bronze"
 
 class WakaResponse(BaseModel):
     id: UUID
@@ -72,6 +94,7 @@ class WakaResponse(BaseModel):
     has_employer_reviewed: bool = False
     has_runner_reviewed: bool = False
     payment_method: str = "wallet"
+    insurance_opt_in: bool = False
     created_at: datetime
     
     employer: Optional[WakaUser] = None
