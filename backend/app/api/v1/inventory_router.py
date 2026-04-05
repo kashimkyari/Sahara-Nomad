@@ -31,7 +31,7 @@ async def upload_inventory_image(
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
         
-    return {"url": f"/api/v1/inventory/image/{file_name}"}
+    return {"url": f"/inventory/image/{file_name}"}
 
 @router.get("/image/{filename}")
 async def get_inventory_image(filename: str):

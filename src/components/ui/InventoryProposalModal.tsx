@@ -6,7 +6,6 @@ import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Image,
   Modal,
   Platform,
   Pressable,
@@ -17,6 +16,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import { Image } from 'expo-image';
 import API from '../../constants/api';
 import { DesignTokens as DT } from '../../constants/design';
 import { BrutalistAlert } from './BrutalistAlert';
@@ -233,7 +233,12 @@ export default function InventoryProposalModal({
                     onPress={openCamera}
                   >
                     {externalPhoto ? (
-                      <Image source={{ uri: externalPhoto }} style={styles.pickedImage} />
+                      <Image 
+                        source={{ uri: externalPhoto }} 
+                        style={styles.pickedImage} 
+                        contentFit="cover" 
+                        transition={200}
+                      />
                     ) : (
                       <View style={{ alignItems: 'center' }}>
                         <Camera size={32} color={colors.text} />
@@ -373,7 +378,6 @@ const styles = StyleSheet.create({
   pickedImage: {
     width: '100%',
     height: '100%',
-    contentFit: 'cover',
   },
   btnShadow: {
     position: 'absolute',

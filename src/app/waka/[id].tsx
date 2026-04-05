@@ -13,6 +13,7 @@ import { Image } from 'expo-image';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { MotiView, AnimatePresence } from 'moti';
 import WakaLiveMap from '../../components/ui/WakaLiveMap';
+import { BlurView } from 'expo-blur';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { 
@@ -98,6 +99,7 @@ export default function WakaStatusScreen() {
   const [waka, setWaka] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
   const [isCancelling, setIsCancelling] = React.useState(false);
+  const [previewPhoto, setPreviewPhoto] = React.useState<string | null>(null);
   const [isAccepting, setIsAccepting] = React.useState(false);
   const [isDeclining, setIsDeclining] = React.useState(false);
   const [runnerLocation, setRunnerLocation] = useState<{ latitude: number, longitude: number } | null>(null);
@@ -966,14 +968,31 @@ export default function WakaStatusScreen() {
                 <Text style={styles.liveText}>ACTION REQUIRED</Text>
               </View>
             </View>
-            <Text style={styles.listHeader}>Tap to add/remove from your errand budget</Text>
-            
-            {waka.inventory_items.map((item: any) => (
-              <View key={item.id} style={[styles.itemBulletRow, { paddingVertical: 12, borderBottomWidth: 1, borderColor: '#EEE' }]}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.runnerName}>{item.name}</Text>
-                  <Text style={[styles.priceValue, { fontSize: 16 }]}>₦{item.price.toLocaleString()}</Text>
-                </View>
+            {waka.inventory_items.map((item: any) => {
+              let photoPath = item.photo_url;
+              // Strip leading /api/v1 if it exists to prevent double prefixing
+              if (photoPath?.startsWith('/api/v1')) {
+                photoPath = photoPath.replace('/api/v1', '');
+              }
+              const fullPhotoUrl = photoPath ? (photoPath.startsWith('http') ? photoPath : `${API.API_URL}${photoPath}`) : null;
+              if (fullPhotoUrl) console.log('📸 Inventory Photo URL:', fullPhotoUrl);
+              
+              return (
+                <View key={item.id} style={[styles.itemBulletRow, { paddingVertical: 12, borderBottomWidth: 1, borderColor: '#EEE' }]}>
+                  {fullPhotoUrl && (
+                    <TouchableOpacity onPress={() => setPreviewPhoto(fullPhotoUrl)}>
+                      <Image 
+                        source={{ uri: fullPhotoUrl, headers: { Authorization: `Bearer ${token}` } }} 
+                        style={styles.itemThumbnail} 
+                        contentFit="cover"
+                        transition={200}
+                      />
+                    </TouchableOpacity>
+                  )}
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.runnerName}>{item.name}</Text>
+                    <Text style={[styles.priceValue, { fontSize: 16 }]}>₦{item.price.toLocaleString()}</Text>
+                  </View>
                 
                 {item.status === 'proposed' ? (
                   isNomad ? (
@@ -1000,7 +1019,8 @@ export default function WakaStatusScreen() {
                   </View>
                 )}
               </View>
-            ))}
+            );
+          })}
           </View>
         )}
 
@@ -1407,6 +1427,26 @@ export default function WakaStatusScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* Photo Preview Modal */}
+      <Modal visible={!!previewPhoto} transparent animationType="fade">
+        <View style={styles.previewOverlay}>
+          <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFill} />
+          <View style={[styles.previewContent, { borderColor: colors.text }]}>
+            <Image 
+              source={{ uri: previewPhoto!, headers: { Authorization: `Bearer ${token}` } }} 
+              style={styles.fullImage} 
+              contentFit="contain" 
+            />
+            <TouchableOpacity 
+              style={[styles.closePreviewBtn, { backgroundColor: colors.text }]}
+              onPress={() => setPreviewPhoto(null)}
+            >
+              <X size={24} color={colors.surface} />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       <BrutalistAlert
         visible={alertVisible}
@@ -2324,6 +2364,42 @@ function getStyles(colors: any) {
     },
     itemsList: {
       gap: 12,
+    },
+    itemThumbnail: {
+      width: 60,
+      height: 60,
+      borderWidth: 2,
+      borderColor: colors.text,
+    },
+    previewOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.8)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 20,
+    },
+    previewContent: {
+      width: '100%',
+      aspectRatio: 1,
+      backgroundColor: '#000',
+      borderWidth: 4,
+      position: 'relative',
+    },
+    fullImage: {
+      width: '100%',
+      height: '100%',
+    },
+    closePreviewBtn: {
+      position: 'absolute',
+      top: -20,
+      right: -20,
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 2,
+      borderColor: '#FFF',
     },
   });
 }
