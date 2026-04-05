@@ -65,6 +65,8 @@ class User(AuditableBase):
     wallet: Mapped["Wallet"] = relationship("Wallet", back_populates="user", uselist=False)
     reviews_given: Mapped[list["Review"]] = relationship("Review", foreign_keys="[Review.reviewer_id]", back_populates="reviewer")
     reviews_received: Mapped[list["Review"]] = relationship("Review", foreign_keys="[Review.target_user_id]", back_populates="target_user")
+    addresses: Mapped[list["UserAddress"]] = relationship("UserAddress", back_populates="user")
+    bookmarks: Mapped[list["UserBookmark"]] = relationship("UserBookmark", foreign_keys="[UserBookmark.user_id]", back_populates="user")
 
 class RunnerApplication(AuditableBase):
     """Tracks a user's request to become a runner. Admin sets status to 'approved' | 'rejected'."""
@@ -95,7 +97,7 @@ class UserBookmark(AuditableBase):
     user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), index=True)
     target_user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), index=True)
 
-    user: Mapped["User"] = relationship("User", foreign_keys=[user_id])
+    user: Mapped["User"] = relationship("User", foreign_keys=[user_id], back_populates="bookmarks")
     target_user: Mapped["User"] = relationship("User", foreign_keys=[target_user_id])
 
 class UserAddress(AuditableBase):

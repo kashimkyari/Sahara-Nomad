@@ -4,6 +4,7 @@ from sqlalchemy import select
 from ...database import get_db
 from ...models.user import User
 from ...models.wallet import Wallet, Transaction, Payment, PaymentMethod
+from ...models.waka import Waka
 from ...schemas import wallet as schemas
 from .deps import get_current_user
 from ...services.notification_service import notify_user
@@ -44,10 +45,16 @@ async def get_earnings_stats(
     month_earned_stmt = total_earned_stmt.where(Transaction.created_at >= first_of_month)
     month_earned = await db.scalar(month_earned_stmt) or 0.0
 
-    # 3. Pending Payout (Wakas not yet fully completed but funded)
-    # This logic depends on your specific escrow implementation.
-    # For now, let's assume it's 0 if not explicitly tracked yet.
-    pending_payout = 0.0 
+    # 3. Pending Payout (Wakas assigned to runner but not yet completed)
+    pending_stmt = (
+        select(func.sum(Waka.runner_fee + Waka.flash_incentive))
+        .where(
+            Waka.runner_id == current_user.id,
+            Waka.is_completed == False,
+            Waka.status != "cancelled"
+        )
+    )
+    pending_payout = await db.scalar(pending_stmt) or 0.0
 
     return schemas.WalletStats(
         total_earned=Decimal(str(total_earned)),
