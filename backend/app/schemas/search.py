@@ -24,3 +24,16 @@ class SearchResponse(BaseModel):
     runners: List[RunnerSearchResponse]
     trending_searches: List[str]
     markets: List[str] = []
+
+class LeaderboardItem(BaseModel):
+    id: UUID
+    name: str
+    avatar_url: Optional[str] = None
+    rating: float
+    stats_trips: int
+    streak_count: int = 0
+    rank: int
+
+class LeaderboardResponse(BaseModel):
+    top_runners: List[LeaderboardItem]
+    city: str

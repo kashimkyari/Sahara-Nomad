@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Image, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Search, MapPin, Star, History, ArrowRight, TrendingUp, X, ShoppingBag, Award, Users } from 'lucide-react-native';
+import { Search, MapPin, Star, History, ArrowRight, TrendingUp, X, ShoppingBag, Award, Users, Trophy } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { DesignTokens as DT } from '../../constants/design';
 import { useTheme } from '../../hooks/use-theme';
@@ -159,6 +159,13 @@ export default function SearchScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>Find Runners</Text>
+        <TouchableOpacity 
+          style={styles.leaderboardBtn}
+          onPress={() => router.push('/leaderboard')}
+        >
+          <Trophy size={20} color={colors.text} />
+          <Text style={styles.leaderboardBtnText}>LEGENDS</Text>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.flex1}>
@@ -509,6 +516,28 @@ const getStyles = (colors: any) => StyleSheet.create({
     paddingHorizontal: DT.spacing.lg,
     paddingTop: DT.spacing.lg,
     paddingBottom: DT.spacing.md,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  leaderboardBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.accent,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderWidth: 2,
+    borderColor: colors.text,
+    gap: 6,
+    shadowColor: colors.text,
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+  },
+  leaderboardBtnText: {
+    fontFamily: DT.typography.heading,
+    fontSize: 10,
+    color: colors.text,
   },
   title: {
     fontFamily: DT.typography.heading,

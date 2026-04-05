@@ -6,7 +6,7 @@ from ...database import get_db
 from ...models.user import User, UserRole
 from ...models.search import SearchHistory
 from ...models.waka import Waka
-from ...schemas.search import SearchResponse, RunnerSearchResponse, SearchRecord
+from ...schemas.search import SearchResponse, RunnerSearchResponse, SearchRecord, LeaderboardResponse, LeaderboardItem
 from .deps import get_current_user
 from typing import List
 from datetime import datetime, timedelta
@@ -242,3 +242,42 @@ async def get_batching_suggestions(
             })
 
     return batches
+
+@router.get("/leaderboard", response_model=LeaderboardResponse)
+async def get_leaderboard(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Top 50 runners in the user's city ranked by rating and trip count."""
+    city = current_user.city or "Lagos"
+    
+    stmt = (
+        select(User)
+        .where(
+            User.is_runner == True,
+            User.city == city,
+            User.is_user_deleted == False
+        )
+        .order_by(User.stats_rating.desc(), User.stats_trips.desc())
+        .limit(50)
+    )
+    
+    result = await db.execute(stmt)
+    runners = result.scalars().all()
+    
+    top_runners = []
+    for i, runner in enumerate(runners):
+        top_runners.append(LeaderboardItem(
+            id=runner.id,
+            name=runner.full_name,
+            avatar_url=runner.avatar_url or f"/auth/users/{runner.id}/avatar",
+            rating=float(runner.stats_rating),
+            stats_trips=runner.stats_trips,
+            streak_count=runner.streak_count,
+            rank=i + 1
+        ))
+        
+    return LeaderboardResponse(
+        top_runners=top_runners,
+        city=city
+    )

@@ -59,7 +59,8 @@ export default {
             if (sort) url += `sort=${sort}&`;
             return url.slice(0, -1);
         },
-        RECORD: `${API_URL}/search/record`
+        RECORD: `${API_URL}/search/record`,
+        LEADERBOARD: `${API_URL}/search/leaderboard`
     },
     SUPPORT: {
         LIST: `${API_URL}/support/`,
