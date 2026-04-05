@@ -103,6 +103,8 @@ export default function WakaStatusScreen() {
       const secs = totalSeconds % 60;
       return `${mins}:${secs.toString().padStart(2, '0')}`;
     };
+
+    const isFinished = audioDuration > 0 && currentTime >= audioDuration - 0.25;
     
     return (
       <View style={styles.audioContainer}>
@@ -116,6 +118,9 @@ export default function WakaStatusScreen() {
             if (playing) {
               player.pause();
             } else {
+              if (isFinished) {
+                await player.seekTo(0);
+              }
               player.play();
             }
           }}
