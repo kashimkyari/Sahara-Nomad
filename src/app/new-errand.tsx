@@ -23,6 +23,7 @@ import { useTheme } from '../hooks/use-theme';
 import { useAuth } from '../context/AuthContext';
 import API from '../constants/api';
 import { BrutalistAlert } from '../components/ui/BrutalistAlert';
+import AddressSelector from '../components/ui/AddressSelector';
 
 const { width } = Dimensions.get('window');
 const SLIDER_WIDTH = width - DT.spacing.lg * 2 - 4; // subtract padding
@@ -62,6 +63,8 @@ export default function NewErrandScreen() {
   const [budgetMax, setBudgetMax] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'wallet' | 'cash'>('wallet');
   const [scrollEnabled, setScrollEnabled] = useState(true);
+  const [selectedPickupId, setSelectedPickupId] = useState<string>();
+  const [selectedDropoffId, setSelectedDropoffId] = useState<string>();
 
   // Alert State
   const [alertVisible, setAlertVisible] = useState(false);
@@ -370,6 +373,15 @@ export default function NewErrandScreen() {
         {/* Location Boxes */}
         <View style={styles.field}>
           <Text style={styles.fieldLabel}>Pickup Location</Text>
+          <AddressSelector 
+            type="pickup"
+            selectedId={selectedPickupId}
+            onSelect={(addr) => {
+              setLocation(addr.address);
+              setPickupCoords({ lat: addr.lat, lng: addr.lng });
+              setSelectedPickupId(addr.id);
+            }}
+          />
           <View style={styles.locationInput}>
             <TextInput
               style={styles.locationTextInput}
@@ -395,6 +407,15 @@ export default function NewErrandScreen() {
 
         <View style={styles.field}>
           <Text style={styles.fieldLabel}>Dropoff Address</Text>
+          <AddressSelector 
+            type="dropoff"
+            selectedId={selectedDropoffId}
+            onSelect={(addr) => {
+              setDeliveryLocation(addr.address);
+              setDropoffCoords({ lat: addr.lat, lng: addr.lng });
+              setSelectedDropoffId(addr.id);
+            }}
+          />
           <View style={styles.locationInput}>
             <TextInput
               style={styles.locationTextInput}

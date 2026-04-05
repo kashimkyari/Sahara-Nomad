@@ -492,3 +492,54 @@ async def delete_saved_address(
     await db.delete(address)
     await db.commit()
     return {"status": "deleted"}
+
+@router.get("/referrals/stats")
+async def get_referral_stats(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Returns referral count and total earned from referrals."""
+    # Count friends joined
+    count_stmt = select(func.count(User.id)).where(User.referred_by_id == current_user.id)
+    count_res = await db.execute(count_stmt)
+    friends_joined = count_res.scalar() or 0
+    
+    # Sum rewards earned (Transaction type = referral_bonus)
+    wallet_stmt = select(Wallet.id).where(Wallet.user_id == current_user.id)
+    wallet_id = await db.scalar(wallet_stmt)
+    
+    total_earned = 0.0
+    if wallet_id:
+        reward_stmt = select(func.sum(Transaction.amount)).where(
+            Transaction.wallet_id == wallet_id,
+            Transaction.type == "referral_bonus",
+            Transaction.is_completed == True
+        )
+        total_earned = await db.scalar(reward_stmt) or 0.0
+        
+    # Get history of bonuses
+    history_stmt = (
+        select(Transaction)
+        .where(
+            Transaction.wallet_id == wallet_id,
+            Transaction.type == "referral_bonus",
+            Transaction.is_completed == True
+        )
+        .order_by(Transaction.created_at.desc())
+        .limit(10)
+    )
+    history_res = await db.execute(history_stmt)
+    history = history_res.scalars().all()
+    
+    return {
+        "friends_joined": friends_joined,
+        "total_earned": float(total_earned),
+        "history": [
+            {
+                "id": str(t.id),
+                "amount": float(t.amount),
+                "created_at": t.created_at.isoformat(),
+                "status": "credited"
+            } for t in history
+        ]
+    }

@@ -11,7 +11,9 @@ import {
   ShieldCheck,
   ArrowRight,
   Zap,
-  Power
+  Power,
+  Heart,
+  Gift
 } from 'lucide-react-native';
 import { NeobrutalistToggle } from '../../components/ui/NeobrutalistToggle';
 import React from 'react';
@@ -26,6 +28,8 @@ import API from '../../constants/api';
 
 const menuItems = [
   { icon: CreditCard, label: 'Payment Methods', route: '/profile/payment' },
+  { icon: Heart, label: 'Favorite Runners', route: '/favorites' },
+  { icon: Gift, label: 'Referrals & Rewards', route: '/referrals' },
   { icon: Shield, label: 'Trust & Safety', route: '/profile/safety' },
   { icon: HelpCircle, label: 'Support', route: '/profile/support' },
   { icon: Settings, label: 'Settings', route: '/profile/settings' },

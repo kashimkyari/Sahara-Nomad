@@ -42,6 +42,7 @@ export default function ProfilePaymentScreen() {
   const [methods, setMethods] = React.useState<PaymentMethod[]>([]);
   const [balance, setBalance] = React.useState(0);
   const [transactions, setTransactions] = React.useState<Transaction[]>([]);
+  const [earnings, setEarnings] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
 
   // Alert State
@@ -69,6 +70,9 @@ export default function ProfilePaymentScreen() {
         }),
         fetch(API.WALLET.TRANSACTIONS(user.id), {
           headers: { Authorization: `Bearer ${token}` }
+        }),
+        fetch(`${API.API_URL}/wallet/earnings/stats`, {
+          headers: { Authorization: `Bearer ${token}` }
         })
       ]);
 
@@ -83,6 +87,15 @@ export default function ProfilePaymentScreen() {
       if (txnsRes.ok) {
         const data = await txnsRes.json();
         setTransactions(data);
+      }
+      if (user.is_runner) {
+        const earningsRes = await fetch(`${API.API_URL}/wallet/earnings/stats`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (earningsRes.ok) {
+          const data = await earningsRes.json();
+          setEarnings(data);
+        }
       }
     } catch (e) {
       console.error('Failed to fetch payment data:', e);
@@ -141,6 +154,29 @@ export default function ProfilePaymentScreen() {
             <Text style={styles.fundBtnText}>Fund Wallet</Text>
           </TouchableOpacity>
         </View>
+
+        {/* Runner Earnings Dashboard */}
+        {user?.is_runner && (
+          <View style={styles.earningsCard}>
+            <Text style={styles.earningsLabel}>RUNNER EARNINGS</Text>
+            <View style={styles.earningsRow}>
+              <View style={styles.earningsItem}>
+                <Text style={styles.earningsValue}>₦{Number(earnings?.pending_payout || 0).toLocaleString()}</Text>
+                <Text style={styles.earningsSub}>Pending Payout</Text>
+              </View>
+              <View style={styles.earningsDivider} />
+              <View style={styles.earningsItem}>
+                <Text style={styles.earningsValue}>₦{Number(earnings?.total_earnings || 0).toLocaleString()}</Text>
+                <Text style={styles.earningsSub}>Lifetime Total</Text>
+              </View>
+            </View>
+            <View style={styles.payoutAlert}>
+              <Text style={styles.payoutAlertText}>
+                Payouts are automated every Monday at 12:00 AM WAT.
+              </Text>
+            </View>
+          </View>
+        )}
 
         {/* Cards */}
         <Text style={styles.sectionLabel}>SAVED CARDS & ACCOUNTS</Text>
@@ -277,4 +313,60 @@ const getStyles = (colors: any) => StyleSheet.create({
     marginBottom: DT.spacing.lg 
   },
   emptyText: { fontFamily: DT.typography.body, color: colors.muted },
+  earningsCard: {
+    backgroundColor: 'white',
+    borderWidth: 2,
+    borderColor: 'black',
+    padding: DT.spacing.lg,
+    marginBottom: DT.spacing.lg,
+    shadowColor: 'black',
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+  },
+  earningsLabel: {
+    fontFamily: 'SpaceMono-Bold',
+    fontSize: 12,
+    color: '#666',
+    letterSpacing: 1.5,
+    marginBottom: DT.spacing.md,
+  },
+  earningsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: DT.spacing.md,
+  },
+  earningsItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  earningsValue: {
+    fontFamily: 'SpaceMono-Bold',
+    fontSize: 20,
+    color: 'black',
+  },
+  earningsSub: {
+    fontFamily: 'SpaceMono-Regular',
+    fontSize: 10,
+    color: '#333',
+    marginTop: 2,
+  },
+  earningsDivider: {
+    width: 2,
+    height: 30,
+    backgroundColor: 'black',
+    marginHorizontal: 15,
+  },
+  payoutAlert: {
+    backgroundColor: '#90EE90',
+    padding: 10,
+    borderWidth: 2,
+    borderColor: 'black',
+  },
+  payoutAlertText: {
+    fontFamily: 'SpaceMono-Bold',
+    fontSize: 9,
+    textAlign: 'center',
+  }
 });

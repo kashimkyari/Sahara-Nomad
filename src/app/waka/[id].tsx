@@ -32,6 +32,7 @@ import API from '../../constants/api';
 import { ActivityIndicator } from 'react-native';
 import { BrutalistAlert } from '../../components/ui/BrutalistAlert';
 import { ReviewForm } from '../../components/ui/ReviewForm';
+import DisputeModal from '../../components/ui/DisputeModal';
 
 // Mock data removed in favor of real API calls
 
@@ -73,6 +74,9 @@ export default function WakaStatusScreen() {
   const [removedItems, setRemovedItems] = useState<Set<number>>(new Set());
   const [isRejecting, setIsRejecting] = useState(false);
   const [isUpdatingPaymentMethod, setIsUpdatingPaymentMethod] = useState(false);
+  const [disputeVisible, setDisputeVisible] = useState(false);
+  const [isTipping, setIsTipping] = useState(false);
+  const [tipAmount, setTipAmount] = useState("");
 
   const showAlert = (title: string, message: string, buttons: any[] = [{ text: 'OK' }]) => {
     setAlertConfig({ title, message, buttons });
@@ -438,6 +442,47 @@ export default function WakaStatusScreen() {
     }
   };
 
+  const handleRaiseDispute = async (reason: string, description: string) => {
+    if (!token || !id) return;
+    try {
+      const res = await fetch(`${API.API_URL}/waka/${id}/dispute`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ reason, description })
+      });
+      if (!res.ok) throw new Error('Failed to raise dispute');
+      showAlert('Dispute Raised', 'Our audit team will review this errand within 24 hours.');
+      fetchWakaDetails();
+    } catch (e: any) {
+      showAlert('Error', e.message);
+    }
+  };
+
+  const handleTip = async () => {
+    if (!token || !id || !tipAmount) return;
+    try {
+      setIsTipping(true);
+      const res = await fetch(`${API.API_URL}/waka/${id}/tip`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ amount: parseFloat(tipAmount) })
+      });
+      if (!res.ok) throw new Error('Failed to send tip');
+      showAlert('Tip Sent', `₦${tipAmount} tip successfully sent to the runner!`);
+      setTipAmount("");
+    } catch (e: any) {
+      showAlert('Error', e.message);
+    } finally {
+      setIsTipping(false);
+    }
+  };
+
 
 
   useEffect(() => {
@@ -686,6 +731,41 @@ export default function WakaStatusScreen() {
             </View>
           </View>
         ))}
+
+        {/* Dispute Button */}
+        {waka.status !== 'cancelled' && waka.status !== 'finding_runner' && (
+          <TouchableOpacity 
+            style={[styles.cancelBtn, { marginTop: 20, borderStyle: 'dashed' }]}
+            onPress={() => setDisputeVisible(true)}
+          >
+            <Text style={styles.cancelText}>RAISE DISPUTE / REPORT ISSUE</Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Tipping Section (Nomad only, if completed) */}
+        {isNomad && waka.status === 'completed' && (
+          <View style={[styles.card, { marginTop: 20, backgroundColor: '#FFFACD' }]}>
+            <Text style={styles.cardTitle}>SEND A TIP? 🎁</Text>
+            <Text style={styles.fieldHint}>Show some appreciation for the runner's hard work.</Text>
+            <View style={[styles.brutalInput, { flexDirection: 'row', alignItems: 'center', marginTop: 10 }]}>
+              <Text style={{ fontFamily: 'SpaceMono-Bold', marginRight: 5 }}>₦</Text>
+              <TextInput 
+                style={{ flex: 1, fontFamily: 'SpaceMono-Bold' }}
+                placeholder="Amount (e.g. 500)"
+                keyboardType="numeric"
+                value={tipAmount}
+                onChangeText={setTipAmount}
+              />
+              <TouchableOpacity 
+                style={[styles.smallBtn, !tipAmount && { opacity: 0.5 }]} 
+                onPress={handleTip}
+                disabled={!tipAmount || isTipping}
+              >
+                {isTipping ? <ActivityIndicator size="small" color="white" /> : <Text style={styles.smallBtnText}>TIP</Text>}
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
 
         {/* Payment Method Option */}
         <View style={styles.paymentOptionCard}>
@@ -989,6 +1069,12 @@ export default function WakaStatusScreen() {
         message={alertConfig.message}
         buttons={alertConfig.buttons}
         onClose={() => setAlertVisible(false)}
+      />
+
+      <DisputeModal 
+        visible={disputeVisible}
+        onClose={() => setDisputeVisible(false)}
+        onSubmit={handleRaiseDispute}
       />
     </SafeAreaView>
   );
@@ -1526,6 +1612,24 @@ function getStyles(colors: any) {
       fontSize: 11,
       color: colors.muted,
       lineHeight: 16,
+    },
+    fieldHint: {
+      fontFamily: DT.typography.body,
+      fontSize: 11,
+      color: colors.muted,
+      marginTop: 4,
+    },
+    smallBtn: {
+      backgroundColor: colors.text,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderWidth: 2,
+      borderColor: colors.text,
+    },
+    smallBtnText: {
+      color: colors.surface,
+      fontFamily: DT.typography.heading,
+      fontSize: 11,
     },
   });
 }

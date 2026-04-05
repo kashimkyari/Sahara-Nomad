@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
-import { ChevronLeft, ShieldCheck, Star, Award } from 'lucide-react-native';
+import { ChevronLeft, ShieldCheck, Star, Award, Heart } from 'lucide-react-native';
 import { DesignTokens as DT } from '../../constants/design';
 import { useTheme } from '../../hooks/use-theme';
 import { useAuth } from '../../context/AuthContext';
@@ -20,6 +20,8 @@ export default function RunnerProfileScreen() {
 
   const [runner, setRunner] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isBookmarked, setIsBookmarked] = useState(false);
+  const [isToggling, setIsToggling] = useState(false);
 
   useEffect(() => {
     const fetchRunner = async () => {
@@ -29,6 +31,7 @@ export default function RunnerProfileScreen() {
         });
         const data = await response.json();
         setRunner(data);
+        setIsBookmarked(data.is_bookmarked || false);
       } catch (error) {
         console.error('Failed to fetch runner:', error);
       } finally {
@@ -37,6 +40,33 @@ export default function RunnerProfileScreen() {
     };
     if (id) fetchRunner();
   }, [id]);
+
+  const toggleBookmark = async () => {
+    if (isToggling) return;
+    setIsToggling(true);
+    try {
+      const response = await fetch(`${API.API_URL}/runners/${id}/bookmark`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.ok) {
+        setIsBookmarked(!isBookmarked);
+      }
+    } catch (error) {
+      console.error("Toggle Bookmark Error:", error);
+    } finally {
+      setIsToggling(false);
+    }
+  };
+
+  const getTierColor = (tier: string) => {
+    switch (tier?.toLowerCase()) {
+      case 'gold': return '#FFD700';
+      case 'silver': return '#C0C0C0';
+      case 'bronze': return '#CD7F32';
+      default: return colors.muted;
+    }
+  };
 
   if (loading) {
     return (
@@ -62,7 +92,17 @@ export default function RunnerProfileScreen() {
           <ChevronLeft size={24} color={colors.text} strokeWidth={2.5} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{runner.is_runner ? 'Runner Profile' : 'Nomad Profile'}</Text>
-        <View style={{ width: 40 }} />
+        <TouchableOpacity 
+          style={[styles.backBtn, isBookmarked && { backgroundColor: '#FF6B6B' }]} 
+          onPress={toggleBookmark}
+          disabled={isToggling}
+        >
+          {isToggling ? (
+            <ActivityIndicator size="small" color={colors.text} />
+          ) : (
+            <Heart size={20} color={isBookmarked ? 'white' : colors.text} fill={isBookmarked ? 'white' : 'transparent'} />
+          )}
+        </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.flex1} showsVerticalScrollIndicator={false}>
@@ -79,8 +119,11 @@ export default function RunnerProfileScreen() {
           </View>
           <View style={styles.nameRow}>
             <Text style={styles.runnerName}>{runner.full_name}</Text>
-            {runner.loyalty_badge && (
-              <Award size={18} color={colors.primary} />
+            {runner.runner_profile?.runner_tier && (
+              <View style={[styles.tierBadge, { backgroundColor: getTierColor(runner.runner_profile.runner_tier) }]}>
+                <Award size={12} color="black" />
+                <Text style={styles.tierText}>{runner.runner_profile.runner_tier.toUpperCase()}</Text>
+              </View>
             )}
           </View>
           <View style={styles.ratingRow}>
@@ -219,8 +262,22 @@ const getStyles = (colors: any) => StyleSheet.create({
   nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
     marginBottom: DT.spacing.sm,
+  },
+  tierBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderWidth: 2,
+    borderColor: 'black',
+  },
+  tierText: {
+    fontFamily: 'SpaceMono-Bold',
+    fontSize: 10,
+    color: 'black',
   },
   ratingRow: {
     flexDirection: 'row',
