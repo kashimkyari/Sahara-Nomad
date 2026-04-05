@@ -40,6 +40,9 @@ class DisputeCreate(BaseModel):
     reason: str # payment, items, behavior, other
     description: str
 
+class WakaComplete(BaseModel):
+    pod_url: Optional[str] = None
+
 class DisputeResponse(BaseModel):
     id: UUID
     waka_id: UUID
@@ -95,6 +98,7 @@ class WakaResponse(BaseModel):
     has_runner_reviewed: bool = False
     payment_method: str = "wallet"
     insurance_opt_in: bool = False
+    pod_url: Optional[str] = None
     created_at: datetime
     
     employer: Optional[WakaUser] = None

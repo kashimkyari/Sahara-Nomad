@@ -52,6 +52,7 @@ class Waka(AuditableBase):
 
     payment_method: Mapped[str] = mapped_column(String(20), server_default='wallet', default='wallet', nullable=False) # wallet, cash
     insurance_opt_in: Mapped[bool] = mapped_column(Boolean, server_default='false', default=False, nullable=False)
+    pod_url: Mapped[Optional[str]] = mapped_column(String(512), nullable=True) # Proof of Delivery Image URL
 
     # Relationships
     employer: Mapped["User"] = relationship("User", foreign_keys=[employer_id])

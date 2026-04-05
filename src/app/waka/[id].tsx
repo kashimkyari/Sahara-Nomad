@@ -23,8 +23,11 @@ import {
   ShoppingBag,
   Utensils,
   Navigation,
-  Package
+  Package,
+  Camera,
+  Eye
 } from 'lucide-react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { DesignTokens as DT } from '../../constants/design';
 import { useTheme } from '../../hooks/use-theme';
 import { useAuth } from '../../context/AuthContext';
@@ -77,6 +80,8 @@ export default function WakaStatusScreen() {
   const [disputeVisible, setDisputeVisible] = useState(false);
   const [isTipping, setIsTipping] = useState(false);
   const [tipAmount, setTipAmount] = useState("");
+  const [podImage, setPodImage] = useState<string | null>(null);
+  const [isUploadingPOD, setIsUploadingPOD] = useState(false);
 
   const showAlert = (title: string, message: string, buttons: any[] = [{ text: 'OK' }]) => {
     setAlertConfig({ title, message, buttons });
@@ -276,13 +281,64 @@ export default function WakaStatusScreen() {
     }
   };
 
+  const pickImage = async () => {
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      quality: 0.7,
+    });
+
+    if (!result.canceled) {
+      setPodImage(result.assets[0].uri);
+    }
+  };
+
   const handleComplete = async () => {
     if (!token || !id) return;
+    
+    let uploadedUrl = null;
+    if (actingAsRunner && podImage) {
+      setIsUploadingPOD(true);
+      try {
+        const formData = new FormData();
+        const uriParts = podImage.split('.');
+        const fileType = uriParts[uriParts.length - 1];
+        
+        formData.append('file', {
+          uri: podImage,
+          name: `pod_${id}.${fileType}`,
+          type: `image/${fileType}`,
+        } as any);
+
+        const uploadRes = await fetch(`${API.API_URL}/waka/${id}/pod`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+          body: formData,
+        });
+        
+        if (!uploadRes.ok) throw new Error('Photo upload failed');
+        const uploadData = await uploadRes.json();
+        uploadedUrl = uploadData.pod_url;
+      } catch (e: any) {
+        showAlert('Upload Error', e.message);
+        setIsUploadingPOD(false);
+        return;
+      } finally {
+        setIsUploadingPOD(false);
+      }
+    }
+
     try {
       setIsAccepting(true); // Re-use indicator
       const res = await fetch(`${API.WAKA.GET(id)}/complete`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { 
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}` 
+        },
+        body: JSON.stringify({ pod_url: uploadedUrl })
       });
       const data = await res.json();
 
@@ -1011,14 +1067,64 @@ export default function WakaStatusScreen() {
               </View>
             )}
 
+            {waka.step >= 4 && !waka.completed_by_employer && actingAsRunner && (
+              <View style={[styles.card, { marginTop: 12, borderStyle: 'dashed' }]}>
+                <Text style={styles.listHeader}>PROOF OF DELIVERY</Text>
+                {podImage || waka.pod_url ? (
+                  <View style={styles.podPreviewContainer}>
+                    <Image 
+                      source={{ uri: podImage || `${API.API_URL}${waka.pod_url}` }}
+                      style={styles.podPreview}
+                    />
+                    {!waka.pod_url && (
+                      <TouchableOpacity style={styles.changePodBtn} onPress={pickImage}>
+                        <Camera size={16} color={colors.surface} />
+                        <Text style={styles.changePodText}>RETREKE</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                ) : (
+                  <TouchableOpacity style={styles.addPodBtn} onPress={pickImage}>
+                    <Camera size={24} color={colors.text} />
+                    <Text style={styles.addPodText}>TAKE DELIVERY PHOTO</Text>
+                    <Text style={styles.addPodSub}>Highly recommended to prevent disputes</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
+
             {waka.step >= 4 && !waka.completed_by_employer && (
               <TouchableOpacity 
-                style={[styles.primaryAction, { backgroundColor: colors.secondary }]} 
+                style={[styles.primaryAction, { backgroundColor: colors.secondary, marginTop: 12 }]} 
                 onPress={handleComplete}
+                disabled={isUploadingPOD || isAccepting}
               >
-                <CheckCircle2 size={20} color={colors.surface} strokeWidth={2.5} />
-                <Text style={styles.primaryActionText}>CONFIRM COMPLETION</Text>
+                {isUploadingPOD || isAccepting ? (
+                  <ActivityIndicator color={colors.surface} />
+                ) : (
+                  <>
+                    <CheckCircle2 size={20} color={colors.surface} strokeWidth={2.5} />
+                    <Text style={styles.primaryActionText}>CONFIRM COMPLETION</Text>
+                  </>
+                )}
               </TouchableOpacity>
+            )}
+
+            {isNomad && waka.pod_url && (
+               <View style={[styles.card, { marginTop: 12, backgroundColor: '#F0F9FF', borderColor: colors.secondary }]}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                  <Eye size={16} color={colors.secondary} />
+                  <Text style={[styles.listHeader, { marginBottom: 0, color: colors.secondary }]}>VIEW DELIVERY PHOTO</Text>
+                </View>
+                <Image 
+                  source={{ 
+                    uri: `${API.API_URL}${waka.pod_url}`,
+                    headers: { Authorization: `Bearer ${token}` }
+                  }}
+                  style={styles.podPreview}
+                  contentFit="cover"
+                />
+               </View>
             )}
             {waka.completed_by_employer && !waka.is_completed && (
               <View style={[styles.infoBanner, { backgroundColor: colors.surface, borderColor: colors.primary }]}>
@@ -1630,6 +1736,54 @@ function getStyles(colors: any) {
       color: colors.surface,
       fontFamily: DT.typography.heading,
       fontSize: 11,
+    },
+    podPreviewContainer: {
+      position: 'relative',
+      height: 200,
+      width: '100%',
+      borderWidth: 2,
+      borderColor: colors.text,
+      overflow: 'hidden',
+    },
+    podPreview: {
+      width: '100%',
+      height: '100%',
+    },
+    addPodBtn: {
+      height: 120,
+      backgroundColor: colors.background,
+      borderWidth: 2,
+      borderColor: colors.text,
+      borderStyle: 'dashed',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+    },
+    addPodText: {
+      fontFamily: DT.typography.heading,
+      fontSize: 14,
+      color: colors.text,
+    },
+    addPodSub: {
+      fontFamily: DT.typography.body,
+      fontSize: 10,
+      color: colors.muted,
+    },
+    changePodBtn: {
+      position: 'absolute',
+      bottom: 12,
+      right: 12,
+      backgroundColor: colors.text,
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      gap: 6,
+    },
+    changePodText: {
+      fontFamily: DT.typography.heading,
+      fontSize: 10,
+      color: colors.surface,
     },
   });
 }

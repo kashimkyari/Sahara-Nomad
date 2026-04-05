@@ -1,11 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, Depends, HTTPException, File, UploadFile
+import os
+import shutil
 from sqlalchemy import select, func, update, or_
 from sqlalchemy.orm import selectinload
 from ...database import get_db
 from ...models.waka import Waka, WakaDecline
 from ...models.user import User
-from ...schemas.waka import WakaCreate, WakaResponse, WakaSourcingRequest, SourcingRejection, WakaTipRequest, DisputeCreate, DisputeResponse
+from ...schemas.waka import WakaCreate, WakaResponse, WakaSourcingRequest, SourcingRejection, WakaTipRequest, DisputeCreate, DisputeResponse, WakaComplete
 from ...schemas.review import ReviewBase, ReviewResponse
 from .deps import get_current_user
 from ...services.notification_service import notify_user
@@ -13,6 +15,46 @@ import uuid
 from typing import List, Optional, Dict, Any
 
 router = APIRouter()
+
+POD_UPLOAD_DIR = "uploads/pod"
+if not os.path.exists(POD_UPLOAD_DIR):
+    os.makedirs(POD_UPLOAD_DIR)
+
+@router.post("/{waka_id}/pod", response_model=Dict[str, Any])
+async def upload_waka_pod(
+    waka_id: uuid.UUID,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Assigned runner uploads proof of delivery photo."""
+    waka = await db.get(Waka, waka_id)
+    if not waka:
+        raise HTTPException(status_code=404, detail="Waka not found")
+        
+    if waka.runner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Only the assigned runner can upload POD")
+        
+    file_ext = os.path.splitext(file.filename)[1]
+    file_name = f"{waka_id}{file_ext}"
+    file_path = os.path.join(POD_UPLOAD_DIR, file_name)
+    
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+        
+    waka.pod_url = f"/api/v1/waka/{waka_id}/pod_image"
+    await db.commit()
+    return {"status": "success", "pod_url": waka.pod_url}
+
+@router.get("/{waka_id}/pod_image")
+async def get_waka_pod_image(waka_id: uuid.UUID):
+    """Retrieve proof of delivery photo."""
+    if os.path.exists(POD_UPLOAD_DIR):
+        for f in os.listdir(POD_UPLOAD_DIR):
+            if f.startswith(str(waka_id)):
+                from fastapi.responses import FileResponse
+                return FileResponse(os.path.join(POD_UPLOAD_DIR, f))
+    raise HTTPException(status_code=404, detail="POD image not found")
 
 async def get_hydrated_waka(db: AsyncSession, waka_id: uuid.UUID) -> Waka:
     """Fetch waka with employer and runner relationships loaded."""
@@ -278,6 +320,7 @@ async def update_waka_payment_method(
 @router.post("/{waka_id}/complete", response_model=WakaResponse)
 async def complete_waka(
     waka_id: uuid.UUID,
+    complete_in: Optional[WakaComplete] = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -291,6 +334,8 @@ async def complete_waka(
         waka.completed_by_employer = True
     elif current_user.id == waka.runner_id:
         waka.completed_by_runner = True
+        if complete_in and complete_in.pod_url:
+            waka.pod_url = complete_in.pod_url
     else:
         raise HTTPException(status_code=403, detail="Not a participant in this errand")
     
@@ -298,6 +343,7 @@ async def complete_waka(
     if waka.completed_by_runner and waka.completed_by_employer:
         waka.is_completed = True
         waka.status = "completed"
+        waka.step = 5
         
         # --- AUTOMATED RUNNER FEE PAYOUT ---
         from ...services.wallet_service import wallet_service
